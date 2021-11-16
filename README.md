@@ -31,5 +31,7 @@ make
 ```
 sudo setcap "CAP_NET_ADMIN=ep CAP_NET_RAW=ep CAP_NET_BIND_SERVICE=ep" linbpq
 chmod +x linbpq
-./linbpq
 ```
+
+edit linbpq.cfg and chatconfig.cfg to suit
+run with `./linbpq`
