@@ -81,6 +81,33 @@ VOID TidyWelcomeMsg(char ** pPrompt);
 // POP3 Password is encrypted by xor'ing it with an MD5 hash of the hostname and pop3 server name
 
 
+double GetDlgItemFloat(HWND hDlg, int DlgItem, BOOL *lpTranslated, BOOL bSigned)
+{
+	char Num[32];
+	double ret = 0.0;
+
+	GetDlgItemText(hDlg, DlgItem, Num, 31);
+	return atof(Num);
+}
+
+
+BOOL SetDlgItemFloat(HWND hDlg, int DlgItem, double Value, BOOL bSigned)
+{
+	char Num[32];
+
+	sprintf(Num, "%.2f", Value);
+
+	while (Num[strlen(Num) -1] == '0')
+		Num[strlen(Num) -1] = 0;
+
+	if (Num[strlen(Num) -1] == '.')
+		Num[strlen(Num) -1] = 0;
+
+	return SetDlgItemText(hDlg, DlgItem, Num);
+}
+
+
+
 int ww, wh, w, h, hpos, vpos;
 int xmargin;
 int ymargin;
@@ -707,10 +734,10 @@ VOID WINAPI OnSelChanged(HWND hwndDlg)
 		sprintf(Time, "%04d", MaintTime);
 		SetDlgItemText(pHdr->hwndDisplay, IDC_MAINTTIME, Time);
 
-		SetDlgItemInt(pHdr->hwndDisplay, IDM_PR, PR, FALSE);
-		SetDlgItemInt(pHdr->hwndDisplay, IDM_PUR, PUR, FALSE);
-		SetDlgItemInt(pHdr->hwndDisplay, IDM_PF, PF, FALSE);
-		SetDlgItemInt(pHdr->hwndDisplay, IDM_PNF, PNF, FALSE);
+		SetDlgItemFloat(pHdr->hwndDisplay, IDM_PR, PR, FALSE);
+		SetDlgItemFloat(pHdr->hwndDisplay, IDM_PUR, PUR, FALSE);
+		SetDlgItemFloat(pHdr->hwndDisplay, IDM_PF, PF, FALSE);
+		SetDlgItemFloat(pHdr->hwndDisplay, IDM_PNF, PNF, FALSE);
 
 		SetDlgItemInt(pHdr->hwndDisplay, IDM_BF, BF, FALSE);
 		SetDlgItemInt(pHdr->hwndDisplay, IDM_BNF, BNF, FALSE);
@@ -1941,10 +1968,10 @@ VOID SaveMAINTConfigFromDialog()
 	UserLifetime = GetDlgItemInt(hwndDisplay, IDC_USERLIFETIME, &OK1, FALSE);
 	MaintInterval = GetDlgItemInt(hwndDisplay, IDC_MAINTINTERVAL, &OK1, FALSE);
 	MaintTime = GetDlgItemInt(hwndDisplay, IDC_MAINTTIME, &OK1, FALSE);
-	PR = GetDlgItemInt(hwndDisplay, IDM_PR, &OK1, FALSE);
-	PUR = GetDlgItemInt(hwndDisplay, IDM_PUR, &OK1, FALSE);
-	PF = GetDlgItemInt(hwndDisplay, IDM_PF, &OK1, FALSE);
-	PNF = GetDlgItemInt(hwndDisplay, IDM_PNF, &OK1, FALSE);
+	PR = GetDlgItemFloat(hwndDisplay, IDM_PR, &OK1, FALSE);
+	PUR = GetDlgItemFloat(hwndDisplay, IDM_PUR, &OK1, FALSE);
+	PF = GetDlgItemFloat(hwndDisplay, IDM_PF, &OK1, FALSE);
+	PNF = GetDlgItemFloat(hwndDisplay, IDM_PNF, &OK1, FALSE);
 	BF = GetDlgItemInt(hwndDisplay, IDM_BF, &OK1, FALSE);
 	BNF = GetDlgItemInt(hwndDisplay, IDM_BNF, &OK1, FALSE);
 	NTSD = GetDlgItemInt(hwndDisplay, IDM_NTSD, &OK1, FALSE);
@@ -1980,8 +2007,8 @@ VOID SaveMAINTConfigFromDialog()
 
 		MaintClock = _mkgmtime(tm);
 
-		if (MaintClock < now)
-			MaintClock += 86400;
+		while (MaintClock < now)
+			MaintClock += MaintInterval * 3600;
 
 		Debugprintf("Maint Clock %d NOW %d Time to HouseKeeping %d", MaintClock, now, MaintClock - now);
 	}

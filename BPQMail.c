@@ -1044,6 +1044,15 @@
 //  Allow flagging unread T messages as Delivered
 //  Replace \ with # in forward script so commands starting with # can be sent
 //  Fix forwarding NTS on TO field
+//	Fix possible crash in text mode forwarding
+//	Allow decimals of days in P message lifetimes and allow Houskeeping interval to be configured
+//	Add DOHOUSEKEEPING sysop command
+//  Add MARS continent code
+//	Try to trap 'zombie' BBS Sessions
+//	On Linux if "Delete to Recycle Bin" is set move deleted messages and logs to directory Deleted under current directory.
+//	Fix corruption of message length when reading R2 message via Read command
+//	Fix paging on List command and add new combinations of List options
+//	Fix NNTP list and LC command when bulls are killed
 
 
 #include "BPQMail.h"
@@ -1998,7 +2007,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (MaintClock < NOW)
 				{
 					while (MaintClock < NOW)		// in case large time step
-						MaintClock += 86400;
+						MaintClock += MaintInterval * 3600;
 
 					Debugprintf("|Enter HouseKeeping");
 					DoHouseKeeping(FALSE);
@@ -3160,14 +3169,14 @@ BOOL Initialise()
 
 		MaintClock = _mkgmtime(tm);
 
-		if (MaintClock < now)
-			MaintClock += 86400;
+		while (MaintClock < now)
+			MaintClock += MaintInterval * 3600;
 
 		Debugprintf("Maint Clock %lld NOW %lld Time to HouseKeeping %lld", (long long)MaintClock, (long long)now, (long long)(MaintClock - now));
 
 		if (LastHouseKeepingTime)
 		{
-			if ((now - LastHouseKeepingTime) > 86400)
+			if ((now - LastHouseKeepingTime) > MaintInterval * 3600)
 			{
 				DoHouseKeeping(FALSE);
 			}

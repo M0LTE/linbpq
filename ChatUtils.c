@@ -38,6 +38,7 @@ extern char WindowSize[32];
 
 
 INT_PTR CALLBACK InfoDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+int GetMultiLineDialog(HWND hDialog, int DLGItem);
 
 int Connected(Stream)
 {

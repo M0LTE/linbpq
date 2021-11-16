@@ -45,12 +45,10 @@
 // January 2019 1.0.10.2
 //	Fix errors in chat config file names and locations
 
-// 1.0.11.2
+// December 2020 1.0.11.1
+
 //	Send INFO to Map every hour
-
-// 1.0.11.3
 //	Remove CMD_TO_APPL flag from Applflags
-
 
 #include "BPQChat.h"
 
@@ -203,6 +201,7 @@ BOOL GetConfigFromRegistry();
 VOID SaveStringValue(config_setting_t * group, char * name, char * value);
 VOID SaveIntValue(config_setting_t * group, char * name, int value);
 VOID SaveChatConfig(HWND hDlg);
+BOOL CreateChatPipeThread();
 
 struct _EXCEPTION_POINTERS exinfox;
 	

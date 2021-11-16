@@ -222,6 +222,10 @@ VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer)
 	if (PORT->PORTMHEARD)
 		MHPROC(PORT, Buffer);
 
+	/// TAJ added 07/12/2020 for 'all RX traffic as IfinOctects
+
+	InOctets[PORT->PORTNUMBER] += Buffer->LENGTH - MSGHDDRLEN;
+
 	//	CHECK THAT ALL DIGIS HAVE BEEN ACTIONED,
 	//  AND ADJUST FOR DIGIPEATERS IF PRESENT
 
@@ -618,7 +622,6 @@ VOID L2FORUS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buff
 	int CTLlessPF = CTL & ~PFBIT;
 	
 	PORT->L2FRAMESFORUS++;
-	InOctets[PORT->PORTNUMBER] += Buffer->LENGTH - 7;
 
 	NO_CTEXT = 0;
 
@@ -988,7 +991,6 @@ VOID L2LINKACTIVE(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 	int CTLlessPF = CTL & ~PFBIT;
 	
 	PORT->L2FRAMESFORUS++;
-	InOctets[PORT->PORTNUMBER] += Buffer->LENGTH - 7;
 
 	//	ONLY SABM or UI  ALLOWED IF NO SESSION 
 
@@ -3807,6 +3809,5 @@ BOOL CheckForListeningSession(struct PORTCONTROL * PORT, MESSAGE * Msg)
 		}
 		L4++;
 	}
-
 	return FALSE;
 }

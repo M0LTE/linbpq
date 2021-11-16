@@ -1396,7 +1396,7 @@ VOID DEDPoll(int Port)
 			
 		buffptr = Q_REM(&TNC->PortRecord->UI_Q);
 		
-		datalen = buffptr->LENGTH - 7;
+		datalen = buffptr->LENGTH - MSGHDDRLEN;
 		Buffer = &buffptr->DEST[0];		// Raw Frame
 		
 		Buffer[datalen] = 0;

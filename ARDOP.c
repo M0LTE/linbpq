@@ -983,7 +983,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				continue;
 			}
 	
-			datalen = buffptr->LENGTH - 7;
+			datalen = buffptr->LENGTH - MSGHDDRLEN;
 			Buffer = &buffptr->DEST[0];		// Raw Frame
 			Buffer[datalen] = 0;
 

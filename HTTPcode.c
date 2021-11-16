@@ -435,6 +435,23 @@ VOID PollSession(struct HTTPConnectionInfo * Session)
 				{
 					memcpy(ptr2, "&nbsp;", 6);
 					ptr2 += 6;
+
+					// Make sure line isn't too long
+
+					if ((ptr2 - &Formatted[0]) > 250)
+					{
+						strcpy(ptr2, "<br>\r\n");
+
+						Line = Session->LastLine++;
+						free(Session->ScreenLines[Line]);
+
+						Session->ScreenLines[Line] = _strdup(Formatted);
+
+						if (Line == 99)
+							Session->LastLine = 0;
+
+						ptr2 = &Formatted[0];
+					}
 				}
 				else if (c == '>')
 				{
@@ -448,6 +465,7 @@ VOID PollSession(struct HTTPConnectionInfo * Session)
 				}
 				else
 					*(ptr2++) = c;
+
 			}
 
 			*ptr2 = 0;

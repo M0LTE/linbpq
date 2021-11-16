@@ -2019,7 +2019,7 @@ VOID TIMERINTERRUPT()
 
 				//	PACTOR Style Message
 
-				InOctets[PORT->PORTNUMBER] += Message->LENGTH - 8;
+				InOctets[PORT->PORTNUMBER] += Message->LENGTH - (MSGHDDRLEN + 1);
 				PORT->L2FRAMESFORUS++;
 
 				Session = PORTVEC->ATTACHEDSESSIONS[Sessno];
@@ -2156,7 +2156,7 @@ L2Packet:
 				}
 
 				PORT->L2FRAMESSENT++;
-				OutOctets[PORT->PORTNUMBER] += Buffer->LENGTH - 7;
+				OutOctets[PORT->PORTNUMBER] += Buffer->LENGTH - MSGHDDRLEN;
 
 				PORT->PORTTXROUTINE(PORT, Buffer);
 				Sent++;

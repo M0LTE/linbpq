@@ -220,8 +220,8 @@ BEGIN
                     BS_LEFTTEXT | WS_TABSTOP,176,174,79,12
     EDITTEXT        IDC_AMPR,72,237,119,13
     LTEXT           "AMPR Address",IDC_STATIC,6,239,60,12
-    CONTROL         "Send ampr.org mail to AMPR host",IDC_FORWARDAMPR,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,201,237,124,14
+    CONTROL         "Send ampr.org mail to AMPR host",IDC_FORWARDAMPR,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,201,237,124,14
     CONTROL         "Allow users to kill T msgs",IDC_USERRKILLT,"Button",
                     BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,264,189,95,12
     CONTROL         "Set Don't add WINLINK.ORG flag on new users",
@@ -994,23 +994,17 @@ BEGIN
     LTEXT           "This sets the parameters for deleting old messages. Specify length of time (in days) for messages to be kept before being deleted",
                     IDC_STATIC,149,13,226,22
     LTEXT           "Read",IDC_STATIC,159,46,46,10
-    EDITTEXT        IDM_PR,224,46,20,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    EDITTEXT        IDM_PR,224,46,20,12,ES_CENTER | ES_AUTOHSCROLL
     LTEXT           "Unread",IDC_STATIC,159,61,46,10
-    EDITTEXT        IDM_PUR,224,61,20,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    EDITTEXT        IDM_PUR,224,61,20,12,ES_CENTER | ES_AUTOHSCROLL
     LTEXT           "Forwarded",IDC_STATIC,159,76,46,10
-    EDITTEXT        IDM_PF,224,76,20,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    EDITTEXT        IDM_PF,224,76,20,12,ES_CENTER | ES_AUTOHSCROLL
     LTEXT           "Not Forwarded",IDC_STATIC,159,91,49,10
-    EDITTEXT        IDM_PNF,224,91,20,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    EDITTEXT        IDM_PNF,224,91,20,12,ES_CENTER | ES_AUTOHSCROLL
     LTEXT           "Forwarded",IDC_STATIC,264,46,49,10
-    EDITTEXT        IDM_BF,324,46,20,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    EDITTEXT        IDM_BF,324,46,20,12,ES_CENTER | ES_AUTOHSCROLL
     LTEXT           "Not Forwarded",IDC_STATIC,264,61,49,10
-    EDITTEXT        IDM_BNF,324,61,20,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    EDITTEXT        IDM_BNF,324,61,20,12,ES_CENTER | ES_AUTOHSCROLL
     GROUPBOX        "Personals",IDC_STATIC,149,36,108,107
     GROUPBOX        "Bulletins",IDC_STATIC,259,36,103,44
     LTEXT           "The following boxes allow you to specify different values for different Bulletin origins and destinations. Normally these apply to Sent Messages, to apply to unsent,  check box below",
@@ -1030,49 +1024,46 @@ BEGIN
                     BS_VCENTER
     GROUPBOX        "Lifetimes",IDC_STATIC,144,0,231,275
     GROUPBOX        "Parameters",IDC_STATIC,3,3,133,275
-    LTEXT           "Max Message Number",IDC_STATIC,7,46,77,10
-    LTEXT           "BID Lifetime (Days)",IDC_STATIC,7,65,77,10
+    LTEXT           "Max Message Number",IDC_STATIC,7,68,77,10
+    LTEXT           "BID Lifetime (Days)",IDC_STATIC,7,87,77,10
     LTEXT           "Maintenance Time (UTC)   Enter as HHMM",IDC_STATIC,7,21,
                     83,25
-    EDITTEXT        IDC_MAXMSG,102,45,25,12,ES_CENTER | ES_NUMBER
-    EDITTEXT        IDC_BIDLIFETIME,102,64,25,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
-    EDITTEXT        IDC_MAINTTIME,102,23,25,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
-    LTEXT           "Log File Lifetime (Days)",IDC_STATIC,7,85,80,10
-    EDITTEXT        IDC_LOGLIFETIME,102,83,25,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    EDITTEXT        IDC_MAXMSG,102,67,25,12,ES_CENTER
+    EDITTEXT        IDC_BIDLIFETIME,102,86,25,12,ES_CENTER | ES_AUTOHSCROLL
+    EDITTEXT        IDC_MAINTTIME,102,23,25,12,ES_CENTER | ES_AUTOHSCROLL
+    LTEXT           "Log File Lifetime (Days)",IDC_STATIC,7,107,80,10
+    EDITTEXT        IDC_LOGLIFETIME,102,105,25,12,ES_CENTER | ES_AUTOHSCROLL
     CONTROL         "Delete Log and Message Files to Recycle Bin",
                     IDC_DELETETORECYCLE,"Button",BS_AUTOCHECKBOX | 
-                    BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,5,121,115,20
+                    BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,5,142,115,20
     CONTROL         "Supress Mailing of Housekeeping Results",
                     IDC_MAINTNOMAIL,"Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | 
-                    BS_MULTILINE | WS_TABSTOP,5,161,115,20
+                    BS_MULTILINE | WS_TABSTOP,5,182,115,20
     CONTROL         "Generate Traffic Report",IDC_MAINTTRAFFIC,"Button",
                     BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
-                    WS_TABSTOP,5,183,115,10
+                    WS_TABSTOP,5,204,115,10
     CONTROL         "Send Non-delivery Notifications for P and T messages",
                     IDC_MAINTNONDELIVERY,"Button",BS_AUTOCHECKBOX | 
-                    BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,5,141,115,20
+                    BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,5,162,115,20
     CONTROL         "Apply Overrides to Unsent Bulls",IDC_OVERRIDEUNSENT,
                     "Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
                     WS_TABSTOP,153,261,195,10
-    LTEXT           "Delete Inactive Users (Days)",IDC_STATIC,7,105,93,10
-    EDITTEXT        IDC_USERLIFETIME,102,103,25,12,ES_CENTER | 
-                    ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Delete Inactive Users (Days)",IDC_STATIC,7,127,93,10
+    EDITTEXT        IDC_USERLIFETIME,102,125,25,12,ES_CENTER | 
+                    ES_AUTOHSCROLL
     GROUPBOX        "NTS",IDC_STATIC,259,80,102,62
     LTEXT           "Forwarded",IDC_STATIC,264,109,49,10
-    EDITTEXT        IDM_NTSF,324,108,20,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    EDITTEXT        IDM_NTSF,324,108,20,12,ES_CENTER | ES_AUTOHSCROLL
     LTEXT           "Not Forwarded",IDC_STATIC,264,124,49,10
-    EDITTEXT        IDM_NTSU,324,123,20,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    EDITTEXT        IDM_NTSU,324,123,20,12,ES_CENTER | ES_AUTOHSCROLL
     LTEXT           "Delivered",IDC_STATIC,264,94,49,10
-    EDITTEXT        IDM_NTSD,324,94,20,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    EDITTEXT        IDM_NTSD,324,94,20,12,ES_CENTER | ES_AUTOHSCROLL
     CONTROL         "Save Registry",IDC_MAINTSAVEREG2,"Button",
                     BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
-                    WS_TABSTOP,5,201,115,10
+                    WS_TABSTOP,5,222,115,10
+    LTEXT           "Maintenance Interval (Hrs)",IDC_STATIC,7,47,93,10
+    EDITTEXT        IDC_MAINTINTERVAL,102,45,25,12,ES_CENTER | 
+                    ES_AUTOHSCROLL
 END
 
 FILTERS DIALOG DISCARDABLE  26, 5, 382, 287
@@ -1129,32 +1120,32 @@ BEGIN
                     IDC_STATIC,98,38,176,35
 END
 
-IDD_RMSBULLDLG DIALOG DISCARDABLE  0, 0, 270, 221
+IDD_RMSBULLDLG DIALOG DISCARDABLE  0, 0, 277, 258
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "RMS Express Bull Configuration"
 FONT 8, "MS Sans Serif"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,66,200,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,164,200,50,14
-    EDITTEXT        IDC_TOCALLS,73,76,44,112,ES_MULTILINE | ES_UPPERCASE | 
+    DEFPUSHBUTTON   "OK",IDOK,66,237,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,164,237,50,14
+    EDITTEXT        IDC_TOCALLS,82,76,54,112,ES_MULTILINE | ES_UPPERCASE | 
                     ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
                     WS_VSCROLL
-    EDITTEXT        IDC_TOCALLS2,146,76,44,112,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_TOCALLS2,144,76,54,112,ES_MULTILINE | ES_UPPERCASE | 
                     ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
                     WS_VSCROLL
-    EDITTEXT        IDC_TOCALLS3,196,76,44,112,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_TOCALLS3,208,76,54,112,ES_MULTILINE | ES_UPPERCASE | 
                     ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
                     WS_VSCROLL
-    EDITTEXT        IDC_TOCALLS4,23,76,44,112,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_TOCALLS4,18,76,54,112,ES_MULTILINE | ES_UPPERCASE | 
                     ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
                     WS_VSCROLL
-    LTEXT           "Common",IDC_STATIC,60,47,48,8
-    LTEXT           "User Specific",IDC_STATIC,167,47,48,8
+    LTEXT           "Common",IDC_STATIC,63,47,48,8
+    LTEXT           "User Specific",IDC_STATIC,174,47,48,8
     LTEXT           "TO                            AT",IDC_STATIC,39,62,79,8
-    LTEXT           "TO                            AT",IDC_STATIC,157,62,79,
+    LTEXT           "TO                            AT",IDC_STATIC,163,62,79,
                     8
-    LTEXT           "This defines Bulls that will be downloaded to RMS Expresss Users. There are two lists, one for all RMS Express users and one per User. The lists will be combined, Updaing the Common list will affect all users.",
-                    IDC_STATIC,20,15,221,29
+    LTEXT           "This defines Bulls that will be downloaded to RMS Express Users. There are two lists, one for all RMS Express users and one per User. The lists will be combined, Updating the Common list will affect all users.",
+                    IDC_STATIC,7,7,242,37
 END
 
 
@@ -1266,9 +1257,9 @@ BEGIN
     IDD_RMSBULLDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 263
+        RIGHTMARGIN, 267
         TOPMARGIN, 7
-        BOTTOMMARGIN, 214
+        BOTTOMMARGIN, 251
     END
 END
 #endif    // APSTUDIO_INVOKED

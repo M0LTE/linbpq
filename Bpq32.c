@@ -973,12 +973,14 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix WK2K Session Record Reporting for Airmail and some Pactor Modes.
 //	Fix handling AX/IP (proto 93) frames
 //	Fix possible corruption sending APRS messages
-//	Allow Telnet connected to be made using Connect command as well as Attach then Connect
+//	Allow Telnet connections to be made using Connect command as well as Attach then Connect
 //	Fix Cancel Sysop Signin
 //	Save axip resolver info and restore on restart
 //	Add Transparent mode to Telnet Server HOST API 
 //	Fix Tracker driver if WL2KREPRRT is in main config section
-
+//	SNMP InOctets count corrected to include all frames and encoding of zero values fixed.
+//	Change IP Gateway to exclude handling bits of 44 Net sold to Amazon
+//	Fix crash in Web terminal when processing very long lines
 
 #define CKernel
 

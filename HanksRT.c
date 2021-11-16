@@ -181,6 +181,19 @@ char * strlop(char * buf, char delim)
 }
 
 
+VOID * _zalloc(size_t len)
+{
+	// ?? malloc and clear
+
+	void * ptr;
+
+	ptr=malloc(len);
+	memset(ptr, 0, len);
+
+	return ptr;
+}
+
+
 VOID * _zalloc_dbg(int len, int type, char * file, int line)
 {
 	// ?? malloc and clear
@@ -197,22 +210,6 @@ VOID * _zalloc_dbg(int len, int type, char * file, int line)
 	return ptr;
 }
 
-
-VOID * _zalloc(time_t len)
-{
-	// ?? malloc and clear
-
-	void * ptr;
-
-	ptr=malloc(len);
-
-	if (ptr == NULL)
-		CriticalErrorHandler("malloc failed");
-
-	memset(ptr, 0, len);
-
-	return ptr;
-}
 
 #endif
 
