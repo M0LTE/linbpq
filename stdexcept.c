@@ -4,10 +4,10 @@
 
 __except(memcpy(&exinfo, GetExceptionInformation(), sizeof(struct _EXCEPTION_POINTERS)), EXCEPTION_EXECUTE_HANDLER)
 {
-	unsigned __int32 SPPtr;
-	unsigned __int32 SPVal;
-	unsigned __int32 eip;
-	unsigned __int32 rev;
+	unsigned __int32 SPPtr = 0;
+	unsigned __int32 SPVal = 0;
+	unsigned __int32 eip = 0;
+	unsigned __int32 rev = 0;
 	int i;
 
 	DWORD Stack[16];
@@ -33,15 +33,17 @@ __except(memcpy(&exinfo, GetExceptionInformation(), sizeof(struct _EXCEPTION_POI
 		rep movsb
 	}
 
+
+
 	Debugprintf("BPQ32 *** Program Error %x at %x in %s",
 		exinfo.ExceptionRecord->ExceptionCode, exinfo.ExceptionRecord->ExceptionAddress, EXCEPTMSG);
 
 	Debugprintf("EAX %x EBX %x ECX %x EDX %x ESI %x EDI %x ESP %x",
 		exinfo.ContextRecord->Eax, exinfo.ContextRecord->Ebx, exinfo.ContextRecord->Ecx,
 		exinfo.ContextRecord->Edx, exinfo.ContextRecord->Esi, exinfo.ContextRecord->Edi, SPVal);
-
-#endif
 		
+#endif
+
 	Debugprintf("Stack:");
 
 	Debugprintf("%08x %08x %08x %08x %08x %08x %08x %08x %08x ",

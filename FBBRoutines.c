@@ -41,7 +41,7 @@ VOID FBBputs(CIRCUIT * conn, char * buf)
 {
 	// Sends to user and logs
 
-	int len = strlen(buf);
+	int len = (int)strlen(buf);
 	
 	WriteLogLine(conn, '>', buf, len -1, LOG_BBS);
 
@@ -301,7 +301,7 @@ VOID ProcessFBBLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int l
 					if (MsgBytes == 0)
 					{
 						MsgBytes = _strdup("Message file not found\r\n");
-						FBBHeader->FwdMsg->length = strlen(MsgBytes);
+						FBBHeader->FwdMsg->length = (int)strlen(MsgBytes);
 					}
 
 					now = time(NULL);
@@ -470,7 +470,7 @@ ok:
 
 		// Check Filters
 
-		if (CheckRejFilters(FBBHeader->From, FBBHeader->To, FBBHeader->ATBBS, FBBHeader->MsgType))
+		if (CheckRejFilters(FBBHeader->From, FBBHeader->To, FBBHeader->ATBBS, FBBHeader->BID, FBBHeader->MsgType))
 		{
 			memset(FBBHeader, 0, sizeof(struct FBBHeaderLine));		// Clear header
 			conn->FBBReplyChars[conn->FBBReplyIndex++] = '-';
@@ -594,8 +594,9 @@ ok:
 			char * From = strtok_s(NULL, seps, &Context);
 			char * ATBBS = strtok_s(NULL, seps, &Context);
 			char * To = strtok_s(NULL, seps, &Context);
+			char * Type = strtok_s(NULL, seps, &Context);
 
-			if (From && To && ATBBS && CheckRejFilters(From, To, ATBBS, FBBHeader->MsgType))
+			if (From && To && ATBBS && CheckRejFilters(From, To, ATBBS, NULL, *Type))
 			{
 				memset(FBBHeader, 0, sizeof(struct FBBHeaderLine));		// Clear header
 				conn->FBBReplyChars[conn->FBBReplyIndex++] = '-';
@@ -1216,7 +1217,7 @@ VOID SendCompressed(CIRCUIT * conn, struct MsgInfo * FwdMsg)
 	if (MsgBytes == 0)
 	{
 		MsgBytes = _strdup("Message file not found\r\n");
-		FwdMsg->length = strlen(MsgBytes);
+		FwdMsg->length = (int)strlen(MsgBytes);
 	}
 
 	OrigLen = FwdMsg->length;
@@ -1227,13 +1228,13 @@ VOID SendCompressed(CIRCUIT * conn, struct MsgInfo * FwdMsg)
 	Output = Outputptr = zalloc(2 * OrigLen + 200);
 
 	*Outputptr++ = 1;
-	*Outputptr++ = strlen(Title) + 8;
+	*Outputptr++ = (int)strlen(Title) + 8;
 	strcpy(Outputptr, Title);
 	Outputptr += strlen(Title) +1;
 	sprintf(Outputptr, "%6d", conn->RestartFrom);
 	Outputptr += 7;
 
-	DataOffset = Outputptr - Output;	// Used if restarting
+	DataOffset = (int)(Outputptr - Output);	// Used if restarting
 
 	memcpy(&temp, &FwdMsg->datereceived, 4);
 	tm = gmtime(&temp);	
@@ -1245,7 +1246,7 @@ VOID SendCompressed(CIRCUIT * conn, struct MsgInfo * FwdMsg)
 	if (memcmp(MsgBytes, "R:", 2) != 0)    // No R line, so must be our message
 		strcat(Rline, "\r\n");
 
-	RLineLen = strlen(Rline);
+	RLineLen = (int)strlen(Rline);
 
 	MsgLen = OrigLen + RLineLen;
 	
@@ -1350,7 +1351,7 @@ VOID SendCompressed(CIRCUIT * conn, struct MsgInfo * FwdMsg)
 	{
 		unsigned char * ptr1 = Output;
 		unsigned char * ptr2 = Compressed;	// Reuse Compressed buffer
-		int Len = Outputptr - Output;
+		size_t Len = Outputptr - Output;
 		unsigned char c;
 
 		while (Len--)
@@ -1361,10 +1362,10 @@ VOID SendCompressed(CIRCUIT * conn, struct MsgInfo * FwdMsg)
 				*(ptr2++) = c;
 		}
 
-		QueueMsg(conn, Compressed, ptr2 - Compressed);
+		QueueMsg(conn, Compressed, (int)(ptr2 - Compressed));
 	}
 	else
-		QueueMsg(conn, Output, Outputptr - Output);
+		QueueMsg(conn, Output, (int)(Outputptr - Output));
 
 	free(Save);
 	free(Compressed);
@@ -1386,7 +1387,7 @@ BOOL CreateB2Message(CIRCUIT * conn, struct FBBHeaderLine * FBBHeader, char * Rl
 	struct MsgInfo * Msg = FBBHeader->FwdMsg;
 	struct UserInfo * FromUser;
 	int BodyLineToBody;
-	int RlineLen = strlen(Rline) ;
+	int RlineLen = (int)strlen(Rline) ;
 	char * TypeString;
 #ifndef LINBPQ	
 	struct _EXCEPTION_POINTERS exinfo;
@@ -1487,7 +1488,7 @@ BOOL CreateB2Message(CIRCUIT * conn, struct FBBHeaderLine * FBBHeader, char * Rl
 		}
 		ptr2 = strstr(ptr, "\r\n");
 
-		Index = ptr - MsgBytes;		// Bytes Before Body: line
+		Index = (int)(ptr - MsgBytes);		// Bytes Before Body: line
 
 		if (Index <= 0 || Index > MsgLen)
 		{
@@ -1516,7 +1517,7 @@ BOOL CreateB2Message(CIRCUIT * conn, struct FBBHeaderLine * FBBHeader, char * Rl
 			return FALSE;
 		}
 
-		BodyLineLen = (ptr2 - ptr) + 2;
+		BodyLineLen = (int)(ptr2 - ptr) + 2;
 		MsgLen -= BodyLineLen;		// Length of Body Line may change
 
 		ptr = strstr(ptr2, "\r\n\r\n");	// Blank line before Body
@@ -1531,7 +1532,7 @@ BOOL CreateB2Message(CIRCUIT * conn, struct FBBHeaderLine * FBBHeader, char * Rl
 	
 		ptr2 += 2;					// Line Following Original Body: Line
 
-		BodyLineToBody = ptr - ptr2;
+		BodyLineToBody = (int)(ptr - ptr2);
 
 		if (memcmp(ptr, "R:", 2) != 0)    // No R line, so must be our message
 		{
@@ -1716,7 +1717,7 @@ VOID SendCompressedB2(CIRCUIT * conn, struct FBBHeaderLine * FBBHeader)
 	Output = Outputptr = zalloc(FBBHeader->CSize + 10000);
 
 	*Outputptr++ = 1;
-	*Outputptr++ = strlen(FBBHeader->FwdMsg->title) + 8;
+	*Outputptr++ = (int)strlen(FBBHeader->FwdMsg->title) + 8;
 	strcpy(Outputptr, FBBHeader->FwdMsg->title);
 	Outputptr += strlen(FBBHeader->FwdMsg->title) +1;
 	sprintf(Outputptr, "%06d", conn->RestartFrom);
@@ -1785,7 +1786,7 @@ VOID SendCompressedB2(CIRCUIT * conn, struct FBBHeaderLine * FBBHeader)
 	{
 		unsigned char * ptr1 = Output;
 		unsigned char * ptr2 = Compressed;	// Reuse Compressed buffer
-		int Len = Outputptr - Output;
+		int Len = (int)(Outputptr - Output);
 		unsigned char c;
 
 		while (Len--)
@@ -1796,10 +1797,10 @@ VOID SendCompressedB2(CIRCUIT * conn, struct FBBHeaderLine * FBBHeader)
 				*(ptr2++) = c;
 		}
 
-		QueueMsg(conn, Compressed, ptr2 - Compressed);
+		QueueMsg(conn, Compressed, (int)(ptr2 - Compressed));
 	}
 	else
-		QueueMsg(conn, Output, Outputptr - Output);
+		QueueMsg(conn, Output, (int)(Outputptr - Output));
 
 	free(Compressed);
 	free(Output);		
@@ -1847,7 +1848,7 @@ VOID SaveFBBBinary(CIRCUIT * conn)
 
 		GetSemaphore(&AllocSemaphore, 0);
 
-		RestartData=realloc(RestartData,(++RestartCount+1)*4);
+		RestartData=realloc(RestartData,(++RestartCount+1) * sizeof(void *));
 		RestartData[RestartCount] = RestartRec;
 
 		FreeSemaphore(&AllocSemaphore);

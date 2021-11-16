@@ -313,7 +313,7 @@ ConfigLine:
 	return (TRUE);	
 }
 
-static int ExtProc(int fn, int port,unsigned char * buff)
+static size_t ExtProc(int fn, int port,unsigned char * buff)
 {
 	int txlen = 0;
 	UINT * buffptr;
@@ -541,6 +541,8 @@ UINT HALExtInit(EXTPORTDATA *  PortEntry)
 
 	memcpy(&TNC->InitScript[TNC->InitScriptLen], Msg, len); 
 	TNC->InitScriptLen += len;
+
+	PortEntry->PORTCONTROL.TNC = TNC;
 
 	TNC->WebWindowProc = WebProc;
 	TNC->WebWinX = 510;

@@ -65,7 +65,7 @@ static int RigControlRow = 190;
 UCHAR * APIENTRY GetLogDirectory();
 static BOOL OpenSockets(struct TNCINFO * TNC);
 static BOOL OpenSockets6(struct TNCINFO * TNC);
-int ProcessHTTPMessage(struct ConnectionInfo * conn);
+void ProcessHTTPMessage(void * conn);
 static VOID SetupListenSet(struct TNCINFO * TNC);
 int IntDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, UINT Mask, BOOL APRS, BOOL MCTL);
 DllExport int APIENTRY SetTraceOptionsEx(int mask, int mtxparam, int mcomparam, int monUIOnly);
@@ -123,8 +123,6 @@ static	HMENU hMenu, hPopMenu, hPopMenu2, hPopMenu3;		// handle of menu
 static int ProcessLine(char * buf, int Port);
 VOID __cdecl Debugprintf(const char * format, ...);
 char * strlop(char * buf, char delim);
-
-pthread_t _beginthread(void(*start_address)(), unsigned stack_size, VOID * arglist);
 
 #ifndef LINBPQ
 LRESULT CALLBACK TelWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -802,7 +800,7 @@ lineloop:
 	}
 }
 
-static int ExtProc(int fn, int port , PDATAMESSAGE buff)
+static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 {
 	int txlen = 0, n;
 	PMSGWITHLEN buffptr;
@@ -968,7 +966,7 @@ static int ExtProc(int fn, int port , PDATAMESSAGE buff)
 		Stream = buff->PORT;
 		STREAM = &TNC->Streams[Stream];
 
-		txlen = GetLengthfromBuffer(buff) - (sizeof(void *) + 4);	
+		txlen = GetLengthfromBuffer(buff) - (MSGHDDRLEN + 1);		// 1 as no PID
 
 		buffptr->Len = txlen;
 		memcpy(&buffptr->Data, &buff->L2DATA, txlen);
@@ -981,7 +979,7 @@ static int ExtProc(int fn, int port , PDATAMESSAGE buff)
 
 	case 3:				// CHECK IF OK TO SEND. Also used to check if TNC is responding
 		
-		Stream = (int)buff;
+		Stream = (int)(size_t)buff;
 		
 		STREAM = &TNC->Streams[Stream];
 
@@ -1376,6 +1374,8 @@ void * TelnetExtInit(EXTPORTDATA * PortEntry)
 		sprintf(TCP->cfgCTEXT, "Connected to %s's Telnet Server\r\n\r\n", Call);
 	}
 
+	PortEntry->PORTCONTROL.TNC = TNC;
+
 	TNC->WebWindowProc = WebProc;
 	TNC->WebWinX = 260;
 	TNC->WebWinY = 325;
@@ -1556,7 +1556,7 @@ BOOL OpenSockets(struct TNCINFO * TNC)
 	return TRUE;
 }
 
-BOOL OpenSocket6(struct TNCINFO * TNC, int port)
+SOCKET OpenSocket6(struct TNCINFO * TNC, int port)
 {
 	struct sockaddr_in6 local_sin;  /* Local socket - internet style */
 	struct sockaddr_in6 * psin;
@@ -1594,7 +1594,7 @@ BOOL OpenSocket6(struct TNCINFO * TNC, int port)
 
 	if (bind(sock, (struct sockaddr FAR *)psin, sizeof(local_sin)) == SOCKET_ERROR)
 	{
-        sprintf(szBuff, "IPV6 bind(sock) failed Port %d Error %d", port, WSAGetLastError());
+        sprintf(szBuff, "IPV6 bind(sock) failed Port %d Error %d\n", port, WSAGetLastError());
 		WritetoConsoleLocal(szBuff);
 	    closesocket( sock );
 
@@ -1790,7 +1790,7 @@ VOID TelnetPoll(int Port)
 		
 		memcpy(&readfd, &TCP->ListenSet, sizeof(fd_set));
 
-		retval = select(TCP->maxsock + 1, &readfd, NULL, NULL, &timeout);
+		retval = select((int)(TCP->maxsock) + 1, &readfd, NULL, NULL, &timeout);
 
 		if (retval == -1)
 		{
@@ -1930,7 +1930,7 @@ VOID TelnetPoll(int Port)
 
 		if (Active)
 		{
-			retval = select(maxsock + 1, &readfd, &writefd, &exceptfd, &timeout);
+			retval = select((int)maxsock + 1, &readfd, &writefd, &exceptfd, &timeout);
 
 			if (retval == -1)
 			{				
@@ -2142,8 +2142,11 @@ nosocks:
 
 					WriteCMSLog (logmsg);
 				}
+	
+				// Don't report if Internet down
 
-				SendWL2KSessionRecord(sockptr->ADIF, STREAM->BytesTXed, STREAM->BytesRXed);
+				if (sockptr->RelaySession == FALSE)
+					SendWL2KSessionRecord(sockptr->ADIF, STREAM->BytesTXed, STREAM->BytesRXed);
 				
 				WriteADIFRecord(sockptr->ADIF);
 				
@@ -3454,6 +3457,9 @@ MsgLoop:
 		{
 			USER = TCP->UserRecPtr[i];
 
+			if (USER == NULL)
+				continue;
+
 			if (_stricmp(USER->UserName, "ANON") == 0)
 			{
 				// Anon Login - Callsign is supplied as user
@@ -3465,7 +3471,6 @@ MsgLoop:
 			{
                 sockptr->UserPointer = USER;      //' Save pointer for checking password
                 strcpy(sockptr->Callsign, USER->Callsign); //' for *** linked
-
 			}
 			else
 				continue;
@@ -3498,7 +3503,6 @@ MsgLoop:
 		{        
             send(sock, TCP->LoginMsg, (int)strlen(TCP->LoginMsg), 0);
             sockptr->InputLen=0;
-
 		}
 
 		return 0;
@@ -4230,6 +4234,9 @@ MsgLoop:
 		{
 			USER = TCP->UserRecPtr[i];
 
+			if (USER == NULL)
+				continue;
+
 			if (_stricmp(USER->UserName, "ANON") == 0)
 			{
 				// Anon Login - Callsign is supplied as user
@@ -4328,7 +4335,7 @@ MsgLoop:
 				char Addr[100];
 				Tel_Format_Addr(sockptr, Addr);
 				sprintf(logmsg,"%d %s Call Accepted. Callsign=%s\n",
-					sockptr->Number, Addr,sockptr->Callsign);
+				sockptr->Number, Addr,sockptr->Callsign);
 
 				WriteLog (logmsg);
 			}
@@ -4487,7 +4494,7 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 
 	memcpy(sockcopy, sockptr, sizeof(struct ConnectionInfo));
 
-	_beginthread((void (*)())ProcessHTTPMessage, 0, (VOID *)sockcopy);
+	_beginthread(ProcessHTTPMessage, 0, (VOID *)sockcopy);
 
 	sockptr->InputLen = 0;
 	return 0;
@@ -4936,23 +4943,23 @@ VOID Report(struct STREAMINFO * STREAM, char * Msg)
 	C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 }
 
-BOOL CheckCMSThread(struct TNCINFO * TNC);
+void CheckCMSThread(void * TNC);
 
 BOOL CheckCMS(struct TNCINFO * TNC)
 {
-
 	if (TNC->TCPInfo->CMS)
 	{
 		TNC->TCPInfo->CheckCMSTimer = 0;
-		_beginthread((void (*)())CheckCMSThread, 0, TNC);
+		_beginthread(CheckCMSThread, 0, (void *)TNC);
 	}
 	return 0;
 }
 
-BOOL CheckCMSThread(struct TNCINFO * TNC)
+void CheckCMSThread(void * TNCPtr)
 {
 	// Resolve Name and check connectivity to each address
 
+	struct TNCINFO * TNC = (struct TNCINFO *)TNCPtr;
 	struct TCPINFO * TCP = TNC->TCPInfo;
 //	struct hostent * HostEnt;
 	struct in_addr addr;
@@ -5098,7 +5105,7 @@ CheckServers:
 #ifndef LINBPQ
 		SetWindowText(TCP->hCMSWnd, "NO CMS"); 
 #endif
-		return TRUE;
+		return;
 	}
 
 	// if we don't know we have Internet connectivity, make sure we can connect to at least one of them
@@ -5111,7 +5118,7 @@ CheckServers:
 	else
 		MySetWindowText(TCP->hCMSWnd, "NO CMS"); 
 #endif
-	return TRUE;
+	return;
 }
 
 #define MAX_KEY_LENGTH 255
@@ -6030,5 +6037,273 @@ VOID ProcessTriModeDataMessage(struct TNCINFO * TNC, struct ConnectionInfo * soc
 	}
 
 	SendtoNode(TNC, sockptr->Number, Buffer, len);
+}
+
+extern struct DATAMESSAGE * REPLYBUFFER;
+char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char * format, ...);
+
+
+VOID RECONFIGTELNET (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+{
+	int Port = 0, index =0;
+	char * ptr, *Context;
+	struct PORTCONTROL * PORT = NULL;
+	struct TNCINFO * TNC;
+	char * ptr1, * ptr2;
+	char buf[256],errbuf[256];
+	char * Config;
+	struct TCPINFO * TCP;
+	
+	ptr = strtok_s(CmdTail, " ", &Context);
+
+	if (ptr)
+		Port = atoi(ptr);
+
+	if (Port)
+		PORT = GetPortTableEntryFromPortNum(Port);
+
+	if (PORT == NULL)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid Port\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	TNC = TNCInfo[Port];
+
+	if (TNC == NULL || TNC->Hardware != H_TELNET)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Not a Telnet port\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	TCP = TNC->TCPInfo;
+
+	ptr = strtok_s(NULL, " ", &Context);
+
+	if (ptr && _stricmp(ptr, "ALL") == 0)
+	{
+		// Use EXTRESTART Code
+
+		PEXTPORTDATA PORTVEC = (PEXTPORTDATA) PORT;
+		PORTVEC->EXTRESTART = 1;
+
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Reconfig Telnet Ok\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	if (ptr && _stricmp(ptr, "USERS") == 0)
+	{
+		// Reconfig Users
+
+		if (!ProcessConfig())
+		{		
+			Bufferptr = Cmdprintf(Session, Bufferptr, "Failed to reread config file - leaving config unchanged\r");
+			SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+			return;
+		}
+		
+		Config = PortConfig[Port];
+
+		if (Config == NULL)
+		{
+			Bufferptr = Cmdprintf(Session, Bufferptr, "No Config Entries found\r");
+			SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+			return;
+		}
+
+		// Don't free old user records - sessions may have pointers to them
+
+		// Free the header
+
+		if (TCP->UserRecPtr)
+		{
+			free(TCP->UserRecPtr);
+			TCP->UserRecPtr = NULL;
+		}
+
+		TCP->NumberofUsers = 0;
+
+		// Look for USER lines
+
+		ptr1 = Config;
+		ptr2 = strchr(ptr1, 13);
+
+		while(ptr2)
+		{
+			memcpy(buf, ptr1, ptr2 - ptr1 + 1);
+			buf[ptr2 - ptr1 + 1] = 0;
+			ptr1 = ptr2 + 2;
+			ptr2 = strchr(ptr1, 13);
+			strcpy(errbuf,buf);			// save in case of erro
+
+			if (_memicmp(buf, "USER=", 5) == 0 || _memicmp(buf, "USER ", 5) == 0)
+			{
+				char *User, *Pwd, *UserCall, *Secure, * Appl;
+				int End = (int)strlen(buf) -1;
+				struct UserRec * USER;
+				char Param[8][256];
+				char * ptr1, * ptr2;
+				int n = 0;
+				char * value = &buf[5];
+				
+				// USER=user,password,call,appl,SYSOP
+
+				memset(Param, 0, 2048);
+				strlop(value, 13);
+				strlop(value, ';');
+
+				ptr1 = value;
+
+				while (ptr1 && *ptr1 && n < 8)
+				{
+					ptr2 = strchr(ptr1, ',');
+					if (ptr2) *ptr2++ = 0;
+
+					strcpy(&Param[n][0], ptr1);
+					strlop(Param[n++], ' ');
+					ptr1 = ptr2;
+					while(ptr1 && *ptr1 && *ptr1 == ' ')
+						ptr1++;
+				}
+
+
+				User = &Param[0][0];
+
+				if (_stricmp(User, "ANON") == 0)
+				{
+					strcpy(&Param[2][0], "ANON");
+					strcpy(&Param[4][0], "");		// Dont allow SYSOP if ANON
+				}
+
+				Pwd = &Param[1][0];
+				UserCall = &Param[2][0];
+				Appl = &Param[3][0];
+				Secure = &Param[4][0];
+
+				if (User[0] == 0 || Pwd[0] == 0 || UserCall[0] == 0) // invalid record
+				{
+					Bufferptr = Cmdprintf(Session, Bufferptr, "Bad USER Record %s\r", errbuf);
+					SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+					return;
+				}
+
+				_strupr(UserCall);
+
+				if (TCP->NumberofUsers == 0)
+					TCP->UserRecPtr = malloc(sizeof(void *));
+				else
+					TCP->UserRecPtr = realloc(TCP->UserRecPtr, (TCP->NumberofUsers+1) * sizeof(void *));
+
+				USER = zalloc(sizeof(struct UserRec));
+
+				TCP->UserRecPtr[TCP->NumberofUsers] = USER;
+
+				USER->Callsign = _strdup(UserCall);
+				USER->Password = _strdup(Pwd);
+				USER->UserName = _strdup(User);
+				USER->Appl = zalloc(32);
+				USER->Secure = FALSE;
+
+				if (_stricmp(Secure, "SYSOP") == 0)
+					USER->Secure = TRUE;
+
+				if (Appl[0] && strcmp(Appl, "\"\"") != 0)
+				{
+					strcpy(USER->Appl, _strupr(Appl));
+					strcat(USER->Appl, "\r\n");
+				}
+				TCP->NumberofUsers++;
+			}
+		}
+
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Reread Telnet Users Ok - %d USER Records\r", TCP->NumberofUsers);
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid parameter - use either USERS or ALL \r");
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+}
+
+VOID SHOWTELNET(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+{
+	//	DISPLAY Telnet Server Status Mheard
+	
+	int Port = 0, index =0;
+	char * ptr, *Context;
+	struct PORTCONTROL * PORT = NULL;
+	int txlen = 0, n;
+	struct TNCINFO * TNC;
+	char msg[80];
+	struct ConnectionInfo * sockptr;
+	int i;
+	char CMS[] = "CMS Disabled";
+
+	ptr = strtok_s(CmdTail, " ", &Context);
+
+	if (ptr)
+		Port = atoi(ptr);
+
+	if (Port)
+		PORT = GetPortTableEntryFromPortNum(Port);
+
+	if (PORT == NULL)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid Port\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	TNC = TNCInfo[Port];
+
+	if (TNC == NULL || TNC->Hardware != H_TELNET)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Not a Telnet port\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	if (TNC->TCPInfo->CMS)
+		if (TNC->TCPInfo->CMSOK)
+			strcpy(CMS, "CMS Ok");
+		else
+			strcpy(CMS, "No CMS");
+	
+	Bufferptr = Cmdprintf(Session, Bufferptr, "Telnet Status for Port %d %s\r", Port, CMS);
+
+	for (n = 1; n <= TNC->TCPInfo->CurrentSockets; n++)
+	{
+		sockptr=TNC->Streams[n].ConnectionInfo;
+
+		if (!sockptr->SocketActive)
+		{
+			strcpy(msg,"Idle");
+		}
+		else
+		{
+			if (sockptr->UserPointer == 0)
+			{
+				if (sockptr->HTTPMode)
+				{
+					char Addr[100];
+					Tel_Format_Addr(sockptr, Addr);
+					sprintf(msg, "HTTP From %s", Addr);
+				}
+				else
+					strcpy(msg,"Logging in");
+			}
+			else
+			{
+				i=sprintf(msg,"%-10s %-10s %2d",
+					sockptr->UserPointer->UserName,sockptr->Callsign,sockptr->BPQStream);
+			}
+		}
+		Bufferptr = Cmdprintf(Session, Bufferptr, "%s\r", msg);
+	}
+
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 

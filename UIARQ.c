@@ -54,8 +54,6 @@ int (WINAPI FAR *EnumProcessesPtr)();
 
 #define AGWHDDRLEN sizeof(struct AGWHEADER)
 
-pthread_t _beginthread(void(*start_address)(), unsigned stack_size, VOID * arglist);
-
 extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 
 //int ResetExtDriver(int num);
@@ -487,6 +485,8 @@ UINT UIARQExtInit(EXTPORTDATA * PortEntry)
 
 	TNC->WEB_MODE = zalloc(50);
 	TNC->WEB_TRAFFIC = zalloc(100);
+
+	PortEntry->PORTCONTROL.TNC = TNC;
 
 	TNC->WebWindowProc = WebProc;
 	TNC->WebWinX = 520;

@@ -42,6 +42,8 @@ int MyElementCount;
 BOOL ReaddressLocal;
 BOOL ReaddressReceived;
 BOOL WarnNoRoute = TRUE;
+BOOL SendPtoMultiple = FALSE;
+
 BOOL Localtime = FALSE;		// Use Local Time for Timebands and forward connect scripts
 
 struct ALIAS * CheckForNTSAlias(struct MsgInfo * Msg, char * FirstDestElement);
@@ -534,7 +536,7 @@ VOID SetupHAElements(struct BBSForwardingInfo * ForwardingInfo)
 
 	do 
 	{
-		ForwardingInfo->BBSHAElements = realloc(ForwardingInfo->BBSHAElements, (Elements+2)*4);
+		ForwardingInfo->BBSHAElements = realloc(ForwardingInfo->BBSHAElements, (Elements+2) * sizeof(void *));
 		
 		while ((*ptr2 != '.') && (ptr2 > SaveHText))
 		{
@@ -583,14 +585,14 @@ VOID SetupHAddreses(struct BBSForwardingInfo * ForwardingInfo)
 	char * Num;
 	struct Continent * Continent;
 
-	ForwardingInfo->HADDRS = zalloc(4);				// always NULL entry on end even if no values
-	ForwardingInfo->HADDROffet = zalloc(4);			// always NULL entry on end even if no values
+	ForwardingInfo->HADDRS = zalloc(sizeof(void *));				// always NULL entry on end even if no values
+	ForwardingInfo->HADDROffet = zalloc(sizeof(void *));			// always NULL entry on end even if no values
 
 	while(HText[0])
 	{
 		int Elements = 1;
-		ForwardingInfo->HADDRS = realloc(ForwardingInfo->HADDRS, (Count+2)*4);
-		ForwardingInfo->HADDROffet = realloc(ForwardingInfo->HADDROffet, (Count+2)*4);
+		ForwardingInfo->HADDRS = realloc(ForwardingInfo->HADDRS, (Count+2) * sizeof(void *));
+		ForwardingInfo->HADDROffet = realloc(ForwardingInfo->HADDROffet, (Count+2) * sizeof(void *));
 	
 		ForwardingInfo->HADDRS[Count] = zalloc(8);	// Always at lesat WWW and NULL
 
@@ -606,7 +608,7 @@ VOID SetupHAddreses(struct BBSForwardingInfo * ForwardingInfo)
 
 		do 
 		{
-			ForwardingInfo->HADDRS[Count] = realloc(ForwardingInfo->HADDRS[Count], (Elements+2)*4);
+			ForwardingInfo->HADDRS[Count] = realloc(ForwardingInfo->HADDRS[Count], (Elements+2) * sizeof(void *));
 			
 			while ((*ptr2 != '.') && (ptr2 > SaveHText))
 			{
@@ -689,14 +691,14 @@ VOID SetupHAddresesP(struct BBSForwardingInfo * ForwardingInfo)
 	char * Num;
 	struct Continent * Continent;
 
-	ForwardingInfo->HADDRSP = zalloc(4);				// always NULL entry on end even if no values
+	ForwardingInfo->HADDRSP = zalloc(sizeof(void *));				// always NULL entry on end even if no values
 
 	while(HText[0])
 	{
 		int Elements = 1;
-		ForwardingInfo->HADDRSP = realloc(ForwardingInfo->HADDRSP, (Count+2)*4);
+		ForwardingInfo->HADDRSP = realloc(ForwardingInfo->HADDRSP, (Count+2) * sizeof(void *));
 	
-		ForwardingInfo->HADDRSP[Count] = zalloc(8);	// Always at lesat WWW and NULL
+		ForwardingInfo->HADDRSP[Count] = zalloc(2 * sizeof(void *));	// Always at lesat WWW and NULL
 
 		SaveHText = _strdup(HText[0]);
 		Num = strlop(SaveHText, ',');
@@ -710,7 +712,7 @@ VOID SetupHAddresesP(struct BBSForwardingInfo * ForwardingInfo)
 
 		do 
 		{
-			ForwardingInfo->HADDRSP[Count] = realloc(ForwardingInfo->HADDRSP[Count], (Elements+2)*4);
+			ForwardingInfo->HADDRSP[Count] = realloc(ForwardingInfo->HADDRSP[Count], (Elements+2) * sizeof(void *));
 			
 			while ((*ptr2 != '.') && (ptr2 > SaveHText))
 			{
@@ -808,21 +810,21 @@ VOID UpdateB2Dest(struct MsgInfo * Msg, char * Alias)
 			ATEND = strchr(To, '\r');
 			if (ATEND)
 			{
-				int i = ATEND - To;
+				size_t i = ATEND - To;
 				AT = memchr(To, '@', i);
 				if (AT)
 				{
 					// Move Message up/down to make room for substitution
 
-					int Diff = (ATEND - AT - 1) - strlen(Alias);
-					int BeforeAT = AT - MsgBytes + 1;
+					size_t Diff = (ATEND - AT - 1) - strlen(Alias);
+					size_t BeforeAT = AT - MsgBytes + 1;
 					int j = 0;
 
 					memmove(AT + 1, AT + Diff + 1, Msg->length - BeforeAT + 10);
 					memcpy(AT + 1, Alias, strlen(Alias));
 
 					j = 1;
-					Msg->length -= Diff;
+					Msg->length -= (int)Diff;
 
 					// Write Back
 
@@ -927,7 +929,7 @@ int MatchMessagetoBBSList(struct MsgInfo * Msg, CIRCUIT * conn)
 
 	// If for our domain leave here
 
-	toLen = strlen(Msg->via);
+	toLen = (int)strlen(Msg->via);
 
 	if (_memicmp(&Msg->via[toLen - 8], "ampr.org", 8) == 0)
 	{
@@ -1298,9 +1300,12 @@ NOHA:
 		// P messages are only sent to one BBS, but check the TO and AT of all BBSs before routing on HA,
 		// and choose the best match on HA
 
+		// now has option to send P messages to more than one BBS
+
 		struct UserInfo * bestbbs = NULL;
 		int bestmatch = 0;
 		int depth;
+		int Matched = 0;
 
 		for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
 		{		
@@ -1314,6 +1319,11 @@ NOHA:
 				Logprintf(LOG_BBS, conn, '?', "Routing Trace TO %s Matches BBS %s", Msg->to, bbs->Call);
 
 				CheckAndSend(Msg, conn, bbs);
+
+				Matched++;
+				if (SendPtoMultiple && Msg->type == 'P')
+					continue;
+
 				return 1;
 			}
 		}
@@ -1333,6 +1343,10 @@ NOHA:
 
 		
 				CheckAndSend(Msg, conn, bbs);
+	
+				Matched++;
+				if (SendPtoMultiple && Msg->type == 'P')
+					continue;
 
 				return 1;
 			}
@@ -1345,8 +1359,20 @@ NOHA:
 
 				CheckAndSend(Msg, conn, bbs);
 
+				Matched++;
+				if (SendPtoMultiple && Msg->type == 'P')
+					continue;
+
 				return 1;
 			}
+		}
+
+		if (Matched)
+		{
+			// Should only get here if Sending P to Multiples is enabled
+			// and we have at least one forward.
+
+			return 1;
 		}
 
 		// We should choose the BBS with most matching elements (ie match on #23.GBR better that GBR)
@@ -1444,8 +1470,7 @@ CheckWildCardedAT:
 		{
 			Logprintf(LOG_BBS, conn, '?', "Routing Trace TO %s Matches BBS %s", Msg->to, bbs->Call);
 
-			if ((_stricmp(bbs->Call, BBSName) != 0) ||
-				ForwardToMe && _stricmp(Msg->to, BBSName) == 0)			// Dont forward to ourself - already here! (unless ForwardToMe set)
+			if (ForwardToMe || _stricmp(bbs->Call, BBSName) != 0) // Dont forward to ourself - already here! (unless ForwardToMe set)
 			{
 				set_fwd_bit(Msg->fbbs, bbs->BBSNumber);
 				ForwardingInfo->MsgCount++;
@@ -1641,8 +1666,8 @@ int CheckBBSToForNTS(struct MsgInfo * Msg, struct BBSForwardingInfo * Forwarding
 	char ** Calls;
 	char * Call;
 	char * ptr;
-	int bestmatch = -1;
-	int MatchLen = 0;
+	size_t bestmatch = -1;
+	size_t MatchLen = 0;
 
 	// Look for Matches on TO using Wildcarded Addresses. Intended for use with NTS traffic, with TO = ZIPCode
 	
@@ -1692,7 +1717,7 @@ int CheckBBSToForNTS(struct MsgInfo * Msg, struct BBSForwardingInfo * Forwarding
 					if (Invert)
 						return -1;
 
-					MatchLen = strlen(Call);
+					MatchLen = (int)strlen(Call);
 					if (MatchLen > bestmatch)
 						bestmatch = MatchLen;
 				}
@@ -1701,7 +1726,7 @@ int CheckBBSToForNTS(struct MsgInfo * Msg, struct BBSForwardingInfo * Forwarding
 			Calls++;
 		}
 	}
-	return bestmatch;
+	return (int)bestmatch;
 }
 
 
@@ -1710,8 +1735,8 @@ int CheckBBSATListWildCarded(struct MsgInfo * Msg, struct BBSForwardingInfo * Fo
 	char ** Calls;
 	char * Call;
 	char * ptr;
-	int bestmatch = -1;
-	int MatchLen = 0;
+	size_t bestmatch = -1;
+	size_t MatchLen = 0;
 
 	// Look for Matches on AT using Wildcarded Addresses. Only applied after all other checks fail. Intended mainly
 	// for setting a default route, but could have other uses
@@ -1745,7 +1770,7 @@ int CheckBBSATListWildCarded(struct MsgInfo * Msg, struct BBSForwardingInfo * Fo
 			Calls++;
 		}
 	}
-	return bestmatch;
+	return (int)bestmatch;
 }
 
 struct ALIAS * CheckForNTSAlias(struct MsgInfo * Msg, char * ATFirstElement)
@@ -1753,7 +1778,7 @@ struct ALIAS * CheckForNTSAlias(struct MsgInfo * Msg, char * ATFirstElement)
 	struct ALIAS ** Alias = NTSAliases;
 	char * Call;
 	char * ptr;
-	int MatchLen = 0;
+	size_t MatchLen = 0;
 
 	//	We have a list of wildcarded TO (ie Zip Codes) and corresponding replacement NTSXX
 

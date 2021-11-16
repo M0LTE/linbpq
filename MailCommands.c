@@ -65,6 +65,7 @@ VOID DoAuthCmd(CIRCUIT * conn, struct UserInfo * user, char * Arg1, char * Conte
 	return;
 }
 
+
 VOID DoEditUserCmd(CIRCUIT * conn, struct UserInfo * user, char * Arg1, char * Context)
 {
 	char Line[200] = "User Flags:";
@@ -81,7 +82,7 @@ VOID DoEditUserCmd(CIRCUIT * conn, struct UserInfo * user, char * Arg1, char * C
 	{
 		nodeprintf(conn, "EDITUSER CALLSIGN to Display\r");
 		nodeprintf(conn, "EDITUSER CALLSIGN FLAG1 FLAG2 ...  to set, -FLAG1 -FLAG2 ...  to clear\r");
-		nodeprintf(conn, "EDITUSER: Flags are: EXC(luded) EXP(ert) SYSOP BBS PMS EMAIL HOLD RMS(Express User)\r");
+		nodeprintf(conn, "EDITUSER: Flags are: EXC(luded) EXP(ert) SYSOP BBS PMS EMAIL HOLD RMS(Express User) APRS(Mail For)\r");
 
 		SendPrompt(conn, user);
 		return;
@@ -123,6 +124,8 @@ VOID DoEditUserCmd(CIRCUIT * conn, struct UserInfo * user, char * Arg1, char * C
 			if (Arg1[0] != '-') EUser->flags |= F_HOLDMAIL; else EUser->flags &= ~F_HOLDMAIL;
 		if (strstr(Arg1, "RMS"))
 			if (Arg1[0] != '-') EUser->flags |= F_Temp_B2_BBS; else EUser->flags &= ~F_Temp_B2_BBS;
+		if (strstr(Arg1, "APRS"))
+			if (Arg1[0] != '-') EUser->flags |= F_APRSMFOR; else EUser->flags &= ~F_APRSMFOR;
 
 		Arg1 = strtok_s(NULL, seps, &Context);
 	}
@@ -156,6 +159,8 @@ UDisplay:
 	if (EUser->flags & F_Temp_B2_BBS)
 		strcat(Line, " RMS");
 
+	if (EUser->flags & F_APRSMFOR)
+		strcat(Line, " APRS");
 	
 	strcat(Line, "\r");	
 	nodeprintf(conn, Line);
@@ -582,7 +587,7 @@ VOID DoFwdCmd(CIRCUIT * conn, struct UserInfo * user, char * Arg1, char * Contex
 			const char * ptr;
 			int Count = 0;
 
-			Value = zalloc(4);				// always NULL entry on end even if no values
+			Value = zalloc(sizeof(void *));				// always NULL entry on end even if no values
 			Value[0] = NULL;
 
 			ptr = Context;
@@ -594,7 +599,7 @@ VOID DoFwdCmd(CIRCUIT * conn, struct UserInfo * user, char * Arg1, char * Contex
 				if (ptr1)
 					*(ptr1++) = 0;
 
-				Value = realloc(Value, (Count+2)*4);
+				Value = realloc(Value, (Count+2) * sizeof(void *));
 			
 				Value[Count++] = _strdup(ptr);
 			

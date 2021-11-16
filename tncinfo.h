@@ -151,7 +151,7 @@ struct TCPINFO
 	SOCKET HTTPsock6;
 
 	fd_set ListenSet;
-	int maxsock;
+	SOCKET maxsock;
 
 	HMENU hActionMenu;
 	HMENU hLogMenu;
@@ -234,6 +234,7 @@ typedef struct AGWINFO
 	int MaxSessions;
 	int ConnTimeOut;
 	int PollDelay;
+	time_t LastParamTime;
 
 #ifdef WIN32
 
@@ -347,6 +348,7 @@ typedef struct TNCINFO
 	char * InitScript;			// Initialisation Commands
 	int InitScriptLen;			// Length
 	time_t SessionTimeLimit;	// Optional limit to total session time
+	time_t DefaultSessionTimeLimit;	// Configured value
 
 	int Hardware;				// Hardware Type
 
@@ -677,8 +679,6 @@ typedef struct TNCINFO
 
 	HMENU hMenu;
 	HMENU hWndMenu;
-
-	VOID (FAR * PORTTXROUTINE)();
 
 	VOID (* SuspendPortProc) ();
 	VOID (* ReleasePortProc) ();

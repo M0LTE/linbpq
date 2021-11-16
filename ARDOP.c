@@ -101,6 +101,7 @@ int ConfigVirtualKISSPort(struct TNCINFO * TNC, char * Cmd);
 void ProcessKISSBytes(struct TNCINFO * TNC, UCHAR * Data, int Len);
 void ProcessKISSPacket(struct TNCINFO * TNC, UCHAR * KISSBuffer, int Len);
 int ARDOPProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen);
+int ConnecttoARDOP(struct TNCINFO * TNC);
 
 #ifndef LINBPQ
 BOOL CALLBACK EnumARDOPWindowsProc(HWND hwnd, LPARAM  lParam);
@@ -127,7 +128,69 @@ struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
 
 static int ProcessLine(char * buf, int Port);
 
-pthread_t _beginthread(void(*start_address)(), unsigned stack_size, VOID * arglist);
+
+BOOL ARDOPStopPort(struct PORTCONTROL * PORT)
+{
+	// Disable Port - close TCP Sockets or Serial Port
+
+	struct TNCINFO * TNC = PORT->TNC;
+
+	TNC->CONNECTED = FALSE;
+	TNC->Alerted = FALSE;
+
+	if (TNC->PTTMode)
+		Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+
+	if (TNC->Streams[0].Attached)
+		TNC->Streams[0].ReportDISC = TRUE;
+
+	if (TNC->TCPSock)
+	{
+		shutdown(TNC->TCPSock, SD_BOTH);
+		Sleep(100);
+		closesocket(TNC->TCPSock);
+	}
+
+	if (TNC->TCPDataSock)
+	{
+		shutdown(TNC->TCPDataSock, SD_BOTH);
+		Sleep(100);
+		closesocket(TNC->TCPDataSock);
+	}
+
+	TNC->TCPSock = 0;
+	TNC->TCPDataSock = 0;
+
+	if (TNC->hDevice)
+	{
+		CloseCOMPort(TNC->hDevice);
+		TNC->hDevice = 0;
+	}
+
+	sprintf(PORT->TNC->WEB_COMMSSTATE, "%s", "Port Stopped");
+	MySetWindowText(PORT->TNC->xIDC_COMMSSTATE, PORT->TNC->WEB_COMMSSTATE);
+
+	return TRUE;
+}
+
+BOOL ARDOPStartPort(struct PORTCONTROL * PORT)
+{
+	// Restart Port - Open Sockets or Serial Port
+
+	struct TNCINFO * TNC = PORT->TNC;
+
+	if (TNC->ARDOPCommsMode == 'T')
+	{
+		ConnecttoARDOP(TNC);
+		TNC->lasttime = time(NULL);;
+	}
+
+	sprintf(PORT->TNC->WEB_COMMSSTATE, "%s", "Port Restarted");
+	MySetWindowText(PORT->TNC->xIDC_COMMSSTATE, PORT->TNC->WEB_COMMSSTATE);
+
+	return TRUE;
+}
+
 
 int GenCRC16(unsigned char * Data, unsigned short length)
 {
@@ -476,7 +539,7 @@ static int ProcessLine(char * buf, int Port)
 				TNC->WL2K = DecodeWL2KReportLine(buf);
 			else
 			if (_memicmp(buf, "SESSIONTIMELIMIT", 16) == 0)
-				TNC->SessionTimeLimit = atoi(&buf[16]) * 60;
+				TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit = atoi(&buf[16]) * 60;
 			else
 			if (_memicmp(buf, "PACKETCHANNELS", 14) == 0)	// Packet Channels
 				TNC->PacketChannels = atoi(&buf[14]);
@@ -797,7 +860,7 @@ VOID ARDOPChangeMYC(struct TNCINFO * TNC, char * Call)
 //	ARDOPSendCommand(TNC, "MYCALL", TRUE);
 }
 
-static int ExtProc(int fn, int port, PDATAMESSAGE buff)
+static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 {
 	int datalen;
 	PMSGWITHLEN buffptr;
@@ -806,6 +869,7 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 	size_t Param;
 	int Stream = 0;
 	HKEY hKey=0;
+
 	struct TNCINFO * TNC = TNCInfo[port];
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 	struct ScanEntry * Scan;
@@ -1169,6 +1233,8 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 					ARDOPSendCommand(TNC, "LISTEN FALSE", TRUE);
 					ARDOPChangeMYC(TNC, TNC->Streams[0].MyCall);
 		
+					TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit;		// Reset Limit
+
 					// Stop other ports in same group
 
 					SuspendOtherPorts(TNC);
@@ -1202,7 +1268,7 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 			time(&ltime);
 			if (ltime - TNC->lasttime > 9 )
 			{
-				if (TNC->ARDOPCommsMode == 'T')
+				if (TNC->ARDOPCommsMode == 'T' && TNC->PortRecord->PORTCONTROL.PortStopped == 0)
 					ConnecttoARDOP(TNC);
 				TNC->lasttime = ltime;
 			}
@@ -1495,6 +1561,24 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 					return 0;
 				}
 			}
+
+			if (_memicmp(&buff->L2DATA[0], "SessionTimeLimit", 16) == 0)
+			{
+				if (buff->L2DATA[16] != 13)
+				{					
+					PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
+	
+					TNC->SessionTimeLimit = atoi(&buff->L2DATA[16]) * 60;
+
+					if (buffptr)
+					{
+						buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "ARDOP} OK\r");
+						C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
+					}
+					return 0;
+				}
+			}
+
 			if (_memicmp(&buff->L2DATA[0], "ARQBW ", 6) == 0)
 				TNC->WinmorCurrentMode = 0;			// So scanner will set next value
 
@@ -1667,9 +1751,24 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 				Sleep(100);
 			}
 		}
-		shutdown(TNC->TCPSock, SD_BOTH);
-		Sleep(100);
-		closesocket(TNC->TCPSock);
+
+		if (TNC->TCPSock)
+		{
+			shutdown(TNC->TCPSock, SD_BOTH);
+			Sleep(100);
+			closesocket(TNC->TCPSock);
+		}
+
+		if (TNC->TCPDataSock)
+		{
+			shutdown(TNC->TCPDataSock, SD_BOTH);
+			Sleep(100);
+			closesocket(TNC->TCPDataSock);
+		}
+
+		TNC->TCPSock = 0;
+		TNC->TCPDataSock = 0;
+
 		return 0;
 
 	case 6:				// Scan Stop Interface
@@ -1742,7 +1841,7 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 			if (TNC->ARDOPCurrentMode[0] == 'S')	// Skip
 				ARDOPSendCommand(TNC, "LISTEN TRUE", TRUE);
 
-			Debugprintf("ARDOPMODE %s", Scan->ARDOPMode);
+//			Debugprintf("ARDOPMODE %s", Scan->ARDOPMode);
 			
 			memcpy(TNC->ARDOPCurrentMode, Scan->ARDOPMode, 6); 
 			
@@ -1927,7 +2026,10 @@ VOID * ARDOPExtInit(EXTPORTDATA * PortEntry)
 	TNC->SuspendPortProc = ARDOPSuspendPort;
 	TNC->ReleasePortProc = ARDOPReleasePort;
 
-	TNC->ModemCentre = 1500;				// WINMOR is always 1500 Offset
+	PortEntry->PORTCONTROL.PORTSTARTCODE = ARDOPStartPort;
+	PortEntry->PORTCONTROL.PORTSTOPCODE = ARDOPStopPort;
+
+	TNC->ModemCentre = 1500;				// ARDOP is always 1500 Offset
 
 	ptr=strchr(TNC->NodeCall, ' ');
 	if (ptr) *(ptr) = 0;					// Null Terminate
@@ -2007,6 +2109,8 @@ VOID * ARDOPExtInit(EXTPORTDATA * PortEntry)
 			strcpy(TNC->HostName,"127.0.0.1");
 
 	}
+
+	PortEntry->PORTCONTROL.TNC = TNC;
 
 	TNC->WebWindowProc = WebProc;
 	TNC->WebWinX = 520;
@@ -2994,6 +3098,8 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			
 			// Incomming Connect
 
+			TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit;		// Reset Limit
+
 			// Stop other ports in same group
 
 			SuspendOtherPorts(TNC);
@@ -3009,7 +3115,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			if (TNC->RIG && TNC->RIG != &TNC->DummyRig && strcmp(TNC->RIG->RigName, "PTT"))
 			{
 				sprintf(TNC->WEB_TNCSTATE, "%s Connected to %s Inbound Freq %s", TNC->Streams[0].RemoteCall, TNC->TargetCall, TNC->RIG->Valchar);
-				SESS->Frequency = (atof(TNC->RIG->Valchar) * 1000000.0) + 1500;		// Convert to Centre Freq
+				SESS->Frequency = (int)(atof(TNC->RIG->Valchar) * 1000000.0) + 1500;		// Convert to Centre Freq
 			}
 			else
 			{
@@ -4183,7 +4289,9 @@ VOID ARDOPDoTNCReinit(struct TNCINFO * TNC)
 
 		if (TNC->hDevice == 0)				// Dont try to init if device not open
 		{
-			OpenCOMMPort(TNC, TNC->ARDOPSerialPort, TNC->ARDOPSerialSpeed, TRUE);
+			if (TNC->PortRecord->PORTCONTROL.PortStopped == 0)
+				OpenCOMMPort(TNC, TNC->ARDOPSerialPort, TNC->ARDOPSerialSpeed, TRUE);
+
 			TNC->Timeout = 100;				// 10 secs
 			TNC->Retries = 1;
 			return;
@@ -6227,4 +6335,3 @@ void ProcessKISSPacket(struct TNCINFO * TNC, UCHAR * KISSBuffer, int Len)
 		}
 	}
 }
-

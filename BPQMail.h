@@ -128,7 +128,7 @@ VOID * _malloc_dbg_trace(int len, int type, char * file, int line);
 
 #endif
 
-VOID * _zalloc_dbg(int len, int type, char * file, int line);
+VOID * _zalloc_dbg(size_t len, int type, char * file, int line);
 
 #define LOG_BBS 0
 #define LOG_CHAT 1
@@ -455,28 +455,28 @@ struct UserInfo
 
 // flags equates
 
-#define F_Excluded   0x0001
-#define F_LOC        0x0002
-#define F_Expert     0x0004
-#define F_SYSOP      0x0008
-#define F_BBS        0x0010
-#define F_PAG        0x0020
-#define F_GST        0x0040
-#define F_MOD        0x0080
-#define F_PRV        0x0100
-#define F_UNP        0x0200
-#define F_NEW        0x0400
-#define F_PMS        0x0800
-#define F_EMAIL      0x1000
-#define F_HOLDMAIL   0x2000
-#define F_POLLRMS	 0x4000
+#define F_Excluded    0x0001
+#define F_GGG         0x0002
+#define F_Expert      0x0004
+#define F_SYSOP       0x0008
+#define F_BBS         0x0010
+#define F_AAA         0x0020
+#define F_BBB         0x0040
+#define F_CCC         0x0080
+#define F_DDD         0x0100
+#define F_EEE         0x0200
+#define F_FFF         0x0400
+#define F_PMS         0x0800
+#define F_EMAIL       0x1000
+#define F_HOLDMAIL    0x2000
+#define F_POLLRMS	  0x4000
 #define F_SYSOP_IN_LM 0x8000
-#define F_Temp_B2_BBS 0x10000
-#define F_NOWINLINK	 0x20000			// Don't add Winlink.org
-#define F_NOBULLS	 0x40000	
-#define F_NTSMPS	 0x80000	
-
-/* #define F_PWD        0x1000 */
+#define F_Temp_B2_BBS 0x00010000			// "Winlink Express User"
+#define F_NOWINLINK	  0x00020000			// Don't add Winlink.org
+#define F_NOBULLS	  0x00040000	
+#define F_NTSMPS	  0x00080000
+#define F_APRSMFOR	  0x00100000			// Send APRS message for new mail
+#define F_APRSSSID	  0xF0000000
 
 
 struct Override
@@ -696,6 +696,7 @@ struct BBSForwardingInfo
 	time_t LastReverseForward;
 	char *BBSHA;					// HA of BBS
 	char ** BBSHAElements;			// elements of HA of BBS
+	int ConTimeout;
 //	char UserCall[10];				// User we are forwarding on behalf of (Currently only for RMS)
 //	int UserIndex;					// index of User we are forwarding on behalf of (Currently only for RMS)
 };
@@ -828,7 +829,7 @@ CIRCUIT *circuit_new(CIRCUIT *circuit, int flags);
 VOID BBSputs(CIRCUIT * conn, char * buf);
 VOID FBBputs(CIRCUIT * conn, char * buf);
 void makelinks(void);
-VOID * _zalloc(int len);
+VOID * _zalloc(size_t len);
 VOID FreeChatMemory();
 VOID ChatTimer();
 VOID nputs(CIRCUIT * conn, char * buf);
@@ -936,6 +937,8 @@ typedef struct WEBMAILINFO
 	BOOL Winlink;
 	BOOL P2P;
 	BOOL Packet;
+
+	int CurrentMessageIndex;	// Index of message currently displayed (for Prev and Next)
 
 }WebMailInfo;
 
@@ -1152,8 +1155,8 @@ BOOL ConnecttoBBS (struct UserInfo * user);
 BOOL SetupNewBBS(struct UserInfo * user);
 VOID CreateRegBackup();
 VOID SaveFilters(HWND hDlg);
-BOOL CheckRejFilters(char * From, char * To, char * ATBBS, char Type);
-BOOL CheckHoldFilters(char * From, char * To, char * ATBBS);
+BOOL CheckRejFilters(char * From, char * To, char * ATBBS, char * BID, char Type);
+BOOL CheckHoldFilters(char * From, char * To, char * ATBBS, char * BID);
 BOOL CheckifLocalRMSUser(char * FullTo);
 VOID DoWPLookup(ConnectionInfo * conn, struct UserInfo * user, char Type, char *Context);
 BOOL wildcardcompare(char * Target, char * Match);
@@ -1166,6 +1169,7 @@ VOID DoFwdCmd(CIRCUIT * conn, struct UserInfo * user, char * Arg1, char * Contex
 VOID SaveFwdParams(char * Call, struct BBSForwardingInfo * ForwardingInfo);
 VOID DoAuthCmd(CIRCUIT * conn, struct UserInfo * user, char * Arg1, char * Context);
 VOID ProcessSuspendedListCommand(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len);
+VOID DoReroute(CIRCUIT * conn, struct UserInfo * user);
 
 // FBB Routines
 
@@ -1219,7 +1223,7 @@ VOID SetupListenSet();
 VOID TCPTimer();
 VOID TCPFastTimer();
 int Socket_Data(int sock, int error, int eventcode);
-int Socket_Accept(int SocketId);
+static int Socket_Accept(SOCKET SocketId);
 int Socket_Connect(SOCKET sock, int Error);
 VOID ProcessSMTPServerMessage(SocketConn * sockptr, char * Buffer, int Len);
 int CreateSMTPMessage(SocketConn * sockptr, int i, char * MsgTitle, time_t Date, char * MsgBody, int Msglen, BOOL B2Flag);
@@ -1248,7 +1252,7 @@ BOOL SendtoISP();
 VOID InitialiseNNTP();
 VOID BuildNNTPList(struct MsgInfo * Msg);
 int NNTP_Data(int sock, int error, int eventcode);
-int NNTP_Accept(int SocketId);
+int NNTP_Accept(SOCKET SocketId);
 
 VOID * GetOverrides(config_setting_t * group, char * ValueName);
 VOID * RegGetOverrides(HKEY hKey, char * ValueName);
@@ -1370,10 +1374,12 @@ extern char * ExpertPrompt;
 extern char ** RejFrom;					// Reject on FROM Call
 extern char ** RejTo;						// Reject on TO Call
 extern char ** RejAt;						// Reject on AT Call
+extern char ** RejBID;
 
 extern char ** HoldFrom;					// Hold on FROM Call
 extern char ** HoldTo;						// Hold on TO Call
 extern char ** HoldAt;						// Hold on AT Call
+extern char ** HoldBID;
 
 // Send WP Params
 
@@ -1460,6 +1466,7 @@ extern BOOL RefuseBulls;
 extern BOOL SendSYStoSYSOPCall;
 extern BOOL SendBBStoSYSOPCall;
 extern BOOL DontHoldNewUsers;
+extern BOOL DefaultNoWINLINK;
 extern BOOL UIEnabled[];
 extern BOOL UINull[];
 extern BOOL UIMF[];
@@ -1517,7 +1524,7 @@ extern struct Override ** LTFROM;
 extern struct Override ** LTTO;
 extern struct Override ** LTAT;
 
-extern int LastHouseKeepingTime;
+extern time_t LastHouseKeepingTime;
 extern time_t LastTrafficTime;
 
 extern char * MyElements[];
@@ -1527,6 +1534,7 @@ extern struct ALIAS ** Aliases;
 extern BOOL ReaddressLocal;
 extern BOOL ReaddressReceived;
 extern BOOL WarnNoRoute;
+extern BOOL SendPtoMultiple;
 extern BOOL Localtime;
 
 struct ConsoleInfo * ConsHeader[2];

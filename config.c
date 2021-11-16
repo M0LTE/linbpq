@@ -345,7 +345,7 @@ static char *pkeywords[] =
 "TXPORT", "MHEARD", "CWIDTYPE", "MINQUAL", "MAXDIGIS", "PORTALIAS2", "DLLNAME",
 "BCALL", "DIGIMASK", "NOKEEPALIVES", "COMPORT", "DRIVER", "WL2KREPORT", "UIONLY",
 "UDPPORT", "IPADDR", "I2CBUS", "I2CDEVICE", "UDPTXPORT", "UDPRXPORT", "NONORMALIZE",
-"IGNOREUNLOCKEDROUTES", "INP3ONLY", "TCPPORT"};           /* parameter keywords */
+"IGNOREUNLOCKEDROUTES", "INP3ONLY", "TCPPORT", "RIGPORT"};           /* parameter keywords */
 
 static void * poffset[] =
 {
@@ -358,7 +358,7 @@ static void * poffset[] =
 &xxp.TXPORT, &xxp.MHEARD, &xxp.CWIDTYPE, &xxp.MINQUAL, &xxp.MAXDIGIS, &xxp.PORTALIAS2, &xxp.DLLNAME,
 &xxp.BCALL, &xxp.DIGIMASK, &xxp.DefaultNoKeepAlives, &xxp.IOADDR, &xxp.DLLNAME, &xxp.WL2K, &xxp.UIONLY,
 &xxp.IOADDR, &xxp.IPADDR, &xxp.INTLEVEL, &xxp.IOADDR, &xxp.IOADDR, &xxp.ListenPort, &xxp.NoNormalize,
-&xxp.IGNOREUNLOCKED, &xxp.INP3ONLY, &xxp.TCPPORT };	/* offset for corresponding data in config file */
+&xxp.IGNOREUNLOCKED, &xxp.INP3ONLY, &xxp.TCPPORT, &xxp.RIGPORT };	/* offset for corresponding data in config file */
 
 static int proutine[] = 
 {
@@ -371,7 +371,7 @@ static int proutine[] =
 1, 7, 7, 13, 13, 0, 14,
 0, 1, 2, 18, 15, 16, 2,
 1, 17, 1, 1, 1, 1, 2,
-2, 2, 1};							/* routine to process parameter */
+2, 2, 1, 1};							/* routine to process parameter */
 
 int PPARAMLIM = sizeof(proutine)/sizeof(int);
 
@@ -457,6 +457,8 @@ BOOL ProcessConfig()
 
 	TNCCONFIGTABLE = NULL;
 	NUMBEROFTNCPORTS = 0;
+
+	AGWMask = 0;
 
 	Consoleprintf("Configuration file Preprocessor.");
 
@@ -668,7 +670,7 @@ int decode_rec(char * rec)
 			GetNextLine(rec);
 		}
 
-		Consoleprintf("Missing **** for IPGateway Config %d", portnum);
+		Consoleprintf("Missing **** for IPGateway Config");
 		heading = 1;
 
 		return 0;
@@ -702,7 +704,7 @@ int decode_rec(char * rec)
 			GetNextLine(rec);
 		}
 
-		Consoleprintf("Missing **** for Portmapper Config %d", portnum);
+		Consoleprintf("Missing **** for Portmapper Config");
 		heading = 1;
 
 		return 0;
@@ -760,7 +762,7 @@ NextAPRS:
 		if (_memicmp(rec, "****", 3) == 0)
 			return 0;						// No Newline after ***
 
-		Consoleprintf("Missing **** for APRS Config %d", portnum);
+		Consoleprintf("Missing **** for APRS Config");
 		heading = 1;
 
 		return 0;
@@ -930,6 +932,12 @@ NextAPRS:
 	if (_memicmp(rec, "AGWMASK", 7) == 0)
 	{
 		AGWMask = strtol(&rec[8], 0, 0);
+		return 0;
+	}
+
+	if (_memicmp(rec, "AGWAPPL", 7) == 0)
+	{
+		AGWMask |= 1 << (strtol(&rec[8], 0, 0) - 1);
 		return 0;
 	}
 
@@ -1578,6 +1586,14 @@ char s[], c;
 /*   GET NEXT LINE THAT ISN'T BLANK OR IS A COMMENT LINE		*/
 /************************************************************************/
 
+// Returns an empty string to indicate end of config
+
+// Modified Aril 2020 to allow #include of file fragments
+
+FILE * savefp = NULL;
+int saveLineNo;
+char includefilename[250];
+
 int GetNextLine(char *rec)
 {
 	int i, j;
@@ -1591,8 +1607,19 @@ int GetNextLine(char *rec)
 
 		if (ret == NULL)
 		{
+			if (savefp)
+			{
+				// we have reached eof on an include file - switch back
+
+				fclose(fp1);
+				fp1 = savefp;
+				savefp = NULL;
+				LineNo = saveLineNo;
+				continue;
+			}
+
 			rec[0] = 0;
-			return 0;
+			return 0;			// return end of config
 		}
 
 		for (i=0; rec[i] != '\0'; i++)
@@ -1654,10 +1681,42 @@ int GetNextLine(char *rec)
 				ptr[strlen(ptr)] = ' ';
 			}
 			rec = ptr;
+
+			// look for #include
+
+			if (_memicmp(rec, "#include ", 9) == 0)
+			{
+				savefp = fp1;
+				
+				if (BPQDirectory[0] == 0)
+				{
+					strcpy(includefilename, &rec[9]);
+				}
+				else
+				{
+					strcpy(includefilename,BPQDirectory);
+					strcat(includefilename,"/");
+					strcat(includefilename, &rec[9]);
+				}
+
+				if ((fp1 = fopen(includefilename,"r")) == NULL)
+				{
+					Consoleprintf("Could not open #include file %s Error code %d", includefilename, errno);
+					fp1 = savefp;
+					savefp = NULL;
+				}
+				else
+				{
+					saveLineNo = LineNo;
+					LineNo = 0;
+				}
+				continue;			// get next line
+			}
 			return 0;
 		}
-
 	} 
+
+	// Should never reach this
 
 	return 0;
 }
@@ -2348,6 +2407,9 @@ static int troutine[] =
 
 #define TPARAMLIM 6
 
+extern CMDX COMMANDLIST[];
+extern int NUMBEROFTNCCOMMANDS;
+
 int decode_tnc_rec(char * rec)
 {
 	char key_word[20];
@@ -2366,7 +2428,23 @@ int decode_tnc_rec(char * rec)
 	else if (_stricmp(key_word, "TYPE") == 0)
 	{
 		if (_stricmp(value, "TNC2") == 0)
+		{
 			TNC2ENTRY->Mode = TNC2;
+
+			// Set Defaults
+
+			TNC2ENTRY->SENDPAC = 13;
+			TNC2ENTRY->CRFLAG = 1;
+			TNC2ENTRY->MTX = 1;
+			TNC2ENTRY->MCOM = 1;
+			TNC2ENTRY->MMASK = -1;			//  MONITOR MASK FOR PORTS
+
+			TNC2ENTRY->COMCHAR = 3;
+			TNC2ENTRY->CMDTIME = 10;		// SYSTEM TIMER = 100MS
+			TNC2ENTRY->PASSCHAR = 0x16;		// CTRL-V
+			TNC2ENTRY->StreamSW = 0x7C;		// |
+			TNC2ENTRY->LCStream = 1;
+		}
 		else if (_stricmp(value, "DED") == 0)
 			TNC2ENTRY->Mode = DED;
 		else if (_stricmp(value, "KANT") == 0)
@@ -2398,11 +2476,60 @@ int decode_tnc_rec(char * rec)
 	else if (_stricmp(key_word, "AUTOLF") == 0)
 		TNC2ENTRY->AUTOLF =  strtol(value, 0, 0);
 	else if (_stricmp(key_word, "ECHO") == 0)
-		TNC2ENTRY->ECHOFLAG =  strtol(value, 0, 0);
-
+		TNC2ENTRY->ECHOFLAG =  (char)strtol(value, 0, 0);
 	else
-	   Consoleprintf("Source record not recognised - Ignored:%s\r\n",rec);
+	{
+		if (TNC2ENTRY->Mode == TNC2)
+		{
+			// Try process as TNC2 Command
 
+			int n = 0;
+			CMDX * CMD = &COMMANDLIST[0];
+			char * ptr1 = key_word;
+			UCHAR * valueptr;
+
+			strcat(key_word, "  ");
+
+			_strupr(key_word);
+	
+			for (n = 0; n < NUMBEROFTNCCOMMANDS; n++)
+			{
+				int CL = CMD->CMDLEN;
+
+				// ptr1 is input command
+				
+				ptr1 = key_word;
+
+				if (memcmp(CMD->String, ptr1, CL) == 0)
+				{
+					// Found match so far - check rest
+		
+					char * ptr2 = &CMD->String[CL];
+			
+					ptr1 += CL;
+
+					if (*(ptr1) != ' ')
+					{
+						while(*(ptr1) == *ptr2 && *(ptr1) != ' ')
+						{
+							ptr1++;
+							ptr2++;
+						}
+					}
+
+					if (*(ptr1) == ' ')
+					{
+						valueptr = (UCHAR *)TNC2ENTRY + CMD->CMDFLAG;
+						*valueptr = (UCHAR)strtol(value, 0, 0);
+						return 0;
+					}
+				}
+				CMD++;
+			}
+		}
+		
+		Consoleprintf("Source record not recognised - Ignored:%s\r\n",rec);
+	}
 	return 0;
 }
 
@@ -2607,7 +2734,7 @@ double xfmod(double p1, double p2)
 {
 	int temp;
 
-	temp = p1/p2;
+	temp = (int)(p1/p2);
 	p1 = p1 -(p2 * temp);
 	return p1;
 }

@@ -99,7 +99,7 @@ int SendWPDetails(WPRec * WP, char * Reply, char * Key);
 int SendUserDetails(struct HTTPConnectionInfo * Session, char * Reply, char * Key);
 int SetupNodeMenu(char * Buff);
 VOID SendFwdSelectPage(char * Reply, int * ReplyLen, char * Key);
-VOID SendFwdDetails(struct HTTPConnectionInfo * Session, char * Reply, int * ReplyLen, char * Key);
+VOID SendFwdDetails(struct UserInfo * User, char * Reply, int * ReplyLen, char * Key);
 VOID SetMultiStringValue(char ** values, char * Multi);
 VOID SendFwdMainPage(char * Reply, int * ReplyLen, char * Key);
 VOID SaveFwdCommon(struct HTTPConnectionInfo * Session, char * MsgPtr, char * Reply, int * RLen, char * Rest);
@@ -114,7 +114,7 @@ BOOL OkToKillMessage(BOOL SYSOP, char * Call, struct MsgInfo * Msg);
 int MulticastStatusHTML(char * Reply);
 void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL LOCAL, char * Method, char * NodeURL, char * input, char * Reply, int * RLen, int InputLen);
 int SendWebMailHeader(char * Reply, char * Key, struct HTTPConnectionInfo * Session);
-
+struct UserInfo * FindBBS(char * Name);
 void ReleaseWebMailStruct(WebMailInfo * WebMail);
 
 char UNC[] = "";
@@ -340,11 +340,11 @@ static char WPDetail[] = "<form style=\"font-family: monospace;\" method=post ac
 "<tr><td>Call</td><td><input readonly=readonly size=10 value=\"%s\"></td></tr>"
 "<tr><td>Name</td><td><input size=30 name=Name value=\"%s\"></td></tr>"
 "<tr><td>Home BBS 1</td><td><input size=40 name=Home1 value=%s></td></tr>"
-"<tr><td>Home BBS 2</td><td><input size=40 name=Home2 value %s></td></tr>"
+"<tr><td>Home BBS 2</td><td><input size=40 name=Home2 value=%s></td></tr>"
 "<tr><td>QTH 1</td><td><input size=40 name=QTH1 value=\"%s\"></td></tr>"
 "<tr><td>QTH 2</td><td><input size=40 name=QTH2 value=\"%s\"></td></tr>"
-"<tr><td>ZIP 1<br></td><td><input size=10 name=ZIP1 value=%s></td></tr>"
-"<tr><td>ZIP 2<br></td><td><input size=10 name=ZIP2 value=%s></td></tr>"
+"<tr><td>ZIP 1<br></td><td><input size=10 name=ZIP1 value=\"%s\"></td></tr>"
+"<tr><td>ZIP 2<br></td><td><input size=10 name=ZIP2 value=\"%s\"></td></tr>"
 "<tr><td>Last Seen<br></td><td><input size=15 name=Seen value=\"%s\"></td></tr>"
 "<tr><td>Last Modified<br></td><td><input size=15 name=Modif value=\"%s\"></td></tr>"
 "<tr><td>Type<br></td><td><input size=4 name=Type value=%c></td></tr>"
@@ -393,12 +393,12 @@ int SendHeader(char * Reply, char * Key)
 
 void ConvertTitletoUTF8(char * Title, char * UTF8Title)
 {
-	if (WebIsUTF8(Title, strlen(Title)) == FALSE)
+	if (WebIsUTF8(Title, (int)strlen(Title)) == FALSE)
 	{
 		// With Windows it is simple - convert using current codepage
 		// I think the only reliable way is to convert to unicode and back
 
-		int origlen = strlen(Title) + 1;
+		int origlen = (int)strlen(Title) + 1;
 #ifdef WIN32
 		WCHAR BufferW[128];
 		int wlen;
@@ -679,7 +679,7 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 				Session->User = LookupCall(param+4);
 				if (Session->User)
 				{
-					SendFwdDetails(Session, Reply, RLen, Key); 
+					SendFwdDetails(Session->User, Reply, RLen, Key); 
 					return;
 				}
 			}
@@ -702,7 +702,7 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 		jsTemplate = GetTemplateFromFile(1, "webscript.js");
 
 		ReplyLen = sprintf(Reply, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n"
-			"Cache-Control: max-age=900\r\nContent-Type: text/javascript\r\n\r\n%s", strlen(jsTemplate), jsTemplate);
+			"Cache-Control: max-age=900\r\nContent-Type: text/javascript\r\n\r\n%s", (int)strlen(jsTemplate), jsTemplate);
 		*RLen = ReplyLen;
 		return;
 	}
@@ -720,7 +720,8 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
  		return;
 	}
 
-	if (_stricmp(NodeURL, "/Mail/Status") == 0)
+	if (_stricmp(NodeURL, "/Mail/Status") == 0 ||
+		_stricmp(NodeURL, "/Mail/DisSession") == 0)		// Sent as POST by refresh timer for some reason
 	{
 		SendStatusPage(Reply, RLen, Key);
 		return;
@@ -742,12 +743,12 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 		if (FwdTemplate)
 			free(FwdTemplate);
 
-		FwdTemplate = GetTemplateFromFile(3, "FwdPage.txt");
+		FwdTemplate = GetTemplateFromFile(4, "FwdPage.txt");
 
 		if (FwdDetailTemplate)
 			free(FwdDetailTemplate);
 
-		FwdDetailTemplate = GetTemplateFromFile(2, "FwdDetail.txt");
+		FwdDetailTemplate = GetTemplateFromFile(3, "FwdDetail.txt");
 
 		SendFwdMainPage(Reply, RLen, Key);
 		return;
@@ -823,11 +824,11 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 		ptr[BodyLen] = 0;
 
 		sprintf(Reply, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Disposition: attachment; filename=\"SavedMsg%05d.txt\" \r\n\r\n",
-			strlen(Hddr) + strlen(ptr), Msg->number);	
+			(int)(strlen(Hddr) + strlen(ptr)), Msg->number);	
 		strcat(Reply, Hddr);
 		strcat(Reply, ptr);
 
-		*RLen = strlen(Reply);
+		*RLen = (int)strlen(Reply);
 
 		free(MailBuffer);
 		return;
@@ -853,8 +854,8 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 		if ((Msg->B2Flags & Attachments) == 0)
 		{
 			sprintf(Reply, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s",
-				strlen(Noatt), Noatt);
-			*RLen = strlen(Reply);
+				(int)strlen(Noatt), Noatt);
+			*RLen = (int)strlen(Reply);
 
 			free(MailBuffer);
 			return;
@@ -890,8 +891,8 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 		if (Files == 0)
 		{
 			sprintf(Reply, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n%s",
-				strlen(Noatt), Noatt);
-			*RLen = strlen(Reply);
+				(int)strlen(Noatt), Noatt);
+			*RLen = (int)strlen(Reply);
 			free(MailBuffer);
 			return;
 		}
@@ -1023,7 +1024,7 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 			if (i > 9999) break;
 		}
 
-		qsort((void *)WP, i, 4, compare);
+		qsort((void *)WP, i, sizeof(void *), compare);
 
 		for (i=0; i < NumberofWPrecs; i++)
 		{
@@ -1187,7 +1188,7 @@ int SendMessageDetails(struct MsgInfo * Msg, char * Reply, char * Key)
 				bbs[i++] = USER;
 		}
 
-		qsort((void *)bbs, i, 4, compare );
+		qsort((void *)bbs, i, sizeof(void *), compare );
 
 		n = 0;
 		
@@ -1268,7 +1269,7 @@ char **	SeparateMultiString(char * MultiString, BOOL NoToUpper)
 
 	// Convert to string array
 
-	Value = zalloc(4);				// always NULL entry on end even if no values
+	Value = zalloc(sizeof(void *));				// always NULL entry on end even if no values
 	Value[0] = NULL;
 
 	ptr = DecodedString;
@@ -1282,7 +1283,7 @@ char **	SeparateMultiString(char * MultiString, BOOL NoToUpper)
 
 		if (strlen(ptr))
 		{
-			Value = realloc(Value, (Count+2)*4);
+			Value = realloc(Value, (Count+2) * sizeof(void *));
 			if (_memicmp(ptr, "file ", 5) == 0 || NoToUpper)
 				Value[Count++] = _strdup(ptr);
 			else
@@ -1374,7 +1375,7 @@ VOID * GetOverrideFromString(char * input)
 	struct Override ** Value;
 	char * Val;
 
-	Value = zalloc(4);				// always NULL entry on end even if no values
+	Value = zalloc(sizeof(void *));				// always NULL entry on end even if no values
 	Value[0] = NULL;
 	
 	while (ptr && strlen(ptr))
@@ -1386,7 +1387,7 @@ VOID * GetOverrideFromString(char * input)
 			*(ptr1) = 0;
 			ptr1 += 2;
 		}
-		Value = realloc(Value, (Count+2)*4);
+		Value = realloc(Value, (Count+2) * sizeof(void *));
 		Value[Count] = zalloc(sizeof(struct Override));
 		Val = strlop(ptr, ',');
 		if (Val == NULL)
@@ -1575,6 +1576,7 @@ VOID ProcessConfUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char 
 		MailForInterval = atoi(Temp);
 
 		GetCheckBox(input, "DontHold=", &DontHoldNewUsers);
+		GetCheckBox(input, "DefaultNoWinlink=", &DefaultNoWINLINK);
 		GetCheckBox(input, "DontNeedName=", &AllowAnon);
 		GetCheckBox(input, "DontNeedHomeBBS=", &DontNeedHomeBBS);
 		GetCheckBox(input, "UserCantKillT=", &UserCantKillT);
@@ -1633,9 +1635,11 @@ VOID ProcessConfUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char 
 		RejFrom = GetMultiStringInput(input, "Rfrom=");
 		RejTo = GetMultiStringInput(input, "Rto=");
 		RejAt = GetMultiStringInput(input, "Rat=");
+		RejBID = GetMultiStringInput(input, "RBID=");
 		HoldFrom = GetMultiStringInput(input, "Hfrom=");
 		HoldTo = GetMultiStringInput(input, "Hto=");
 		HoldAt = GetMultiStringInput(input, "Hat=");
+		HoldBID = GetMultiStringInput(input, "HBID=");
 
 		SaveConfig(ConfigName);
 		GetConfig(ConfigName);
@@ -1741,6 +1745,7 @@ VOID SaveFwdCommon(struct HTTPConnectionInfo * Session, char * MsgPtr, char * Re
 		MaxAge = atoi(Temp);
 		GetCheckBox(input, "WarnNoRoute=", &WarnNoRoute);
 		GetCheckBox(input, "LocalTime=", &Localtime);
+		GetCheckBox(input, "SendPtoMultiple=", &SendPtoMultiple);
 
 		// Reinitialise Aliases
 
@@ -1762,14 +1767,16 @@ VOID SaveFwdCommon(struct HTTPConnectionInfo * Session, char * MsgPtr, char * Re
 	
 		AliasText = GetMultiStringInput(input, "Aliases=");
 
-		n = 0;
-
-		while (AliasText[n])
+		if (AliasText)
 		{
-			_strupr(AliasText[n]);
-			n++;
-		}
+			n = 0;
 
+			while (AliasText[n])
+			{
+				_strupr(AliasText[n]);
+				n++;
+			}
+		}
 		SetupFwdAliases();
 	}
 	
@@ -1806,10 +1813,36 @@ VOID SaveFwdDetails(struct HTTPConnectionInfo * Session, char * MsgPtr, char * R
 		if (strstr(input, "StartForward"))
 		{
 			StartForwarding(USER->BBSNumber, NULL);
-			SendFwdDetails(Session, Reply, RLen, Session->Key);
+			SendFwdDetails(Session->User, Reply, RLen, Session->Key);
 			return;
 		}
 
+		if (strstr(input, "CopyForward"))
+		{
+			struct UserInfo * OldBBS;
+
+			// Get call to copy from 
+
+			ptr2 = input + 4;
+			ptr1 = GetNextParam(&ptr2);		// Call
+			_strupr(ptr2);
+
+			OldBBS = FindBBS(ptr2);
+
+			if (OldBBS == NULL)
+			{
+
+				*RLen = sprintf(Reply, "<h3 align=center>Copy From BBS %s not found</h3>", ptr2);
+				return;
+			}
+
+			// Set current info from OldBBS
+//
+//			SetForwardingPage(hDlg, OldBBS);			// moved to separate routine as also called from copy config
+
+			SendFwdDetails(OldBBS, Reply, RLen, Session->Key);
+			return;
+		}
 		// Fwd update
 
 		ptr2 = input + 4;
@@ -1868,13 +1901,15 @@ VOID SaveFwdDetails(struct HTTPConnectionInfo * Session, char * MsgPtr, char * R
 		if (strcmp(ptr1, "true") == 0) FWDInfo->AllowB2 = TRUE; else FWDInfo->AllowB2 = FALSE;
 		ptr1 = GetNextParam(&ptr2);		// CTRLZ
 		if (strcmp(ptr1, "true") == 0) FWDInfo->SendCTRLZ = TRUE; else FWDInfo->SendCTRLZ = FALSE;
+		ptr1 = GetNextParam(&ptr2);		// Connect Timeout
+		FWDInfo->ConTimeout = atoi(ptr1);
 
 		SaveConfig(ConfigName);
 		GetConfig(ConfigName);
 
 		ReinitializeFWDStruct(Session->User);
 	
-		SendFwdDetails(Session, Reply, RLen, Session->Key);
+		SendFwdDetails(Session->User, Reply, RLen, Session->Key);
 	}
 }
 
@@ -2039,6 +2074,15 @@ VOID ProcessUserUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char 
 		if (strcmp(ptr1, "true") == 0) USER->flags &= ~F_NOBULLS; else USER->flags |= F_NOBULLS;	// Inverted flag
 		ptr1 = GetNextParam(&ptr2);		// NTS Message Pickup Station
 		if (strcmp(ptr1, "true") == 0) USER->flags |= F_NTSMPS; else USER->flags &= ~F_NTSMPS;
+		ptr1 = GetNextParam(&ptr2);		// APRS Mail For
+		if (strcmp(ptr1, "true") == 0) USER->flags |= F_APRSMFOR; else USER->flags &= ~F_APRSMFOR;
+	
+		ptr1 = GetNextParam(&ptr2);		// APRS SSID
+		SSID = atoi(ptr1);
+		SSID &= 15;
+		USER->flags &= 0x0fffffff;
+		USER->flags |= (SSID << 28);
+
 
 		ptr1 = GetNextParam(&ptr2);		// Last Listed
 		USER->lastmsg = atoi(ptr1);
@@ -2138,7 +2182,7 @@ VOID SaveMessageText(struct HTTPConnectionInfo * Session, char * MsgPtr, char * 
 
 		*(ptr2++) = 0;
 
-		MsgLen = strlen(input + 8);
+		MsgLen = (int)strlen(input + 8);
 
 		Msg->datechanged = time(NULL);
 		Msg->length = MsgLen;
@@ -2149,7 +2193,7 @@ VOID SaveMessageText(struct HTTPConnectionInfo * Session, char * MsgPtr, char * 
 	
 			if (hFile)
 			{
-				WriteLen = fwrite(input + 8, 1, Msg->length, hFile); 
+				WriteLen = (int)fwrite(input + 8, 1, Msg->length, hFile); 
 				fclose(hFile);
 			}
 
@@ -2210,7 +2254,7 @@ VOID ProcessMsgUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char *
 		}
 
 		Msg->datechanged = time(NULL);
-
+		SaveMessageDatabase();
 	}
 
 	*RLen = SendMessageDetails(Msg, Reply, Session->Key);
@@ -2299,10 +2343,9 @@ VOID SetMultiStringValue(char ** values, char * Multi)
 
 
 
-VOID SendFwdDetails(struct HTTPConnectionInfo * Session, char * Reply, int * ReplyLen, char * Key)
+VOID SendFwdDetails(struct UserInfo * User, char * Reply, int * ReplyLen, char * Key)
 {
 	int Len;
-	struct UserInfo * User = Session->User;
 	struct BBSForwardingInfo * FWDInfo = User->ForwardingInfo;
 	char TO[2048] = "";
 	char AT[2048] = "";
@@ -2333,7 +2376,8 @@ VOID SendFwdDetails(struct HTTPConnectionInfo * Session, char * Reply, int * Rep
 		(FWDInfo->AllowCompressed) ? CHKD  : UNC,
 		(FWDInfo->AllowB1) ? CHKD  : UNC,
 		(FWDInfo->AllowB2) ? CHKD  : UNC,
-		(FWDInfo->SendCTRLZ) ? CHKD  : UNC);
+		(FWDInfo->SendCTRLZ) ? CHKD  : UNC,
+		FWDInfo->ConTimeout);
 
 	*ReplyLen = Len;
 
@@ -2346,17 +2390,21 @@ VOID SendConfigPage(char * Reply, int * ReplyLen, char * Key)
 	char HF[2048] = "";
 	char HT[2048] = "";
 	char HA[2048] = "";
+	char HB[2048] = "";
 	char RF[2048] = "";
 	char RT[2048] = "";
 	char RA[2048] = "";
+	char RB[2048] = "";
 	char WPTO[10000] = "";
 
 	SetMultiStringValue(RejFrom, RF);
 	SetMultiStringValue(RejTo, RT);
 	SetMultiStringValue(RejAt, RA);
+	SetMultiStringValue(RejBID, RB);
 	SetMultiStringValue(HoldFrom, HF);
 	SetMultiStringValue(HoldTo, HT);
 	SetMultiStringValue(HoldAt, HA);
+	SetMultiStringValue(HoldBID, HB);
 	SetMultiStringValue(SendWPAddrs, WPTO);
 
 	
@@ -2369,7 +2417,8 @@ VOID SendConfigPage(char * Reply, int * ReplyLen, char * Key)
 		(RefuseBulls) ? CHKD  : UNC,
 		(EnableUI) ? CHKD  : UNC,
 		MailForInterval,
-		(DontHoldNewUsers) ? CHKD  : UNC, 
+		(DontHoldNewUsers) ? CHKD  : UNC,
+		(DefaultNoWINLINK) ? CHKD  : UNC,
 		(AllowAnon) ? CHKD  : UNC, 
 		(DontNeedHomeBBS) ? CHKD  : UNC, 
 		(UserCantKillT) ? UNC : CHKD,		// Reverse logic
@@ -2387,7 +2436,7 @@ VOID SendConfigPage(char * Reply, int * ReplyLen, char * Key)
 		(SendWPType == 0) ? CHKD  : UNC,
 		(SendWPType == 1) ? CHKD  : UNC,
 		WPTO,
-		RF, RT, RA, HF, HT, HA);
+		RF, RT, RA, RB, HF, HT, HA, HB);
 
 	*ReplyLen = Len;
 }
@@ -2466,7 +2515,9 @@ VOID SendFwdMainPage(char * Reply, int * RLen, char * Key)
 		Key, Key, Key, Key, Key, Key, Key, Key,
 		Key, MaxTXSize, MaxRXSize, MaxAge,
 		(WarnNoRoute) ? CHKD  : UNC, 
-		(Localtime) ? CHKD  : UNC, ALIASES);
+		(Localtime) ? CHKD  : UNC,
+		(SendPtoMultiple) ? CHKD  : UNC,
+		ALIASES);
 }
 
 
@@ -2629,7 +2680,7 @@ VOID SendUserSelectPage(char * Reply, int * ReplyLen, char * Key)
 		if (i > 9999) break;
 	}
 
-	qsort((void *)users, i, 4, compare );
+	qsort((void *)users, i, sizeof(void *), compare );
 		
 	for (n = 0; n < NumberofUsers; n++)
 	{
@@ -2642,9 +2693,10 @@ VOID SendUserSelectPage(char * Reply, int * ReplyLen, char * Key)
 int SendUserDetails(struct HTTPConnectionInfo * Session, char * Reply, char * Key)
 {
 	char SSID[16][16] = {""};
+	char ASSID[16];
 	int i, n, s, Len;
 	struct UserInfo * User = Session->User;
-	int flags = User->flags;
+	unsigned int flags = User->flags;
 	int RMSSSIDBits = Session->User->RMSSSIDBits;
 	char HiddenPass[20] = "";
 
@@ -2694,6 +2746,12 @@ int SendUserDetails(struct HTTPConnectionInfo * Session, char * Reply, char * Ke
 
 	memset(HiddenPass, '*', strlen(User->CMSPass));
 
+	i = (flags >> 28);
+	sprintf(ASSID, "%d", i);
+
+	if (i == 0)
+		ASSID[0] = 0;
+
 	if (!UserDetailTemplate)
 		UserDetailTemplate = GetTemplateFromFile(4, "UserDetail.txt");
 
@@ -2712,6 +2770,7 @@ int SendUserDetails(struct HTTPConnectionInfo * Session, char * Reply, char * Ke
 		(flags & F_NOWINLINK)?CHKD:UNC,
 		(flags & F_NOBULLS)?UNC:CHKD,		// Inverted flag
 		(flags & F_NTSMPS)?CHKD:UNC,
+		(flags & F_APRSMFOR)?CHKD:UNC, ASSID,
 
 		ConnectsIn, MsgsReceived, MsgsRejectedIn,
 		ConnectsOut, MsgsSent, MsgsRejectedOut,

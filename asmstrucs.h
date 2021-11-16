@@ -64,7 +64,8 @@ typedef struct _CMDX
 	char String[12];			// COMMAND STRING
 	UCHAR CMDLEN;				// SIGNIFICANT LENGTH
 	VOID (* CMDPROC)();			// COMMAND PROCESSOR
-	VOID * CMDFLAG;				// FLAG/VALUE ADDRESS
+	size_t CMDFLAG;				// FLAG/VALUE Offset
+
 } CMDX;
 
 
@@ -370,6 +371,7 @@ typedef struct MSGWITHLEN
 	UCHAR Data[256];
 
 } *PMSGWITHLEN;
+
 //
 //	BPQHOST MODE VECTOR STRUC
 //
@@ -522,8 +524,6 @@ typedef struct PORTCONTROL
 					//; 6 = HDLC, 8 = L2
 
 	struct PORTCONTROL * PORTPOINTER; // NEXT IN CHAIN
-	PMESSAGE XXX;
-	PMESSAGE YYY;
 
 	PMESSAGE PORTRX_Q;			// FRAMES RECEIVED ON THIS PORT
 	PMESSAGE PORTTX_Q;			// FRAMES TO BE SENT ON THIS PORT
@@ -534,6 +534,9 @@ typedef struct PORTCONTROL
 	void (FAR * PORTTIMERCODE)();	//
 	void (FAR * PORTCLOSECODE)();	// CLOSE ROUTINE
 	int (FAR * PORTTXCHECKCODE)();	// OK to TX Check
+	BOOL (FAR * PORTSTOPCODE)();	// Temporarily Stop Port
+	BOOL (FAR * PORTSTARTCODE)();	// Restart Port
+	BOOL PortStopped;				// STOPPORT command used
 
 	char PORTDESCRIPTION[31];// TEXT DESCRIPTION OF FREQ/SPEED ETC (31 so null terminated)
 
@@ -642,9 +645,10 @@ typedef struct PORTCONTROL
 
 	FARPROCY UIHook;			// Used for KISSARQ
 	struct PORTCONTROL * HookPort;
-	BOOL PortStopped;			// STOPPORT command used
 	int PortSlot;				// Index in Port Table
-	struct TNCINFO * TNC;		// Associated TNC record if a virtual KISS port on a Most Mode Port
+	struct TNCINFO * TNC;		// Associated TNC record
+	int RIGPort;				// Linked port for freq resporting
+
 
 }	PORTCONTROLX, *PPORTCONTROL;
 
@@ -962,7 +966,7 @@ struct SEM
 };
 
 
-#define TNCBUFFLEN 1024
+#define TNCBUFFLEN 8192
 #define MAXSTREAMS 32
 
 // DED Emulator Stream Info
@@ -976,6 +980,64 @@ struct StreamInfo
 	int CloseTimer;					// Used to close session after connect failure
 	UCHAR MYCall[30];
 	char OutgoingCall[16];
+};
+
+struct TNC2StreamInfo
+{
+	// Not sure which of these is session specific
+
+	UCHAR VMSR;				// VIRTUAL MSR (Only Connected Bit)
+    int BPQPort;
+	BOOL MODEFLAG;			// COMMAND/DATA MODE
+	int TPACLEN;			// MAX PACKET SIZE FOR TNC GENERATED PACKETS
+	char RemoteCall[10];	// FOr Stream Changed Message
+
+/* I suspect only the above are needed
+
+	int TRANSTIMER;			// TRANPARENT MODE SEND TIMOUT
+	BOOL AUTOSENDFLAG;		// SET WHEN TRANSMODE TIME EXPIRES
+
+	int CMDTMR;				// TRANSARENT MODE ESCAPE TIMER
+	int COMCOUNT;			// NUMBER OF COMMAND CHARS RECEIVED
+	int CMDTIME ;			// GUARD TIME FOR TRANS MODE EACAPE
+	int CMSG;				// Enable CTEXT flag
+	int COMCHAR;			// CHAR TO LEAVE CONV MODE
+	int PASSCHAR;			// Escape char
+	char CTEXT[120];
+	char ECHOFLAG;			// ECHO ENABLED
+	BOOL TRACEFLAG;			//  MONITOR ON/OFF
+	BOOL FLOWFLAG;			//  FLOW OFF/ON
+
+	BOOL CONOK;
+	BOOL CBELL;
+	BOOL NOMODE;			//  MODE CHANGE FLAGS
+	BOOL NEWMODE;
+	BOOL CONMODEFLAG;		//  CONNECT MODE - CONV OR TRANS
+	BOOL LFIGNORE;
+	BOOL MCON;				//  TRACE MODE FLAGS 
+	BOOL MCOM;
+	BOOL MALL;
+	BOOL AUTOLF;			//  Add LF after CR
+	BOOL BBSMON;			//  SPECIAL SHORT MONITOR FOR BBS
+	BOOL MTX;				//  MONITOR TRANSMITTED FRAMES
+	BOOL MTXFORCE;			//  MONITOR TRANSMITTED FRAMES EVEN IF M OFF
+	UINT MMASK;				// MONITOR PORT MASK
+	BOOL HEADERLN;			//  PUT MONITORED DATA ON NEW LINE FLAG
+	BOOL InEscape;			// PASS Char received (treat next char as normal char not ctrl char)
+	
+	UINT APPLICATION;		// APPLMASK
+	UINT APPLFLAGS;			// FLAGS TO CONTROL APPL SYSTEM
+
+	UINT SENDPAC;			//  SEND PACKET CHAR
+	BOOL CPACTIME;			// USE PACTIME IN CONV MODE
+	BOOL CRFLAG	;			// APPEND SENDPAC FLAG
+
+	int TPACLEN	;			// MAX PACKET SIZE FOR TNC GENERATED PACKETS
+	UCHAR UNPROTO[64];		// UNPROTO DEST AND DIGI STRING
+
+	char MYCALL[10];
+*/
+
 };
 
 
@@ -997,13 +1059,12 @@ struct TNCDATA
 	int DTR;
 	int DSR;
     int BPQPort;
-	int HostPort;
 	int Speed;
 	char PortLabel[20];
 	char TypeFlag[2];
 	BOOL PortEnabled;
 	HANDLE hDevice;
-	BOOL NewVCOM;			// Setif User Mode VCOM Port
+	BOOL NewVCOM;			// Set if User Mode VCOM Port
 
 	UCHAR VMSR;						// VIRTUAL MSR
 
@@ -1024,9 +1085,7 @@ struct TNCDATA
 	int RXCOUNT;			// BYTES IN RX BUFFER
 	UCHAR * PUTPTR;			// POINTER FOR LOADING BUFFER
 	UCHAR * GETPTR;			// POINTER FOR UNLOADING BUFFER
-
 	UCHAR * CURSOR;			// POSTION IN KEYBOARD BUFFER
-	struct _TRANSPORTENTRY * KBSESSION;	// POINTER TO L4 SESSION ENTRY FOR CONSOLE
 
 	int	MSGLEN;
 	int TRANSTIMER;			// TRANPARENT MODE SEND TIMOUT
@@ -1035,8 +1094,16 @@ struct TNCDATA
 	int CMDTMR;				// TRANSARENT MODE ESCAPE TIMER
 	int COMCOUNT;			// NUMBER OF COMMAND CHARS RECEIVED
 	int CMDTIME ;			// GUARD TIME FOR TRANS MODE EACAPE
-	int COMCHAR;			// CHAR TO LEAVE CONV MODE 
+	int CMSG;				// Enable CTEXT flag
+	int COMCHAR;			// CHAR TO LEAVE CONV MODE
+	int PASSCHAR;			// Escape char
+	int StreamSW;			// Stream Switch Char
+	int StreamDbl;	
+	int StreamCall;			// Send call with stream switch char
+	int LCStream;			// Stream is case independant
+	int Users;				// Number of streams allowed
 
+	char CTEXT[120];
 	char ECHOFLAG;			// ECHO ENABLED
 	BOOL TRACEFLAG;			//  MONITOR ON/OFF
 	BOOL FLOWFLAG;			//  FLOW OFF/ON
@@ -1054,10 +1121,12 @@ struct TNCDATA
 	BOOL BBSMON;			//  SPECIAL SHORT MONITOR FOR BBS
 	BOOL MTX;				//  MONITOR TRANSMITTED FRAMES
 	BOOL MTXFORCE;			//  MONITOR TRANSMITTED FRAMES EVEN IF M OFF
-	UINT MMASK;				// MONITOR PORT MASK
+	UINT MMASK;				//  MONITOR PORT MASK
 	BOOL HEADERLN;			//  PUT MONITORED DATA ON NEW LINE FLAG
+	BOOL InEscape;			//  PASS Char received (treat next char as normal char not ctrl char)
+	BOOL InStreamSW;		//  StreamSW Char received (treat next char as new stream)
 	
-	BOOL MODEFLAG;			//  COMMAND/DATA MODE
+//	BOOL MODEFLAG;			//  TNC2 COMMAND/DATA MODE
 
 	UINT APPLICATION;		// APPLMASK
 	
@@ -1071,6 +1140,13 @@ struct TNCDATA
 	UCHAR UNPROTO[64];		// UNPROTO DEST AND DIGI STRING
 
 	char MYCALL[10];
+
+	// TNC2 Stream Fields
+
+	int TXStream;			// Currently Selected Stream
+	int RXStream;	
+
+	struct TNC2StreamInfo * TNC2Stream[26];  // For StreamSW support
 
 	// DED Mode Fields
 

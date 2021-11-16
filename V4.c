@@ -76,10 +76,7 @@ struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
 
 static int ProcessLine(char * buf, int Port);
 
-pthread_t _beginthread(void(*start_address)(), unsigned stack_size, VOID * arglist);
-
 // RIGCONTROL COM60 19200 ICOM IC706 5e 4 14.103/U1w 14.112/u1 18.1/U1n 10.12/l1
-
 
 
 
@@ -258,7 +255,7 @@ static VOID ChangeMYC(struct TNCINFO * TNC, char * Call)
 //	send(TNC->TCPSock, "MYCALL\r\n", 8, 0);
 }
 
-static int ExtProc(int fn, int port,unsigned char * buff)
+static size_t ExtProc(int fn, int port, unsigned char * buff)
 {
 	int i,winerr;
 	int datalen;
@@ -522,7 +519,7 @@ static int ExtProc(int fn, int port,unsigned char * buff)
 		
 			if (TNC->CONNECTING || TNC->CONNECTED) FD_SET(TNC->TCPDataSock,&errorfs);
 
-			if (select(3,&readfs,&writefs,&errorfs,&timeout) > 0)
+			if (select((int)TNC->TCPSock + 1, &readfs, &writefs, &errorfs, &timeout) > 0)
 			{
 				//	See what happened
 
@@ -1008,7 +1005,7 @@ static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 
 
 
-UINT V4ExtInit(EXTPORTDATA * PortEntry)
+void * V4ExtInit(EXTPORTDATA * PortEntry)
 {
 	int i, port;
 	char Msg[255];
@@ -1029,7 +1026,7 @@ UINT V4ExtInit(EXTPORTDATA * PortEntry)
 		sprintf(Msg," ** Error - no info in BPQ32.cfg for this port\n");
 		WritetoConsole(Msg);
 
-		return (int) ExtProc;
+		return ExtProc;
 	}
 
 	TNC->Port = port;
@@ -1106,6 +1103,8 @@ UINT V4ExtInit(EXTPORTDATA * PortEntry)
 	}
 
 
+	PortEntry->PORTCONTROL.TNC = TNC;
+
 	TNC->WebWindowProc = WebProc;
 	TNC->WebWinX = 520;
 	TNC->WebWinY = 500;
@@ -1176,7 +1175,7 @@ UINT V4ExtInit(EXTPORTDATA * PortEntry)
 
 	time(&TNC->lasttime);			// Get initial time value
 
-	return ((int) ExtProc);
+	return ExtProc;
 }
 
 #ifndef LINBPQ

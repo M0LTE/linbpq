@@ -23,6 +23,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "BPQMail.h"
 
+struct Country * FindCountry(char * Name);
 struct UserInfo * FindAMPR();
 
 /**************************************************************
@@ -755,6 +756,9 @@ BOOL CheckifPacket(char * Via)
 		ptr2 = strchr(++ptr1, '.');
 	}
 
+	if (ptr1[0] == 0)
+		return TRUE;			// Packet
+
 	// ptr1 is last element. If a valid continent, it is a packet message
 	
 	if (FindContinent(ptr1))
@@ -985,7 +989,7 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 	Loop:
 		ptr2 = strchr(ptr1, '\r');
 
-		linelen = ptr2 - ptr1;
+		linelen = (int)(ptr2 - ptr1);
 
 		if (_memicmp(ptr1, "From:", 5) == 0)
 		{
@@ -1063,7 +1067,7 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 		{
 			int toLen;
 			
-			HddrTo=realloc(HddrTo, (Recipients+1)*4);
+			HddrTo=realloc(HddrTo, (Recipients+1) * sizeof(void *));
 			HddrTo[Recipients] = zalloc(100);
 
 			memset(FullTo, 0, 99);
@@ -1074,13 +1078,13 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 
 			Logprintf(LOG_BBS, conn, '?', "B2 Msg To: %s", FullTo);
 
-			conn->TempMsg->length -= strlen(HddrTo[Recipients]);
+			conn->TempMsg->length -= (int)strlen(HddrTo[Recipients]);
 
-			B2To = ptr1 - outfile;
+			B2To = (int)(ptr1 - outfile);
 
 			// if ending in AMPR.ORG send via ISP if we have enabled forwarding AMPR
 
-			toLen = strlen(FullTo);
+			toLen = (int)strlen(FullTo);
 
 			if (_memicmp(&FullTo[toLen - 8], "ampr.org", 8) == 0)
 			{
@@ -1172,7 +1176,6 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 					{
 						// Internet address - do we send via RMS??
 
-
 						// ??? Need to see if RMS is available
 
 						memcpy(Msg->via, &ptr1[9], linelen);
@@ -1180,7 +1183,6 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 						strcpy(FullTo,"RMS");
 						RMSMsgs ++;
 					}
-
 				}
 				else
 				{
@@ -1377,10 +1379,10 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 
 			}
 
-			RecpTo=realloc(RecpTo, (Recipients+1)*4);
+			RecpTo=realloc(RecpTo, (Recipients+1) * sizeof(void *));
 			RecpTo[Recipients] = zalloc(10);
 
-			Via=realloc(Via, (Recipients+1)*4);
+			Via=realloc(Via, (Recipients+1) * sizeof(void *));
 			Via[Recipients] = zalloc(50);
 
 			strcpy(Via[Recipients], Msg->via);
@@ -1494,7 +1496,7 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 
 					// Add our To: 
 		
-					ToLen = strlen(HddrTo[i]);
+					ToLen = (int)strlen(HddrTo[i]);
 
 					if (_memicmp(HddrTo[i], "CC", 2) == 0)	// Replace CC: with TO:
 						memcpy(HddrTo[i], "To", 2);
@@ -1544,7 +1546,7 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 					if (ToLen == 0)					// First Addr
 						memcpy(HddrTo[i], "To", 2);	// In Case CC
 
-					ToLen += strlen(HddrTo[i]);
+					ToLen += (int)strlen(HddrTo[i]);
 					strcat(ToString, HddrTo[i]);
 				}
 			}
@@ -1622,7 +1624,7 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 					*(bang) = 0;					// remove it;
 				}
 
-				ToLen = strlen(ptr);
+				ToLen = (int)strlen(ptr);
 
 	//			if (_memicmp(HddrTo[i], "CC", 2) == 0)	// Replace CC: with TO:
 					memcpy(HddrTo[i], "To", 2);
@@ -1634,11 +1636,16 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 
 				Msg->type = Type[i];
 
-				ptr = strstr(conn->MailBuffer, "Type: ");
+				ptr = strstr(conn->MailBuffer, "\nType: ");
 
 				if (ptr)
 				{
-					ptr += 6;
+					char * ptrx;
+
+					ptr += 7;
+
+					// This handles a message arriving with bull/ or nts/ oerrides
+
 					if (_memicmp(ptr, "Private", 7) == 0 && Msg->type != 'P')
 					{
 						if (Msg->type == 'T')
@@ -1655,15 +1662,20 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 
 						// remove //wl2k from subject
 
-						ptr = strstr(conn->MailBuffer, "Subject: ");
+						ptrx = strstr(conn->MailBuffer, "Subject: ");
 
-						if (ptr && _memicmp(ptr + 9, "//WL2K ", 7) == 0)
+						if (ptrx && _memicmp(ptrx + 9, "//WL2K ", 7) == 0)
 						{
-							memmove(ptr + 9, ptr + 16, count);
+							memmove(ptrx + 9, ptrx + 16, count);
 							conn->TempMsg->length -= 7;
 							memmove(conn->TempMsg->title, &conn->TempMsg->title[7], strlen(conn->TempMsg->title) - 6);
 						}
 					}
+					// if we are receiving from another BBS rather
+					// than WLE or PAT we need to set msgtype from Type:
+
+					Msg->type = ptr[0];		// I think it is save to do it always
+	
 				}
 
 				strcpy(Msg->to, RecpTo[i]);

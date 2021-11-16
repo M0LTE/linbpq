@@ -58,8 +58,6 @@ extern int Ver[];
 int KillTNC(struct TNCINFO * TNC);
 int RestartTNC(struct TNCINFO * TNC);
 
-pthread_t _beginthread(void(*start_address)(), unsigned stack_size, VOID * arglist);
-
 char * GetChallengeResponse(char * Call, char *  ChallengeString);
 
 VOID __cdecl Debugprintf(const char * format, ...);
@@ -435,8 +433,8 @@ BOOL CreatePactorWindow(struct TNCINFO * TNC, char * ClassName, char * WindowTit
 static SOCKADDR_IN sinx; 
 
 
-VOID SendReporttoWL2KThread();
-VOID SendHTTPReporttoWL2KThread();
+VOID SendReporttoWL2KThread(void * unused);
+VOID SendHTTPReporttoWL2KThread(void * unused);
 
 VOID CheckWL2KReportTimer()
 {
@@ -448,8 +446,12 @@ VOID CheckWL2KReportTimer()
 	if (WL2KTimer != 0)
 		return;
 
-	WL2KTimer = 32910;			// Every Hour
-		
+#ifdef WIN32
+	WL2KTimer = 2 * 32910;			// Every 2 Hours - PC Tick is a bit slow 
+#else
+	WL2KTimer = 2 * 36000;			// Every 2 Hours 
+#endif
+
 	if (CheckAppl(NULL, "RMS         ") == NULL)
 		if (CheckAppl(NULL, "RELAY       ") == NULL)
 			return;
@@ -488,7 +490,7 @@ VOID GetJSONValue(char * _REPLYBUFFER, char * Name, char * Value)
 			
 	if (ptr2)
 	{
-		int ValLen = ptr2 - ptr1;
+		size_t ValLen = ptr2 - ptr1;
 		memcpy(Value, ptr1, ValLen);
 		Value[ValLen] = 0;
 	}
@@ -514,6 +516,30 @@ static char Modes [53][18] = {
 	"Robust Packet", "", "", "", "", "", "", "", "", "",					// 30 - 39
 	"ARDOP2", "ARDOP5", "ARDOP10", "ARDOP20", "ARDOP20", "", "", "", "", "",	// 40 - 49
 	"Vara", "VaraFM", "VaraFM96"};
+
+
+VOID SendWL2KSessionRecordThread(void * param)
+{
+	SOCKET sock;
+	char Message[512];
+
+	strcpy(Message, param);
+	free(param);
+
+	Debugprintf("Sending %s", Message);
+
+	sock = OpenWL2KHTTPSock();
+
+	if (sock)
+	{
+		SendHTTPRequest(sock, "api.winlink.org", 80, 
+				"/session/add", (char *)Message, strlen(Message), NULL);
+	
+		closesocket(sock);
+	}
+
+	return;
+}
 
 
 BOOL SendWL2KSessionRecord(ADIF * ADIF, int BytesSent, int BytesReceived)
@@ -558,6 +584,7 @@ IdTag (random alphanumeric, 12 chars)
 	time_t T;
 
 	char Message[4096] = "";
+	char * MessagePtr;
 	int MessageLen;
 	int Dist = 0;
 	int intBearing = 0;
@@ -566,8 +593,6 @@ IdTag (random alphanumeric, 12 chars)
 	double myLat, myLon;
 
 	char Tag[32];
-
-	SOCKET sock;
 
 	if (ADIF == NULL)
 		return TRUE;
@@ -586,8 +611,8 @@ IdTag (random alphanumeric, 12 chars)
 		FromLOC(LOC, &myLat, &myLon);
 		FromLOC(ADIF->LOC, &Lat, &Lon);
 
-		Dist = Distance(myLat, myLon, Lat, Lon, TRUE);
-		intBearing = Bearing(Lat, Lon, myLat, myLon);
+		Dist = (int)Distance(myLat, myLon, Lat, Lon, TRUE);
+		intBearing = (int)Bearing(Lat, Lon, myLat, myLon);
 	}
 
 	MessageLen = sprintf(Message, "\"Application\":\"%s\",", "BPQ32");
@@ -607,21 +632,12 @@ IdTag (random alphanumeric, 12 chars)
 	MessageLen += sprintf(&Message[MessageLen], "\"MessagesReceived\":%d,", ADIF->Received);
 	MessageLen += sprintf(&Message[MessageLen], "\"BytesSent\":%d,", BytesSent);
 	MessageLen += sprintf(&Message[MessageLen], "\"BytesReceived\":%d,", BytesReceived);
-	MessageLen += sprintf(&Message[MessageLen], "\"HoldingSeconds\":%d,", T - ADIF->StartTime);
-	sprintf(Tag, "%012X", T * (rand() + 1));
+	MessageLen += sprintf(&Message[MessageLen], "\"HoldingSeconds\":%d,", (int)(T - ADIF->StartTime));
+	sprintf(Tag, "%012X", (int)T * (rand() + 1));
 	MessageLen += sprintf(&Message[MessageLen], "\"IdTag\":\"%s\"", Tag);
 
-	Debugprintf("Sending %s", Message);
-
-	sock = OpenWL2KHTTPSock();
-
-	if (sock)
-	{
-		SendHTTPRequest(sock, "api.winlink.org", 80, 
-				"/session/add", Message, MessageLen, NULL);
-	
-		closesocket(sock);
-	}
+	MessagePtr = _strdup(Message);
+	_beginthread(SendWL2KSessionRecordThread, 0, (void *)MessagePtr);
 
 	return TRUE;
 }
@@ -639,10 +655,10 @@ VOID SendHTTPRequest(SOCKET sock, char * Host, int Port, char * Request, char * 
 	int Sent;
 
 	strcat(Params, APIKey);
-	Len += strlen(APIKey);
+	Len += (int)strlen(APIKey);
 
 	sprintf(Header, HeaderTemplate, Request, Host, Port, Len + 2, Params);
-	Sent = send(sock, Header, strlen(Header), 0);
+	Sent = send(sock, Header, (int)strlen(Header), 0);
 
 	if (Sent == -1)
 	{
@@ -673,7 +689,7 @@ VOID SendHTTPRequest(SOCKET sock, char * Host, int Port, char * Request, char * 
 		{
 			// got header
 
-			int Hddrlen = ptr - Buffer;
+			int Hddrlen = (int)(ptr - Buffer);
 					
 			ptr1 = strstr(Buffer, "Content-Length:");
 
@@ -716,7 +732,7 @@ VOID SendHTTPRequest(SOCKET sock, char * Host, int Port, char * Request, char * 
 	}
 }
 
-VOID SendHTTPReporttoWL2KThread()
+VOID SendHTTPReporttoWL2KThread(void * unused)
 {
 	// Uses HTTP/JSON Interface
 
@@ -1113,6 +1129,7 @@ VOID UpdateMHSupport(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Directi
 	char NoLOC[7] = "";
 	double Freq;
 	char ReportFreq[350] = "";
+	int OldCount = 0;
 
 	if (MH == 0) return;
 
@@ -1127,8 +1144,6 @@ VOID UpdateMHSupport(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Directi
 #ifdef WIN32
 		if (TNC->Hardware == H_UZ7HO)	
 		{
-
-
 			// See if we have Center Freq Info
 
 			if (TNC->AGWInfo->hFreq)
@@ -1142,9 +1157,13 @@ VOID UpdateMHSupport(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Directi
 
 				Freq = atof(TNC->RIG->Valchar) + (ModemFreq / 1000000);
 			}
+			else
+				Freq = atof(TNC->RIG->Valchar) + 0.0015;		// Assume 1500
 		}
 		else
 #endif
+			// Not UZ7HO or Linux
+		
 			Freq = atof(TNC->RIG->Valchar) + 0.0015;
 
 		_gcvt(Freq, 9, ReportFreq);
@@ -1211,13 +1230,19 @@ NOLOC:
 		if (Mode == ' ' || Mode == '*')			// Packet
 		{
 			if ((MH->MHCALL[0] == 0) || ((memcmp(AXCall, MH->MHCALL, 7) == 0) && MH->MHDIGI == Mode)) // Spare or our entry
+			{
+				OldCount = MH->MHCOUNT;
 				goto DoMove;
+			}
 		}
 		else
 		{
 			if ((MH->MHCALL[0] == 0) || ((memcmp(AXCall, MH->MHCALL, 7) == 0) &&
 				MH->MHDIGI == Mode && strcmp(MH->MHFreq, ReportFreq) == 0)) // Spare or our entry
+			{
+				OldCount = MH->MHCOUNT;
 				goto DoMove;
+			}
 		}
 		MH++;
 	}
@@ -1234,6 +1259,7 @@ DoMove:
 	memcpy (MHBASE->MHCALL, AXCall, 7);
 	MHBASE->MHDIGI = Mode;
 	MHBASE->MHTIME = time(NULL);
+	MHBASE->MHCOUNT = ++OldCount;
 
 	memcpy(MHBASE->MHLocator, LOC, 6);
 	strcpy(MHBASE->MHFreq, ReportFreq);
@@ -1526,7 +1552,7 @@ BOOL UpdateWL2KSYSOPInfo(char * Call, char * SQL)
 
 	len = recv(sock, &Buffer[0], len, 0);
 
-	len = sprintf(SendBuffer, "02%07d%-12s%s%s", strlen(SQL), Call, GetChallengeResponse(Call, Buffer), SQL);
+	len = sprintf(SendBuffer, "02%07d%-12s%s%s", (int)strlen(SQL), Call, GetChallengeResponse(Call, Buffer), SQL);
 
 	send(sock, SendBuffer, len, 0);
 

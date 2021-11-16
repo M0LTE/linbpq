@@ -1,5 +1,6 @@
 /*
 Copyright 2001-2018 John Wiseman G8BPQ
+
 This file is part of LinBPQ/BPQ32.
 
 LinBPQ/BPQ32 is free software: you can redistribute it and/or modify
@@ -23,12 +24,14 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define _CRT_SECURE_NO_DEPRECATE 
 
+
 #pragma data_seg("_BPQDATA")
 
 #include "time.h"
 #include "stdio.h"
 				 
 #include "CHeaders.h"
+#include "tncinfo.h"
 
 #define	PFBIT 0x10		// POLL/FINAL BIT IN CONTROL BYTE
 
@@ -125,8 +128,10 @@ extern UCHAR * ALIASPTR;
 UCHAR QSTCALL[7] = {'Q'+'Q','S'+'S','T'+'T',0x40,0x40,0x40,0xe0};	// QST IN AX25
 UCHAR NODECALL[7] = {0x9C, 0x9E, 0x88, 0x8A, 0xA6, 0x40, 0xE0};		// 'NODES' IN AX25 FORMAT
 
+struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
 
-VOID L2Routine(struct PORTCONTROL * PORT, MESSAGE * Buffer)
+
+VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer)
 {
 	//	LEVEL 2 PROCESSING
 
@@ -136,12 +141,12 @@ VOID L2Routine(struct PORTCONTROL * PORT, MESSAGE * Buffer)
 	UCHAR * ptr;
 	int n;
 	UCHAR CTL;
-	UINT Work;
+	uintptr_t Work;
 	UCHAR c;
 
 	//	Check for invalid length (< 22 7Header + 7Addr + 7Addr + CTL
 
-	if (Buffer->LENGTH < 22)
+	if (Buffer->LENGTH < (18 + sizeof(void *)))
 	{
 		Debugprintf("BPQ32 Bad L2 Msg Port %d Len %d", PORT->PORTNUMBER, Buffer->LENGTH);
 		ReleaseBuffer(Buffer);
@@ -266,10 +271,10 @@ VOID L2Routine(struct PORTCONTROL * PORT, MESSAGE * Buffer)
 
 	// Reached End of digis, and all actioned, so can process it
 
-	Work = (UINT)&Buffer->ORIGIN[6];
+	Work = (uintptr_t)&Buffer->ORIGIN[6];
 	ptr -= 	Work;							// ptr is now length of digis
 
-	Work = (UINT)Buffer;
+	Work = (uintptr_t)Buffer;
 	ptr += Work;
 
 	ADJBUFFER = (MESSAGE * )ptr;			// ADJBUFFER points to CTL, etc. allowing for digis
@@ -352,12 +357,6 @@ USING_NODE:
 	if (CompareAliases(Buffer->DEST, MYALIAS))		// only compare 6 bits - allow any ssid
 		goto FORUS;
 
-	//	WE MAY NOT BE ALLOWED TO USE THE BBS CALL ON SOME BANDS DUE TO
-	//	THE RATHER ODD UK LICENCING RULES!
-
-	if (PORT->BBSBANNED == 1)
-		goto NOWTRY_NODES;
-
 TRYBBS:
 
 	if (BBS == 0)
@@ -377,25 +376,31 @@ TRYBBS:
 	{
 		if (APPL->APPLCALL[0] > 0x40)		// Valid ax.25 addr
 		{
-			ALIASMSG = 0;
-			
-			if (CompareCalls(Buffer->DEST, APPL->APPLCALL))
-				goto FORUS;
+			//	WE MAY NOT BE ALLOWED TO USE THE BBS CALL ON SOME BANDS DUE TO
+			//	THE RATHER ODD UK LICENCING RULES!
+			//  For backward compatibility only apply to appl 1
 
-			ALIASMSG = 1;
+			if (PORT->BBSBANNED == 0 || APPLMASK != 1)
+			{
+				ALIASMSG = 0;
+				
+				if (CompareCalls(Buffer->DEST, APPL->APPLCALL))
+					goto FORUS;
 
-			if (CompareAliases(Buffer->DEST, APPL->APPLALIAS))		// only compare 6 bits - allow any ssid
-				goto FORUS;
+				ALIASMSG = 1;
 
-			if (CompareAliases(Buffer->DEST, APPL->L2ALIAS))		// only compare 6 bits - allow any ssid
-				goto FORUS;
+				if (CompareAliases(Buffer->DEST, APPL->APPLALIAS))		// only compare 6 bits - allow any ssid
+					goto FORUS;
 
+				if (CompareAliases(Buffer->DEST, APPL->L2ALIAS))		// only compare 6 bits - allow any ssid
+					goto FORUS;
+			}
 		}
 		APPLMASK <<= 1;
 		ALIASPTR += ALIASLEN;
 		APPL++;
 	}
-	
+
 	// NOT FOR US - SEE IF 'NODES' OR IP/ARP BROADCAST MESSAGE
 
 NOWTRY_NODES:
@@ -416,14 +421,14 @@ NOWTRY_NODES:
 			PROCESSNODEMESSAGE(Buffer, PORT);
 		}
 	}
-	
+
 	ReleaseBuffer(Buffer);
 	return;
-	
+
 NOTFORUS:
-//
-//	MAY JUST BE A REPLY TO A 'PRIMED' CQ CALL
-//
+	//
+	//	MAY JUST BE A REPLY TO A 'PRIMED' CQ CALL
+	//
 	if ((CTL & ~PFBIT) == SABM)
 		if (CheckForListeningSession(PORT, Buffer))
 			return;		// Used buffer to send UA
@@ -440,7 +445,7 @@ FORUS:
 
 	L2FORUS(LINK, PORT, Buffer, ADJBUFFER, CTL, MSGFLAG);
 }
-	
+
 
 VOID MHPROC(struct PORTCONTROL * PORT, MESSAGE * Buffer)
 {
@@ -448,8 +453,22 @@ VOID MHPROC(struct PORTCONTROL * PORT, MESSAGE * Buffer)
 	PMHSTRUC MHBASE = MH;
 	int i;
 	int OldCount = 0;
-
+	char Freq[16] = "";
 	char DIGI = '*';
+
+	// if port has Rigcontrol associated with it, get frequency
+
+	if (PORT->RIGPort)
+	{
+		struct TNCINFO * TNC = TNCInfo[PORT->RIGPort];
+
+		if (TNC && TNC->RIG)
+		{
+			strcpy(Freq, TNC->RIG->Valchar);
+			Freq[11] = 0;
+		}
+	}
+
 	
 //	if (Buffer->ORIGIN[6] & 1)
 		DIGI = 0;					// DOn't think we wnat to do this
@@ -479,7 +498,7 @@ DoMove:
 	MHBASE->MHDIGI = DIGI;
 	MHBASE->MHTIME = time(NULL);
 	MHBASE->MHCOUNT = ++OldCount;
-	MHBASE->MHFreq[0] = 0;
+	strcpy(MHBASE->MHFreq, Freq);
 	MHBASE->MHLocator[0] = 0;
 
 	return;
@@ -653,6 +672,13 @@ VOID L2FORUS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buff
 	}
 
 	// Exclude and limit tests are done for XID and SABM
+
+	if (NODE == 0 && BBS == 0)			// Don't want any calls
+	{
+		ReleaseBuffer(Buffer);
+		return;
+	}
+
 #ifdef	EXCLUDEBITS
 
 	//	CHECK ExcludeList
@@ -1306,7 +1332,7 @@ VOID L2SENDRESP(struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER
 
 	ADJBUFFER->CTL = CTL | PFBIT;
 
- 	Buffer->LENGTH = (UCHAR *)ADJBUFFER - (UCHAR *)Buffer + MSGHDDRLEN + 15;	// SET UP BYTE COUNT
+ 	Buffer->LENGTH = (int)((UCHAR *)ADJBUFFER - (UCHAR *)Buffer) + MSGHDDRLEN + 15;	// SET UP BYTE COUNT
 
 	L2SWAPADDRESSES(Buffer);			// SWAP ADDRESSES AND SET RESP BITS
 
@@ -1334,7 +1360,7 @@ VOID L2SENDINVALIDCTRL(struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * AD
 	*(ptr++) = 0;
 	*(ptr++) = SDINVC;			// MOVE REJECT FLAGS
 
- 	Buffer->LENGTH = (UCHAR *)ADJBUFFER - (UCHAR *)Buffer + MSGHDDRLEN + 18;	// SET UP BYTE COUNT
+ 	Buffer->LENGTH = (int)((UCHAR *)ADJBUFFER - (UCHAR *)Buffer) + MSGHDDRLEN + 18;	// SET UP BYTE COUNT
 
 	L2SWAPADDRESSES(Buffer);			// SWAP ADDRESSES AND SET RESP BITS
 
@@ -1835,7 +1861,7 @@ VOID SFRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, UCHAR CTL, UCHA
 
 				Buffer->DEST[6] |= 0x80;		// SET COMMAND
 
-				Buffer->LENGTH = ptr2 + count - (UCHAR *)Buffer;		// SET NEW LENGTH
+				Buffer->LENGTH = (int)(ptr2  - (UCHAR *)Buffer) + count;		// SET NEW LENGTH
 
 				LINK->L2TIMER = ONEMINUTE;	// (RE)SET TIMER
 
@@ -1907,8 +1933,6 @@ VOID SFRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, UCHAR CTL, UCHA
 
 	//	RESPONSE WITH P/F - MUST BE REPLY TO POLL FOLLOWING TIMEOUT OR I(P)
 
-	LINK->L2FLAGS &= ~POLLSENT;				// CLEAR I(P) SET
-
 	//	THERE IS A PROBLEM WITH REPEATED RR(F), SAY CAUSED BY DELAY AT L1
 
 	//	AS FAR AS I CAN SEE, WE SHOULD ONLY RESET N(S) IF AN RR(F) FOLLOWS
@@ -1916,13 +1940,33 @@ VOID SFRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, UCHAR CTL, UCHA
 	//	INDICATE A LOST FRAME. ON THE OTHER HAND, A REJ(F) MUST INDICATE
 	//	A LOST FRAME. So dont reset NS if not retrying, unless REJ
 
-	if ((CTL & 0xf) == REJ || LINK->L2RETRIES)
+	
+	// someone (probably WLE KISS Driver) is sending REJ followed by RR(F)
+	// after lost frame and i(p)
+
+/*
+1:Fm W4DHW-10 To W4DHW <I C P R1 S4 Pid=F0 Len=236> [17:08:03R] [+++]
+úJƒÑZKÀ)x@DÖBÉrNôÝ4XÔ;i‹#CäM³,ïÐ½Ò¼üÕrÞùOË N¿XæâïÀÄ5Ð(È|©¸ì#íÿÈUþïÒcYÞÍl—çûž)Àúï§¯oÑÈ¼ö>©Ï9¨*ÎG²£ëðû(6À5C‹!áL±Ÿîßì÷³ÙQð»pƒËIH”Š;ØÚi¯Ò>â9p¶B¬õ<ÌcŠEPž«<ŸÊ{0aŽ(’­YÕ–´M¢†—N£+<ÇIÐ[–áÛPw–[^]6ƒ2\ù¿9äÆov{‹¥Å¸mm<dè^
+1:Fm W4DHW To W4DHW-10 <RR C P R1> [17:08:03T]
+1:Fm W4DHW To W4DHW-10 <REJ R R1> [17:08:03T]
+1:Fm W4DHW To W4DHW-10 <RR R F R1> [17:08:03T]
+
+	is there a problem with restting on RR(F) following I(P)?
+	
+	I think the problem is restting NS twice if you get delayed responses to 
+	I or RR (P). So lets try only resetting NS once for each P sent
+
+*/
+//	if ((CTL & 0xf) == REJ || LINK->L2RETRIES)
+	if ((LINK->L2FLAGS & POLLSENT))
 	{
 		RESETNS(LINK, (CTL >> 5) & 7);	// RESET N(S) AND COUNT RETRIED FRAMES
 
 		LINK->L2RETRIES = 0;
 		LINK->L2TIMER = 0;			// WILL RESTART TIMER WHEN RETRY SENT
 	}
+
+	LINK->L2FLAGS &= ~POLLSENT;			// CLEAR I(P) or RR(P) SET
 
 	if ((CTL & 0xf) == RNR)
 	{
@@ -1936,7 +1980,6 @@ VOID SFRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, UCHAR CTL, UCHA
 
 //***	PROCESS AN INFORMATION FRAME
 
-
 VOID SDIFRM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffer, UCHAR CTL, UCHAR MSGFLAG)
 {
 	int NS;
@@ -1948,7 +1991,7 @@ VOID SDIFRM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		return;
 	}
 
-	SDNRCHK(LINK, CTL);				// CHECK RECEIVED N(R)
+	SDNRCHK(LINK, CTL);			// CHECK RECEIVED N(R)
 
 	if (LINK->SDREJF)			// ARE ANY REJECT FLAGS SET NOW?
 	{
@@ -1959,9 +2002,38 @@ VOID SDIFRM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 	LINK->SESSACTIVE = 1;		// SESSION IS DEFINITELY SET UP
 
-	NS = (CTL >> 1) & 7;			// ISOLATE RECEIVED N(S)
+	NS = (CTL >> 1) & 7;		// ISOLATE RECEIVED N(S)
 	
 CheckNSLoop:
+
+	// IPOLL (sending an I(P) frame following timeout instead of RR(P))
+	// is a problem. We need to send REJ(F), but shouldn't add to collector.
+	// We also need to handle repeated I(P), so shouldn't set REJSENT in 
+	// this state. 
+
+	if ((((NS + 1) & 7) == LINK->LINKNR) && (CTL & PFBIT))
+	{
+		// Previous Frame and P set - Assume IPOLL
+
+		PORT->L2OUTOFSEQ++;
+		LINK->L2STATE = 6;
+
+		LINK->L2ACKREQ = 0;					// CANCEL RR NEEDED
+
+		// We need to protect against sending multiple REJ(F) if channel
+		// delays mean we get two I(P) close together (how close is close ??)
+		// SM has default IPOLL limit of 30 bytes or about a second at 300
+		// ACKMODE should avoid this anyway, and resptime of under 3 secs
+		// is unlikely so say 2.5 secs ??
+
+		if (LINK->LAST_F_TIME + 25 > REALTIMETICKS)
+			return;
+
+		SEND_RR_RESP(LINK, PFBIT);
+		LINK->LAST_F_TIME = REALTIMETICKS;
+
+		return;
+	}
 
 	if (NS != LINK->LINKNR)		// EQUAL TO OUR N(R)?
 	{
@@ -2075,7 +2147,20 @@ CheckPF:
 	{
 		if (LINK->L2STATE == 6)
 			LINK->L2FLAGS |= REJSENT;	// Set "REJ Sent"
+		else
+		{
+			// we have all frames. Clear anything in RXFRAMES
 
+			int n = 0;
+			
+			while (n < 8)
+			{
+				if (LINK->RXFRAMES[n])
+					ReleaseBuffer(Q_REM(&LINK->RXFRAMES[n]));
+		
+				n++;
+			}
+		}
 		LINK->L2ACKREQ = 0;					// CANCEL RR NEEDED
 
 		SEND_RR_RESP(LINK, PFBIT);
@@ -2111,7 +2196,7 @@ VOID PROC_I_FRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 
 	// Copy data down the buffer so PID comes after Header (DATAMESSAGE format)
 
-	Length = Buffer->LENGTH - MSGHDDRLEN - 15;	// Buffer Header + addrs + CTL
+	Length = Buffer->LENGTH - (MSGHDDRLEN + 15);	// Buffer Header + addrs + CTL
 	Info  = &Buffer->PID;
 
 	// Adjust for DIGIS
@@ -2137,7 +2222,7 @@ VOID PROC_I_FRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 		if (n < 8)			// If digis, move data back down buffer
 		{
 			memmove(&Buffer->PID, &EOA[2], Length);
-			Buffer->LENGTH -= (&EOA[2] - &Buffer->PID);
+			Buffer->LENGTH -= (int)(&EOA[2] - &Buffer->PID);
 		}
 
 		Q_IP_MSG( Buffer);
@@ -2150,7 +2235,7 @@ VOID PROC_I_FRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 		if (n < 8)			// If digis, move data back down buffer
 		{
 			memmove(&Buffer->PID, &EOA[2], Length);
-			Buffer->LENGTH -= (&EOA[2] - &Buffer->PID);
+			Buffer->LENGTH -= (int)(&EOA[2] - &Buffer->PID);
 		}
 
 		C_Q_ADD(&LINK->L2FRAG_Q, Buffer);
@@ -2376,7 +2461,6 @@ UCHAR * SETUPADDRESSES(struct _LINKTABLE * LINK, PMESSAGE Msg)
 	return ptr2;			// Pointer to CTL
 }
 
-
 VOID SDETX(struct _LINKTABLE * LINK)
 {
 	// Start sending frsmes if possible
@@ -2394,10 +2478,15 @@ VOID SDETX(struct _LINKTABLE * LINK)
 //	if (LINK->L2RESEQ_Q)
 //		return;
 	
-	Outstanding = LINK->LINKWS - LINK->LINKOWS;
+	if (LINK->LINKPORT->PORTNUMBER == 18)
+	{
+		int i = 0;
+	}
+
+	Outstanding = LINK->LINKNS - LINK->LINKOWS;			// Was WS not NS
 
 	if (Outstanding < 0)
-		Outstanding += 8;		// allow fro wrap
+		Outstanding += 8;		// allow for wrap
 
 	if (Outstanding >= LINK->LINKWINDOW)		// LIMIT
 		return;
@@ -2483,12 +2572,12 @@ VOID SDETX(struct _LINKTABLE * LINK)
 
 		Buffer->DEST[6] |= 0x80;		// SET COMMAND
 
-		Buffer->LENGTH = ptr2 + count - (UCHAR *)Buffer;		// SET NEW LENGTH
+		Buffer->LENGTH = (int)(ptr2 - (UCHAR *)Buffer) + count;		// SET NEW LENGTH
 
 		LINK->L2TIMER = ONEMINUTE;	// (RE)SET TIMER
 
 		PORT = LINK->LINKPORT;
-
+	
 		if (PORT)
 		{
 			Buffer->PORT = PORT->PORTNUMBER;
@@ -2499,6 +2588,7 @@ VOID SDETX(struct _LINKTABLE * LINK)
 			Buffer->Linkptr = 0;
 			ReleaseBuffer(Buffer);
 		}
+	
 	}
 }
 
@@ -2835,13 +2925,14 @@ VOID L2TIMEOUT(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT)
 	//	SEND RR(P) UP TO N2 TIMES
 
 	LINK->L2RETRIES++;
+
 	if (LINK->L2RETRIES >= PORT->PORTN2)
 	{
 		//	RETRIED N TIMES SEND A COUPLE OF DISCS AND THEN CLOSE
 
 		InformPartner(LINK, RETRIEDOUT);	// TELL OTHER END ITS GONE
 
-		LINK->L2RETRIES =-2;
+		LINK->L2RETRIES -= 1;		// Just send one DISC
 		LINK->L2STATE = 4;			// CLOSING
 
 		L2SENDCOMMAND(LINK, DISC | PFBIT);
@@ -2966,7 +3057,7 @@ VOID L2SENDXID(struct _LINKTABLE * LINK)
 	*ptr++ = 0x01;			// Len
 	*ptr++ = 0x07;			// 7
 
-	Buffer->LENGTH = ptr - (UCHAR *)Buffer;		// SET LENGTH
+	Buffer->LENGTH = (int)(ptr - (UCHAR *)Buffer);		// SET LENGTH
 
 	LINK->L2TIMER = ONEMINUTE;	// (RE)SET TIMER
 
@@ -3095,7 +3186,7 @@ MESSAGE * SETUPL2MESSAGE(struct _LINKTABLE * LINK, UCHAR CMD)
 
 	*(ptr)++ = CMD;
 
-	Buffer->LENGTH = ptr  - (UCHAR *)Buffer;		// SET LENGTH
+	Buffer->LENGTH = (int)(ptr  - (UCHAR *)Buffer);		// SET LENGTH
 
 	return Buffer;
 }
@@ -3263,7 +3354,7 @@ VOID ConnectFailedOrRefused(struct _LINKTABLE * LINK, char * Msg)
 
 	ptr1 += sprintf(ptr1, "%s %s\r", Msg, Normcall);
 
-	Buffer->LENGTH = ptr1 - (UCHAR *)Buffer;
+	Buffer->LENGTH = (int)(ptr1 - (UCHAR *)Buffer);
 
 	Session = LINK->CIRCUITPOINTER;			// GET CIRCUIT TABLE ENTRY
 	InSession = Session->L4CROSSLINK;		// TO INCOMMONG SESSION
@@ -3313,7 +3404,7 @@ VOID SENDCONNECTREPLY(struct _LINKTABLE * LINK)
 
 	ptr1 += sprintf(ptr1, "Connected to %s\r", Normcall);
 
-	Buffer->LENGTH = ptr1 - (UCHAR *)Buffer;
+	Buffer->LENGTH = (int)(ptr1 - (UCHAR *)Buffer);
 
 	Session = LINK->CIRCUITPOINTER;			// GET CIRCUIT TABLE ENTRY
 	Session->L4STATE = 5;
@@ -3559,6 +3650,7 @@ BOOL CheckForListeningSession(struct PORTCONTROL * PORT, MESSAGE * Msg)
 							return FALSE;
 
 						memcpy(LINK->LINKCALL, Msg->ORIGIN, 7);
+						LINK->LINKCALL[6] &= 0xFE;
 						memcpy(LINK->OURCALL, ourcall, 7);
 
 						LINK->LINKPORT = PORT;
@@ -3614,7 +3706,7 @@ BOOL CheckForListeningSession(struct PORTCONTROL * PORT, MESSAGE * Msg)
 
 						ptr += sprintf(ptr, "Incoming call from %s\r", Normcall);
 
-						Buffer->LENGTH = ptr - (UCHAR *)Buffer;
+						Buffer->LENGTH = (int)(ptr - (UCHAR *)Buffer);
 
 						C_Q_ADD(&L4->L4TX_Q, Buffer);
 						PostDataAvailable(L4);

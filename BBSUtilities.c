@@ -54,14 +54,12 @@ extern struct ConsoleInfo BBSConsole;
 
 #ifdef LINBPQ
 extern BPQVECSTRUC ** BPQHOSTVECPTR;
-char * GetLogDirectory();
+UCHAR * GetLogDirectory();
 #else
 __declspec(dllimport) BPQVECSTRUC ** BPQHOSTVECPTR;
 #endif
 
-
-unsigned long _beginthread( void( *start_address )(VOID * DParam),
-				unsigned stack_size, VOID * DParam);
+Dll BOOL APIENTRY APISendAPRSMessage(char * Text, char * ToCall);
 
 
 int APIENTRY GetRaw(int stream, char * msg, int * len, int * count);
@@ -427,7 +425,7 @@ struct UserInfo * AllocateUserRecord(char * Call)
 
 	GetSemaphore(&AllocSemaphore, 0);
 
-	UserRecPtr=realloc(UserRecPtr,(++NumberofUsers+1)*4);
+	UserRecPtr=realloc(UserRecPtr,(++NumberofUsers+1) * sizeof(void *));
 	UserRecPtr[NumberofUsers]= User;
 
 	FreeSemaphore(&AllocSemaphore);
@@ -441,7 +439,7 @@ struct MsgInfo * AllocateMsgRecord()
 
 	GetSemaphore(&AllocSemaphore, 0);
 
-	MsgHddrPtr=realloc(MsgHddrPtr,(++NumberofMessages+1)*4);
+	MsgHddrPtr=realloc(MsgHddrPtr,(++NumberofMessages+1) * sizeof(void *));
 	MsgHddrPtr[NumberofMessages] = Msg;
 
 	FreeSemaphore(&AllocSemaphore);
@@ -455,7 +453,7 @@ BIDRec * AllocateBIDRecord()
 	
 	GetSemaphore(&AllocSemaphore, 0);
 
-	BIDRecPtr=realloc(BIDRecPtr,(++NumberofBIDs+1)*4);
+	BIDRecPtr=realloc(BIDRecPtr,(++NumberofBIDs+1) * sizeof(void *));
 	BIDRecPtr[NumberofBIDs] = BID;
 
 	FreeSemaphore(&AllocSemaphore);
@@ -469,7 +467,7 @@ BIDRec * AllocateTempBIDRecord()
 	
 	GetSemaphore(&AllocSemaphore, 0);
 
-	TempBIDRecPtr=realloc(TempBIDRecPtr,(++NumberofTempBIDs+1)*4);
+	TempBIDRecPtr=realloc(TempBIDRecPtr,(++NumberofTempBIDs+1) * sizeof(void *));
 	TempBIDRecPtr[NumberofTempBIDs] = BID;
 
 	FreeSemaphore(&AllocSemaphore);
@@ -498,7 +496,7 @@ VOID GetUserDatabase()
 	struct UserInfo UserRec;
 
 	FILE * Handle;
-	int ReadLen;
+	size_t ReadLen;
 	struct UserInfo * user;
 	time_t UserLimit = time(NULL) - (UserLifetime * 86400); // Oldest user to keep
 	int i;
@@ -509,7 +507,7 @@ VOID GetUserDatabase()
 	{
 		// Initialise a new File
 
-		UserRecPtr=malloc(4);
+		UserRecPtr=malloc(sizeof(void *));
 		UserRecPtr[0]= malloc(sizeof (struct UserInfo));
 		memset(UserRecPtr[0], 0, sizeof (struct UserInfo));
 		UserRecPtr[0]->Length = sizeof (struct UserInfo);
@@ -522,7 +520,7 @@ VOID GetUserDatabase()
 
 	// Get First Record
 		
-	ReadLen = fread(&UserRec, 1, sizeof (UserRec), Handle);
+	ReadLen = fread(&UserRec, 1, (int)sizeof (UserRec), Handle);
 	
 	if (ReadLen == 0)
 	{
@@ -554,11 +552,11 @@ VOID GetUserDatabase()
 
 			Handle = fopen(UserDatabasePath, "rb");
 			
-			ReadLen = fread(&UserRec, 1, sizeof (struct OldUserInfo), Handle);	// Skip Control Record
+			ReadLen = fread(&UserRec, 1, (int)sizeof (struct OldUserInfo), Handle);	// Skip Control Record
 
 			// Set up control record
 
-			UserRecPtr=malloc(4);
+			UserRecPtr=malloc(sizeof(void *));
 			UserRecPtr[0]= malloc(sizeof (struct UserInfo));
 			memcpy(UserRecPtr[0], &UserRec,  sizeof (UserRec));
 			UserRecPtr[0]->Length = sizeof (UserRec);
@@ -567,7 +565,7 @@ VOID GetUserDatabase()
 		
 		OldNext:
 
-			ReadLen = fread(&UserRec, 1, sizeof (struct OldUserInfo), Handle);
+			ReadLen = fread(&UserRec, 1, (int)sizeof (struct OldUserInfo), Handle);
 
 			if (ReadLen > 0)
 			{
@@ -631,7 +629,7 @@ VOID GetUserDatabase()
 			
 	// Set up control record
 
-	UserRecPtr=malloc(4);
+	UserRecPtr=malloc(sizeof(void *));
 	UserRecPtr[0]= malloc(sizeof (struct UserInfo));
 	memcpy(UserRecPtr[0], &UserRec,  sizeof (UserRec));
 	UserRecPtr[0]->Length = sizeof (UserRec);
@@ -640,7 +638,7 @@ VOID GetUserDatabase()
 
 Next:
 
-	ReadLen = fread(&UserRec, 1, sizeof (UserRec), Handle);
+	ReadLen = fread(&UserRec, 1, (int)sizeof (UserRec), Handle);
 
 	if (ReadLen > 0)
 	{
@@ -784,7 +782,7 @@ VOID CopyConfigFile(char * ConfigName)
 VOID SaveUserDatabase()
 {
 	FILE * Handle;
-	int WriteLen;
+	size_t WriteLen;
 	int i;
 
 	Handle = fopen(UserDatabasePath, "wb");
@@ -793,7 +791,7 @@ VOID SaveUserDatabase()
 
 	for (i=0; i <= NumberofUsers; i++)
 	{
-		WriteLen = fwrite(UserRecPtr[i], 1, sizeof (struct UserInfo), Handle);
+		WriteLen = fwrite(UserRecPtr[i], 1, (int)sizeof (struct UserInfo), Handle);
 	}
 
 	fclose(Handle);
@@ -805,7 +803,7 @@ VOID GetMessageDatabase()
 {
 	struct MsgInfo MsgRec;
 	FILE * Handle;
-	int ReadLen;
+	size_t ReadLen;
 	struct MsgInfo * Msg;
 	char * MsgBytes;
 	int FileRecsize = sizeof(struct MsgInfo);	// May be changed if reformating
@@ -817,7 +815,7 @@ VOID GetMessageDatabase()
 	{
 		// Initialise a new File
 
-		MsgHddrPtr=malloc(4);
+		MsgHddrPtr=malloc(sizeof(void *));
 		MsgHddrPtr[0]= zalloc(sizeof (MsgRec));
 		NumberofMessages = 0;
 		MsgHddrPtr[0]->status = 2;
@@ -839,7 +837,7 @@ VOID GetMessageDatabase()
 
 	// Set up control record
 
-	MsgHddrPtr=malloc(4);
+	MsgHddrPtr=malloc(sizeof(void *));
 	MsgHddrPtr[0]= malloc(sizeof (MsgRec));
 	memcpy(MsgHddrPtr[0], &MsgRec,  sizeof (MsgRec));
 
@@ -1012,7 +1010,7 @@ VOID CopyMessageDatabase()
 VOID SaveMessageDatabase()
 {
 	FILE * Handle;
-	int WriteLen;
+	size_t WriteLen;
 	int i;
 //	char Key[16];
 //	struct MsgInfo *Msg;
@@ -1167,7 +1165,7 @@ VOID GetBIDDatabase()
 {
 	BIDRec BIDRec;
 	FILE * Handle;
-	int ReadLen;
+	size_t ReadLen;
 	BIDRecP BID;
 
 	Handle = fopen(BIDDatabasePath, "rb");
@@ -1176,7 +1174,7 @@ VOID GetBIDDatabase()
 	{
 		// Initialise a new File
 
-		BIDRecPtr=malloc(4);
+		BIDRecPtr=malloc(sizeof(void *));
 		BIDRecPtr[0]= malloc(sizeof (BIDRec));
 		memset(BIDRecPtr[0], 0, sizeof (BIDRec));
 		NumberofBIDs = 0;
@@ -1198,8 +1196,8 @@ VOID GetBIDDatabase()
 
 	// Set up control record
 
-	BIDRecPtr=malloc(4);
-	BIDRecPtr[0]= malloc(sizeof (BIDRec));
+	BIDRecPtr = malloc(sizeof(void *));
+	BIDRecPtr[0] = malloc(sizeof (BIDRec));
 	memcpy(BIDRecPtr[0], &BIDRec,  sizeof (BIDRec));
 
 	NumberofBIDs = 0;
@@ -1235,7 +1233,7 @@ VOID CopyBIDDatabase()
 VOID SaveBIDDatabase()
 {
 	FILE * Handle;
-	int WriteLen;
+	size_t WriteLen;
 	int i;
 
 	Handle = fopen(BIDDatabasePath, "wb");
@@ -1338,6 +1336,15 @@ VOID GetBadWordFile()
 	if (Handle == NULL)
 		return;
 
+	// Release old info in case a re-read
+
+	if (BadWords) free(BadWords);
+	if (BadFile) free(BadFile);
+
+	BadWords = NULL;
+	BadFile = NULL;
+	NumberofBadWords = 0;
+
 	BadFile = malloc(FileSize+1);
 
 	fread(BadFile, 1, FileSize, Handle); 
@@ -1359,7 +1366,7 @@ VOID GetBadWordFile()
 		{
 			if (*ptr2 != '#')
 			{
-				BadWords = realloc(BadWords,(++NumberofBadWords+1)*4);
+				BadWords = realloc(BadWords,(++NumberofBadWords+1) * sizeof(void *));
 				BadWords[NumberofBadWords] = ptr2;
 			}
 		}
@@ -1371,7 +1378,7 @@ VOID GetBadWordFile()
 BOOL CheckBadWord(char * Word, char * Msg)
 {
 	char * ptr1 = Msg, * ptr2;
-	int len = strlen(Word);
+	size_t len = strlen(Word);
 
 	while (*ptr1)					// Stop at end
 	{
@@ -1453,7 +1460,7 @@ VOID SendPrompt(ConnectionInfo * conn, struct UserInfo * user)
 
 
 
-VOID * _zalloc(int len)
+VOID * _zalloc(size_t len)
 {
 	// ?? malloc and clear
 
@@ -1470,7 +1477,7 @@ BOOL isAMPRMsg(char * Addr)
 	// See if message is addressed to ampr.org and is either
 	// for us or we have SendAMPRDirect (ie don't need RMS or SMTP to send it)
 
-	int toLen = strlen(Addr);
+	size_t toLen = strlen(Addr);
 
 	if (_memicmp(&Addr[toLen - 8], "ampr.org", 8) == 0)
 	{
@@ -1531,6 +1538,19 @@ struct UserInfo * FindRMS()
 	return NULL;
 }
 
+struct UserInfo * FindBBS(char * Name)
+{
+	struct UserInfo * bbs;
+	
+	for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
+	{		
+		if (strcmp(bbs->Call, Name) == 0)
+			return bbs;
+	}
+	
+	return NULL;
+}
+
 int CountConnectionsOnPort(int CheckPort)
 {
 	int n, Count = 0;
@@ -1554,7 +1574,7 @@ int CountConnectionsOnPort(int CheckPort)
 }
 
 
-BOOL CheckRejFilters(char * From, char * To, char * ATBBS, char Type)
+BOOL CheckRejFilters(char * From, char * To, char * ATBBS, char * BID, char Type)
 {
 	char ** Calls;
 
@@ -1600,10 +1620,30 @@ BOOL CheckRejFilters(char * From, char * To, char * ATBBS, char Type)
 		}
 	}
 
+	if (RejBID && BID)
+	{
+		Calls = RejBID;
+
+		while(Calls[0])
+		{
+			if (Calls[0][0] == '*')
+			{
+				if (stristr(BID, &Calls[0][1]))	
+					return TRUE;
+			}
+			else
+			{
+				if (_stricmp(BID, Calls[0]))	
+					return TRUE;
+			}
+
+			Calls++;
+		}
+	}
 	return FALSE;		// Ok to accept
 }
 
-BOOL CheckHoldFilters(char * From, char * To, char * ATBBS)
+BOOL CheckHoldFilters(char * From, char * To, char * ATBBS, char * BID)
 {
 	char ** Calls;
 
@@ -1646,6 +1686,26 @@ BOOL CheckHoldFilters(char * From, char * To, char * ATBBS)
 		}
 	}
 
+	if (HoldBID && BID)
+	{
+		Calls = HoldBID;
+
+		while(Calls[0])
+		{
+			if (Calls[0][0] == '*')
+			{
+				if (stristr(BID, &Calls[0][1]))	
+					return TRUE;
+			}
+			else
+			{
+				if (_stricmp(BID, Calls[0]))	
+					return TRUE;
+			}
+
+			Calls++;
+		}
+	}
 	return FALSE;		// Ok to accept
 }
 
@@ -1689,9 +1749,9 @@ VOID BBSputs(CIRCUIT * conn, char * buf)
 {
 	// Sends to user and logs
 
-	WriteLogLine(conn, '>',buf,  strlen(buf) -1, LOG_BBS);
+	WriteLogLine(conn, '>',buf,  (int)strlen(buf) -1, LOG_BBS);
 
-	QueueMsg(conn, buf, strlen(buf));
+	QueueMsg(conn, buf, (int)strlen(buf));
 }
 
 VOID __cdecl nodeprintf(ConnectionInfo * conn, const char * format, ...)
@@ -1750,7 +1810,7 @@ VOID SortBBSChain()
 		if (i > 160) break;
 	}
 
-	qsort((void *)users, i, 4, compare );
+	qsort((void *)users, i, sizeof(void *), compare );
 
 	BBSChain = NULL;
 
@@ -1815,7 +1875,7 @@ VOID ExpandAndSendMessage(CIRCUIT * conn, char * Msg, int LOG)
 	char * OldP = Msg;
 	char * NewP = NewMessage;
 	char * ptr, * pptr;
-	int len;
+	size_t len;
 	char Dollar[] = "$";
 	char CR[] = "\r";
 	char num[20];
@@ -1900,17 +1960,17 @@ VOID ExpandAndSendMessage(CIRCUIT * conn, char * Msg, int LOG)
 
 	strcpy(NewP, OldP);
 
-	len = RemoveLF(NewMessage, strlen(NewMessage));
+	len = RemoveLF(NewMessage, (int)strlen(NewMessage));
 
-	WriteLogLine(conn, '>', NewMessage,  len, LOG);
-	QueueMsg(conn, NewMessage, len);
+	WriteLogLine(conn, '>', NewMessage,  (int)len, LOG);
+	QueueMsg(conn, NewMessage, (int)len);
 }
 
 BOOL isdigits(char * string)
 {
 	// Returns TRUE id sting is decimal digits
 
-	int i, n = strlen(string);
+	size_t i, n = strlen(string);
 	
 	for (i = 0; i < n; i++)
 	{
@@ -1933,19 +1993,19 @@ BOOL wildcardcompare(char * Target, char * Match)
 
 	if (firststar)
 	{
-		int Len = strlen(Pattern);
+		size_t Len = strlen(Pattern);
 
 		if (Pattern[0] == '*' && Pattern[Len - 1] == '*')		// * at start and end
 		{
 			Pattern[Len - 1] = 0;
-			return (BOOL)(strstr(Target, &Pattern[1]));
+			return !(strstr(Target, &Pattern[1]) == NULL);
 		}
 		if (Pattern[0] == '*')		// * at start
 		{
 			// Compare the last len - 1 chars of Target
 
-			int Targlen = strlen(Target);
-			int Comparelen = Targlen - (Len - 1);
+			size_t Targlen = strlen(Target);
+			size_t Comparelen = Targlen - (Len - 1);
 
 			if (Len == 1)			// Just *
 				return TRUE;
@@ -2322,7 +2382,7 @@ NextMessage:
 		if (Buffer[0] == 0)			//Blank Line
 			continue;
 
-		WriteLogLine(conn, '>', Buffer, strlen(Buffer), LOG_BBS);
+		WriteLogLine(conn, '>', Buffer, (int)strlen(Buffer), LOG_BBS);
 
 		if (dummyconn.sysop == 0)
 		{
@@ -2383,7 +2443,7 @@ NextMessage:
 				{
 					strlop(Buffer, 10);
 					strlop(Buffer, 13);				// Remove cr and/or lf
-					msglen = strlen(Buffer);
+					msglen = (int)strlen(Buffer);
 					Buffer[msglen++] = 13;
 					ProcessMsgLine(conn, conn->UserPointer,Buffer, msglen);
 	
@@ -2690,11 +2750,11 @@ void Flush(CIRCUIT * conn)
 			{
 				conn->LinesSent++;
 				ptr2++;
-				lenleft = len - (ptr2 - ptr1);
+				lenleft = len - (int)(ptr2 - ptr1);
 
 				if (conn->LinesSent >= conn->PageLen)
 				{
-					len = ptr2 - &conn->OutputQueue[conn->OutputGetPointer];
+					len = (int)(ptr2 - &conn->OutputQueue[conn->OutputGetPointer]);
 					
 					SendUnbuffered(conn->BPQStream, &conn->OutputQueue[conn->OutputGetPointer], len);
 					conn->OutputGetPointer+=len;
@@ -2806,6 +2866,7 @@ void DoDeliveredCommand(CIRCUIT * conn, struct UserInfo * user, char * Cmd, char
 
 		Msg->status = 'D';
 		Msg->datechanged=time(NULL);
+		SaveMessageDatabase();
 
 		nodeprintf(conn, "Message #%d Flagged as Delivered\r", msgno);
 	Next:
@@ -3605,7 +3666,7 @@ void ListMessagesInRange(ConnectionInfo * conn, struct UserInfo * user, char * C
 	for (m = Start; m >= End; m--)
 	{
 		Msg = GetMsgFromNumber(m);
-		
+
 		if (Msg && CheckUserMsg(Msg, user->Call, conn->sysop))
 			if (ListMessage(Msg, conn, SendFullFrom))
 				return;			// Hit page limit
@@ -3622,7 +3683,7 @@ void ListMessagesInRangeForwards(ConnectionInfo * conn, struct UserInfo * user, 
 	for (m = Start; m <= End; m++)
 	{
 		Msg = GetMsgFromNumber(m);
-		
+
 		if (Msg && CheckUserMsg(Msg, user->Call, conn->sysop))
 			if (ListMessage(Msg, conn, SendFullFrom))
 				return;			// Hit page limit
@@ -3636,7 +3697,7 @@ void DoReadCommand(CIRCUIT * conn, struct UserInfo * user, char * Cmd, char * Ar
 	int i;
 	struct MsgInfo * Msg;
 
-	
+
 	switch (toupper(Cmd[1]))
 	{
 	case 0:					// Just R
@@ -3658,20 +3719,34 @@ void DoReadCommand(CIRCUIT * conn, struct UserInfo * user, char * Cmd, char * Ar
 
 	case 'M':					// Read Mine (Unread Messages)
 
-		for (i=NumberofMessages; i>0; i--)
+		if (toupper(Cmd[2]) == 'R')
 		{
-			Msg = MsgHddrPtr[i];
+			for (i = 1; i <= NumberofMessages; i++)
+			{
+				Msg = MsgHddrPtr[i];
 
-			if ((_stricmp(Msg->to, user->Call) == 0) || (conn->sysop && _stricmp(Msg->to, "SYSOP") == 0 && user->flags & F_SYSOP_IN_LM))
-				if (Msg->status == 'N')
-					ReadMessage(conn, user, Msg->number);
+				if ((_stricmp(Msg->to, user->Call) == 0) || (conn->sysop && _stricmp(Msg->to, "SYSOP") == 0 && user->flags & F_SYSOP_IN_LM))
+					if (Msg->status == 'N')
+						ReadMessage(conn, user, Msg->number);
+			}
+		}
+		else
+		{
+			for (i = NumberofMessages; i > 0; i--)
+			{
+				Msg = MsgHddrPtr[i];
+
+				if ((_stricmp(Msg->to, user->Call) == 0) || (conn->sysop && _stricmp(Msg->to, "SYSOP") == 0 && user->flags & F_SYSOP_IN_LM))
+					if (Msg->status == 'N')
+						ReadMessage(conn, user, Msg->number);
+			}
 		}
 
 		return;
 	}
-	
+
 	nodeprintf(conn, "*** Error: Invalid Read option %c\r", Cmd[1]);
-	
+
 	return;
 }
 
@@ -3697,7 +3772,7 @@ int RemoveLF(char * Message, int len)
 		ptr2++;
 	}
 
-	return (ptr2 - Message);
+	return (int)(ptr2 - Message);
 }
 
 void ReadMessage(ConnectionInfo * conn, struct UserInfo * user, int msgno)
@@ -3860,7 +3935,7 @@ void ReadMessage(ConnectionInfo * conn, struct UserInfo * user, int msgno)
 
 		// Remove lf chars
 
-		Length = RemoveLF(MsgBytes, strlen(MsgBytes));
+		Length = RemoveLF(MsgBytes, (int)strlen(MsgBytes));
 
 		user->Total.MsgsSent[Index] ++;
 		user->Total.BytesForwardedOut[Index] += Length;
@@ -3878,6 +3953,7 @@ void ReadMessage(ConnectionInfo * conn, struct UserInfo * user, int msgno)
 				{
 					Msg->status = 'Y';
 					Msg->datechanged=time(NULL);
+					SaveMessageDatabase();
 				}
 			}
 		}
@@ -4254,16 +4330,16 @@ BOOL DecodeSendParams(CIRCUIT * conn, char * Context, char ** From, char *To, ch
 			// Multiple Addressees
 
 			To = strtok_s(NULL, ";", &Context);
-			Len = strlen(To);
-			conn->To = realloc(conn->To, (conn->ToCount+1)*4);
+			Len = (int)strlen(To);
+			conn->To = realloc(conn->To, (conn->ToCount+1) * sizeof(void *));
 			if (conn->To[conn->ToCount] = CheckToAddress(conn, To))
 				conn->ToCount++;
 		}
 
 		To = strtok_s(NULL, seps, &Context);
 
-		Len = strlen(To);
-		conn->To=realloc(conn->To, (conn->ToCount+1)*4);
+		Len = (int)strlen(To);
+		conn->To=realloc(conn->To, (conn->ToCount+1) * sizeof(void *));
 		if (conn->To[conn->ToCount] = CheckToAddress(conn, To))
 			conn->ToCount++;
 	}
@@ -4297,7 +4373,7 @@ BOOL DecodeSendParams(CIRCUIT * conn, char * Context, char ** From, char *To, ch
 
 				strlop(To, '-');		// Cant have SSID on BBS Name
 
-				tolen = strlen(To);
+				tolen = (int)strlen(To);
 
 				if (tolen > 6 || !CheckifPacket(*ATBBS))
 				{
@@ -4414,7 +4490,7 @@ BOOL CreateMessage(CIRCUIT * conn, char * From, char * ToCall, char * ATBBS, cha
 	}
 	else
 	{
-		if (CheckRejFilters(From, ToCall, ATBBS, MsgType))
+		if (CheckRejFilters(From, ToCall, ATBBS, BID, MsgType))
 		{	
 			if ((conn->BBSFlags & BBS))
 			{
@@ -4821,6 +4897,14 @@ VOID ProcessMsgLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int ms
 				char DateString[80];
 				struct tm * tm;
 				time_t Date = time(NULL);
+				char Type[16] = "Private";
+					
+				// Get Type
+	
+				if (conn->TempMsg->type == 'B')
+					strcpy(Type, "Bulletin");
+				else if (conn->TempMsg->type == 'T')
+					strcpy(Type, "Traffic");
 
 				tm = gmtime(&Date);	
 	
@@ -4836,7 +4920,7 @@ VOID ProcessMsgLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int ms
 
 				B2HddrLen = sprintf(B2Hddr,
 					"MID: %s\r\nDate: %s\r\nType: %s\r\nFrom: %s\r\n%sSubject: %s\r\nMbo: %s\r\nBody: %d\r\n\r\n",
-					SaveMsg->bid, DateString, "Private",
+					SaveMsg->bid, DateString, Type,
 					SaveMsg->from, ToString, SaveMsg->title, BBSName, SaveMsgLen);
 
 				memcpy(conn->MailBuffer, B2Hddr, B2HddrLen);
@@ -5010,8 +5094,10 @@ VOID CreateMessageFromBuffer(CIRCUIT * conn)
 	char * ptr3, * ptr4;
 	int FWDCount = 0;
 	char OldMess[] = "\r\n\r\nOriginal Message:\r\n\r\n";
-	int Age, OurCount;
+	time_t Age;
+	int OurCount;
 	char * HoldReason = "User has Hold Messages flag set";
+	struct UserInfo * user;
 
 
 #ifndef LINBPQ
@@ -5024,7 +5110,7 @@ VOID CreateMessageFromBuffer(CIRCUIT * conn)
 	{
 		if ((conn->TempMsg->length + (int) strlen(conn->CopyBuffer) + 80 )> conn->MailBufferSize)
 		{
-			conn->MailBufferSize += strlen(conn->CopyBuffer) + 80;
+			conn->MailBufferSize += (int)strlen(conn->CopyBuffer) + 80;
 			conn->MailBuffer = realloc(conn->MailBuffer, conn->MailBufferSize);
 	
 			if (conn->MailBuffer == NULL)
@@ -5038,11 +5124,11 @@ VOID CreateMessageFromBuffer(CIRCUIT * conn)
 
 		memcpy(&conn->MailBuffer[conn->TempMsg->length], OldMess, strlen(OldMess));
 
-		conn->TempMsg->length += strlen(OldMess);
+		conn->TempMsg->length += (int)strlen(OldMess);
 
 		memcpy(&conn->MailBuffer[conn->TempMsg->length], conn->CopyBuffer, strlen(conn->CopyBuffer));
 
-		conn->TempMsg->length += strlen(conn->CopyBuffer);
+		conn->TempMsg->length += (int)strlen(conn->CopyBuffer);
 
 		free(conn->CopyBuffer);
 		conn->CopyBuffer = NULL;
@@ -5224,7 +5310,7 @@ nextline:
 			HoldReason = "Bad word in title or body";
 		}
 
-		if (CheckHoldFilters(Msg->from, Msg->to, Msg->via))
+		if (CheckHoldFilters(Msg->from, Msg->to, Msg->via, Msg->bid))
 		{
 			Msg->status = 'H';
 			HoldReason = "Matched Hold Filters";
@@ -5390,6 +5476,23 @@ nextline:
 	My__except_Routine("SendMsgUI");
 #endif
 
+	user = LookupCall(Msg->to);
+
+	if (user && (user->flags & F_APRSMFOR))
+	{
+		char APRS[128];
+		char Call[16];
+		int SSID = user->flags >> 28;
+
+		if (SSID)
+			sprintf(Call, "%s-%d", Msg->to, SSID);
+		else
+			strcpy(Call, Msg->to);
+
+		sprintf(APRS, "New BBS Message %s From %s", Msg->title, Msg->from);
+		APISendAPRSMessage(APRS, Call);
+	}
+
 	return;
 }
 
@@ -5397,7 +5500,7 @@ VOID CreateMessageFile(ConnectionInfo * conn, struct MsgInfo * Msg)
 {
 	char MsgFile[MAX_PATH];
 	FILE * hFile;
-	int WriteLen=0;
+	size_t WriteLen=0;
 	char Mess[255];
 	int len;
 	BOOL AutoImport = FALSE;
@@ -5431,7 +5534,7 @@ VOID CreateMessageFile(ConnectionInfo * conn, struct MsgInfo * Msg)
 
 		if (*(ptr) == 'S' && ptr[2] == ' ')
 		{
-			int HeaderLen = ptr - conn->MailBuffer;
+			int HeaderLen = (int)(ptr - conn->MailBuffer);
 			Msg->length -= HeaderLen;
 			memmove(conn->MailBuffer, ptr, Msg->length);
 			Msg->status = 'K';
@@ -5682,7 +5785,7 @@ BOOL FindMessagestoForwardLoop(CIRCUIT * conn, char Type, int MaxLen)
 
 				// Set up R:Line, so se can add its length to the sise
 
-				memcpy(&temp, &Msg->datereceived, 4);
+				memcpy(&temp, &Msg->datereceived, sizeof(time_t));
 				tm = gmtime(&temp);	
 
 				FBBHeader->Size += sprintf_s(RLine, sizeof(RLine),"R:%02d%02d%02d/%02d%02dZ %d@%s.%s %s\r\n",
@@ -5848,7 +5951,7 @@ VOID SendMessageToSYSOP(char * Title, char * MailBuffer, int Length)
 
 	char MsgFile[MAX_PATH];
 	FILE * hFile;
-	int WriteLen=0;
+	size_t WriteLen=0;
 
 	Msg->length = Length;
 
@@ -6012,7 +6115,6 @@ VOID SetupForwardingStruct(struct UserInfo * user)
 	char Temp[100];
 
 	HKEY hKey=0;
-	int retCode,Type,Vallen;
 	char RegKey[100] =  "SOFTWARE\\G8BPQ\\BPQ32\\BPQMailChat\\BBSForwarding\\";
 
 	int m;
@@ -6061,12 +6163,16 @@ VOID SetupForwardingStruct(struct UserInfo * user)
 			ForwardingInfo->FwdInterval = GetIntValue(group, "FwdInterval");
 			ForwardingInfo->RevFwdInterval = GetIntValue(group, "RevFWDInterval");
 			ForwardingInfo->MaxFBBBlockSize = GetIntValue(group, "MaxFBBBlock");
+			ForwardingInfo->ConTimeout = GetIntValue(group, "ConTimeout");
 
 			if (ForwardingInfo->MaxFBBBlockSize == 0)
 				ForwardingInfo->MaxFBBBlockSize = 10000;
 
 			if (ForwardingInfo->FwdInterval == 0)
 				ForwardingInfo->FwdInterval = 3600;
+
+			if (ForwardingInfo->ConTimeout == 0)
+				ForwardingInfo->ConTimeout = 120;
 
 			GetStringValue(group, "BBSHA", Temp);
 		
@@ -6079,6 +6185,9 @@ VOID SetupForwardingStruct(struct UserInfo * user)
 	else
 	{
 #ifndef	LINBPQ
+
+		int retCode,Type,Vallen;
+
 		strcat(RegKey, user->Call);
 		retCode = RegOpenKeyEx (REGTREE, RegKey, 0, KEY_QUERY_VALUE, &hKey);
 
@@ -6222,7 +6331,7 @@ VOID * GetMultiStringValue(config_setting_t * group, char * ValueName)
 	config_setting_t *setting;
 	char * Save;
 
-	Value = zalloc(4);				// always NULL entry on end even if no values
+	Value = zalloc(sizeof(void *));				// always NULL entry on end even if no values
 	Value[0] = NULL;
 
 	setting = config_setting_get_member (group, ValueName);
@@ -6243,7 +6352,7 @@ VOID * GetMultiStringValue(config_setting_t * group, char * ValueName)
 
 			if (strlen(ptr))		// ignore null elements
 			{
-				Value = realloc(Value, (Count+2)*4);
+				Value = realloc(Value, (Count+2) * sizeof(void *));
 				Value[Count++] = _strdup(ptr);
 			}
 			ptr = ptr1;
@@ -6267,7 +6376,7 @@ VOID * RegGetMultiStringValue(HKEY hKey, char * ValueName)
 	int Count = 0;
 	char ** Value;
 
-	Value = zalloc(4);				// always NULL entry on end even if no values
+	Value = zalloc(sizeof(void *));				// always NULL entry on end even if no values
 
 	Value[0] = NULL;
 
@@ -6293,7 +6402,7 @@ VOID * RegGetMultiStringValue(HKEY hKey, char * ValueName)
 	{
 		len=strlen(&MultiString[ptr]);
 
-		Value = realloc(Value, (Count+2)*4);
+		Value = realloc(Value, (Count+2) * sizeof(void *));
 		Value[Count++] = _strdup(&MultiString[ptr]);
 		ptr+= (len + 1);
 	}
@@ -6469,7 +6578,7 @@ size_t fwritex(CIRCUIT * conn, void * _Str, size_t _Size, size_t _Count, FILE * 
 	// Appending to MailBuffer
 
 	memcpy(&conn->MailBuffer[conn->InputLen], _Str, _Count);
-	conn->InputLen += _Count;
+	conn->InputLen += (int)_Count;
 
 	return _Count;
 }
@@ -6572,7 +6681,7 @@ BOOL ForwardMessagestoFile(CIRCUIT * conn, char * FN)
 		if (MsgBytes == 0)
 		{
 			MsgBytes = _strdup("Message file not found\r\n");
-			conn->FwdMsg->length = strlen(MsgBytes);
+			conn->FwdMsg->length = (int)strlen(MsgBytes);
 		}
 
 		MsgPtr = MsgBytes;
@@ -6601,7 +6710,7 @@ BOOL ForwardMessagestoFile(CIRCUIT * conn, char * FN)
 				MsgPtr = MsgBytes;
 		}
 
-		memcpy(&temp, &Msg->datereceived, 4);
+		memcpy(&temp, &Msg->datereceived, sizeof(time_t));
 		tm = gmtime(&temp);	
 
 		len = sprintf(Line, "R:%02d%02d%02d/%02d%02dZ %d@%s.%s %s\r\n",
@@ -6743,7 +6852,7 @@ BOOL ForwardMessagetoFile(struct MsgInfo * Msg, FILE * Handle)
 	if (MsgBytes == 0)
 	{
 		MsgBytes = _strdup("Message file not found\r\n");
-		MsgLen = strlen(MsgBytes);
+		MsgLen = (int)strlen(MsgBytes);
 		}
 
 	MsgPtr = MsgBytes;
@@ -6772,7 +6881,7 @@ BOOL ForwardMessagetoFile(struct MsgInfo * Msg, FILE * Handle)
 			MsgPtr = MsgBytes;
 	}
 
-	memcpy(&temp, &Msg->datereceived, 4);
+	memcpy(&temp, &Msg->datereceived, sizeof(time_t));
 	tm = gmtime(&temp);	
 
 	len = sprintf(Line, "R:%02d%02d%02d/%02d%02dZ %d@%s.%s %s\r\n",
@@ -7748,6 +7857,7 @@ VOID Parse_SID(CIRCUIT * conn, char * SID, int len)
 
 					conn->UserPointer->ForwardingInfo = zalloc(sizeof(struct BBSForwardingInfo));
 					conn->UserPointer->ForwardingInfo->AllowCompressed = TRUE;
+					conn->UserPointer->ForwardingInfo->AllowBlocked = TRUE;
 					conn->UserPointer->BBSNumber = NBBBS;
 			}
 
@@ -7951,7 +8061,7 @@ VOID FWDTimerProc()
 	}
 }
 
-VOID * _zalloc_dbg(int len, int type, char * file, int line)
+VOID * _zalloc_dbg(size_t len, int type, char * file, int line)
 {
 	// ?? malloc and clear
 
@@ -8066,7 +8176,7 @@ int EncryptPass(char * Pass, char * Encrypt)
 
 	// if password is less than 16 chars, extend with zeros
 
-	passlen=strlen(Pass);
+	passlen=(int)strlen(Pass);
 
 	strcpy(extendedpass, Pass);
 
@@ -8215,6 +8325,7 @@ VOID SaveConfig(char * ConfigName)
 	SaveIntValue(group, "SendSYStoSYSOPCall", SendSYStoSYSOPCall);
 	SaveIntValue(group, "SendBBStoSYSOPCall", SendBBStoSYSOPCall);
 	SaveIntValue(group, "DontHoldNewUsers", DontHoldNewUsers);
+	SaveIntValue(group, "DefaultNoWINLINK", DefaultNoWINLINK);
 	SaveIntValue(group, "AllowAnon", AllowAnon);
 	SaveIntValue(group, "DontNeedHomeBBS", DontNeedHomeBBS);
 	SaveIntValue(group, "UserCantKillT", UserCantKillT);
@@ -8296,10 +8407,12 @@ VOID SaveConfig(char * ConfigName)
 	SaveMultiStringValue(group,  "RejFrom", RejFrom);
 	SaveMultiStringValue(group,  "RejTo", RejTo);
 	SaveMultiStringValue(group,  "RejAt", RejAt);
+	SaveMultiStringValue(group,  "RejBID", RejBID);
 
 	SaveMultiStringValue(group,  "HoldFrom", HoldFrom);
 	SaveMultiStringValue(group,  "HoldTo", HoldTo);
 	SaveMultiStringValue(group,  "HoldAt", HoldAt);
+	SaveMultiStringValue(group,  "HoldBID", HoldBID);
 
 	SaveIntValue(group, "SendWP", SendWP);
 	SaveIntValue(group, "SendWPType", SendWPType);
@@ -8321,7 +8434,7 @@ VOID SaveConfig(char * ConfigName)
 	SaveIntValue(group, "ReaddressReceived", ReaddressReceived);
 	SaveIntValue(group, "WarnNoRoute", WarnNoRoute);
 	SaveIntValue(group, "Localtime", Localtime);
-	SaveIntValue(group, "WarnNoRoute", WarnNoRoute);
+	SaveIntValue(group, "SendPtoMultiple", SendPtoMultiple);
 
 	SaveMultiStringValue(group, "FWDAliases", AliasText);
 
@@ -8367,6 +8480,7 @@ VOID SaveConfig(char * ConfigName)
 		SaveIntValue(group, "FwdInterval", ForwardingInfo->FwdInterval);
 		SaveIntValue(group, "RevFWDInterval", ForwardingInfo->RevFwdInterval);
 		SaveIntValue(group, "MaxFBBBlock", ForwardingInfo->MaxFBBBlockSize);
+		SaveIntValue(group, "ConTimeout", ForwardingInfo->ConTimeout);
 
 		SaveStringValue(group, "BBSHA", ForwardingInfo->BBSHA);
 	}
@@ -8376,8 +8490,8 @@ VOID SaveConfig(char * ConfigName)
 
 	group = config_setting_add(root, "Housekeeping", CONFIG_TYPE_GROUP);
 
-	SaveIntValue(group, "LastHouseKeepingTime", LastHouseKeepingTime);
-	SaveIntValue(group, "LastTrafficTime", LastTrafficTime);
+	SaveInt64Value(group, "LastHouseKeepingTime", LastHouseKeepingTime);
+	SaveInt64Value(group, "LastTrafficTime", LastTrafficTime);
 	SaveIntValue(group, "MaxMsgno", MaxMsgno);
 	SaveIntValue(group, "BidLifetime", BidLifetime);
 	SaveIntValue(group, "MaxAge", MaxAge);
@@ -8541,6 +8655,7 @@ BOOL GetConfig(char * ConfigName)
 	SendSYStoSYSOPCall =  GetIntValue(group, "SendSYStoSYSOPCall");
 	SendBBStoSYSOPCall =  GetIntValue(group, "SendBBStoSYSOPCall");
 	DontHoldNewUsers =  GetIntValue(group, "DontHoldNewUsers");
+	DefaultNoWINLINK =  GetIntValue(group, "DefaultNoWINLINK");
 	ForwardToMe =  GetIntValue(group, "ForwardToMe");
 	AllowAnon =  GetIntValue(group, "AllowAnon");
 	UserCantKillT = GetIntValue(group, "UserCantKillT");
@@ -8551,6 +8666,7 @@ BOOL GetConfig(char * ConfigName)
 	ReaddressLocal =  GetIntValue(group, "ReaddressLocal");
 	ReaddressReceived =  GetIntValue(group, "ReaddressReceived");
 	WarnNoRoute =  GetIntValue(group, "WarnNoRoute");
+	SendPtoMultiple =  GetIntValue(group, "SendPtoMultiple");
 	Localtime =  GetIntValue(group, "Localtime");
 	AliasText = GetMultiStringValue(group, "FWDAliases");
 	GetStringValue(group, "BBSName", BBSName);
@@ -8573,7 +8689,7 @@ BOOL GetConfig(char * ConfigName)
 	sprintf(SignoffMsg, "73 de %s\r", BBSName);					// Default
 	GetStringValue(group, "SignoffMsg", SignoffMsg);
 
-	DecryptPass(EncryptedISPAccountPass, ISPAccountPass, strlen(EncryptedISPAccountPass));
+	DecryptPass(EncryptedISPAccountPass, ISPAccountPass, (int)strlen(EncryptedISPAccountPass));
 
 	SMTPAuthNeeded = GetIntValue(group, "AuthenticateSMTP");
 	LogBBS = GetIntValue(group, "Log_BBS");
@@ -8685,10 +8801,12 @@ BOOL GetConfig(char * ConfigName)
 	RejFrom = GetMultiStringValue(group,  "RejFrom");
 	RejTo = GetMultiStringValue(group,  "RejTo");
 	RejAt = GetMultiStringValue(group,  "RejAt");
+	RejBID = GetMultiStringValue(group,  "RejBID");
 
 	HoldFrom = GetMultiStringValue(group,  "HoldFrom");
 	HoldTo = GetMultiStringValue(group,  "HoldTo");
 	HoldAt = GetMultiStringValue(group,  "HoldAt");
+	HoldBID = GetMultiStringValue(group,  "HoldBID");
 
 	// Send WP Params
 	
@@ -8934,6 +9052,9 @@ int Connected(int Stream)
 				if (!DontHoldNewUsers)
 					user->flags |= F_HOLDMAIL;
 
+				if (DefaultNoWINLINK)
+					user->flags |= F_NOWINLINK;
+
 				conn->NewUser = TRUE;
 			}
 
@@ -8978,13 +9099,16 @@ int Connected(int Stream)
 			
 			// Send SID and Prompt
 
-			conn->SIDResponseTimer =  12;				// Allow a couple of minutes for response to SID
+			if (user->ForwardingInfo && user->ForwardingInfo->ConTimeout)
+				conn->SIDResponseTimer = user->ForwardingInfo->ConTimeout / 10;			// 10 sec ticks
+			else
+				conn->SIDResponseTimer =  12;				// Allow a couple of minutes for response to SID
 
 			{
 				BOOL B1 = FALSE, B2 = FALSE, BIN = FALSE, BLOCKED = FALSE;
 				struct	BBSForwardingInfo * ForwardingInfo;
 
-				conn->PageLen = user->PageLen;				// No paging for chat
+				conn->PageLen = user->PageLen;
 				conn->Paging = (user->PageLen > 0);
 
 				if (user->flags & F_Temp_B2_BBS)
@@ -9007,6 +9131,7 @@ int Connected(int Stream)
 					ForwardingInfo->AllowCompressed = TRUE;
 					B1 = ForwardingInfo->AllowB1 = FALSE;
 					B2 = ForwardingInfo->AllowB2 = TRUE;
+					BLOCKED = ForwardingInfo->AllowBlocked = TRUE;
 				}
 
 				if (conn->NewUser)
@@ -9205,7 +9330,7 @@ int Disconnected (int Stream)
 int DoReceivedData(int Stream)
 {
 	int count, InputLen;
-	UINT MsgLen;
+	size_t MsgLen;
 	int n;
 	CIRCUIT * conn;
 	struct UserInfo * user;
@@ -9285,7 +9410,7 @@ int DoReceivedData(int Stream)
 								conn->InTelnetExcape = TRUE;
 						}
 
-						conn->InputLen = ptr2 - conn->InputBuffer;
+						conn->InputLen = (int)(ptr2 - conn->InputBuffer);
 					}
 
 					UnpackFBBBinary(conn);
@@ -9351,9 +9476,9 @@ int DoReceivedData(int Stream)
 						memcpy(Buffer, conn->InputBuffer, MsgLen);
 					
 							if (conn->BBSFlags & RunningConnectScript)
-								ProcessBBSConnectScript(conn, Buffer, MsgLen);
+								ProcessBBSConnectScript(conn, Buffer, (int)MsgLen);
 							else
-								ProcessLine(conn, user, Buffer, MsgLen);
+								ProcessLine(conn, user, Buffer, (int)MsgLen);
 						
 
 						free(Buffer);
@@ -9368,7 +9493,7 @@ int DoReceivedData(int Stream)
 
 						memmove(conn->InputBuffer, ptr, conn->InputLen-MsgLen);
 
-						conn->InputLen -= MsgLen;
+						conn->InputLen -= (int)MsgLen;
 
 						goto loop;
 
@@ -9481,7 +9606,7 @@ VOID ProcessFLARQLine(ConnectionInfo * conn, struct UserInfo * user, char * Buff
 	Loop:
 		ptr2 = strchr(ptr1, '\r');
 
-		linelen = ptr2 - ptr1;
+		linelen = (int)(ptr2 - ptr1);
 
 		if (_memicmp(ptr1, "From:", 5) == 0 && linelen > 6)			// Can have empty From:
 		{
@@ -9516,7 +9641,7 @@ VOID ProcessFLARQLine(ConnectionInfo * conn, struct UserInfo * user, char * Buff
 		}
 		else if (_memicmp(ptr1, "To:", 3) == 0 || _memicmp(ptr1, "cc:", 3) == 0)
 		{
-			HddrTo=realloc(HddrTo, (Recipients+1)*4);
+			HddrTo=realloc(HddrTo, (Recipients+1) * sizeof(void *));
 			HddrTo[Recipients] = zalloc(100);
 
 			memset(FullTo, 0, 99);
@@ -9526,7 +9651,7 @@ VOID ProcessFLARQLine(ConnectionInfo * conn, struct UserInfo * user, char * Buff
 
 			_strupr(FullTo);
 
-			B2To = ptr1 - conn->MailBuffer;
+			B2To = (int)(ptr1 - conn->MailBuffer);
 
 			if (_memicmp(FullTo, "RMS:", 4) == 0)
 			{
@@ -9653,10 +9778,10 @@ VOID ProcessFLARQLine(ConnectionInfo * conn, struct UserInfo * user, char * Buff
 
 			}
 
-			RecpTo=realloc(RecpTo, (Recipients+1)*4);
+			RecpTo=realloc(RecpTo, (Recipients+1) * sizeof(void *));
 			RecpTo[Recipients] = zalloc(10);
 
-			Via=realloc(Via, (Recipients+1)*4);
+			Via=realloc(Via, (Recipients+1) * sizeof(void *));
 			Via[Recipients] = zalloc(50);
 
 			strcpy(Via[Recipients], Msg->via);
@@ -9674,7 +9799,7 @@ VOID ProcessFLARQLine(ConnectionInfo * conn, struct UserInfo * user, char * Buff
 		}
 		else if (_memicmp(ptr1, "Subject:", 8) == 0)
 		{
-			int Subjlen = ptr2 - &ptr1[9];
+			size_t Subjlen = ptr2 - &ptr1[9];
 			if (Subjlen > 60) Subjlen = 60;
 			memcpy(Msg->title, &ptr1[9], Subjlen);
 
@@ -9727,7 +9852,7 @@ ProcessBody:
 
 		ptr2 +=2;					// skip crlf
 
-		Msg->length = &conn->MailBuffer[Msg->length] - ptr2;
+		Msg->length = (int)(&conn->MailBuffer[Msg->length] - ptr2);
 
 		memmove(conn->MailBuffer, ptr2, Msg->length);
 
@@ -9820,7 +9945,7 @@ VOID ProcessTextFwdLine(ConnectionInfo * conn, struct UserInfo * user, char * Bu
 		if (MsgBytes == 0)
 		{
 			MsgBytes = _strdup("Message file not found\r");
-			conn->FwdMsg->length = strlen(MsgBytes);
+			conn->FwdMsg->length = (int)strlen(MsgBytes);
 		}
 
 		MsgPtr = MsgBytes;
@@ -10016,6 +10141,7 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 				ForwardingInfo = user->ForwardingInfo = zalloc(sizeof(struct BBSForwardingInfo));
 
 				ForwardingInfo->AllowCompressed = TRUE;
+				ForwardingInfo->AllowBlocked = TRUE;
 				conn->UserPointer->ForwardingInfo->AllowB2 = TRUE;
 			}
 			SaveUserDatabase();
@@ -10211,7 +10337,7 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 	}
 
 	Arg1 = strtok_s(NULL, seps, &Context);
-	CmdLen = strlen(Cmd);
+	CmdLen = (int)strlen(Cmd);
 
 	// Check List first. If any other, save last listed to user record.
 
@@ -10324,6 +10450,19 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 		return;
 	}
 
+	if (_memicmp(Cmd, "REROUTEMSGS", 7) == 0)
+	{
+		if (conn->sysop == 0)
+			nodeprintf(conn, "Reroute Messages needs SYSOP status\r");
+		else
+		{
+			ReRouteMessages();
+			nodeprintf(conn, "Ok\r");
+		}
+		SendPrompt(conn, user);
+		return;
+	}
+
 	if (_memicmp(Cmd, "YAPP", 4) == 0)
 	{
 		YAPPSendFile(conn, user, Arg1);
@@ -10371,7 +10510,7 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 
 			// Remove lf chars
 
-			Length = RemoveLF(MsgBytes, strlen(MsgBytes));
+			Length = RemoveLF(MsgBytes, (int)strlen(MsgBytes));
 
 			QueueMsg(conn, MsgBytes, Length);
 			free(Save);
@@ -10549,7 +10688,7 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 
 			// Remove lf chars
 
-			Length = RemoveLF(MsgBytes, strlen(MsgBytes));
+			Length = RemoveLF(MsgBytes, (int)strlen(MsgBytes));
 
 			QueueMsg(conn, MsgBytes, Length);
 			free(Save);
@@ -10569,7 +10708,7 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 
 			BBSputs(conn, "K - Kill Message(s) - K num, KM (Kill my read messages)\r");
 			BBSputs(conn, "L - List Message(s) - L = List New, LR = List New (Oldest first)\r");
-			BBSputs(conn, "                      LM = List Mine L> Call, L< Call = List to or from\r");
+			BBSputs(conn, "                      LM = List Mine, L> Call, L< Call, L@ = List to, from or at\r");
 			BBSputs(conn, "                      LL num = List Last, L num-num = List Range\r");
 			BBSputs(conn, "                      LN LY LH LK LF L$ LD - List Message with corresponding Status\r");
 			BBSputs(conn, "                      LB LP LT - List Mesaage with corresponding Type\r");
@@ -10582,7 +10721,8 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 			BBSputs(conn, "PASS Password - Set BBS Password\r");
 			BBSputs(conn, "POLLRMS - Manage Polling for messages from RMS \r");
 			BBSputs(conn, "Q QTH - Set QTH\r");
-			BBSputs(conn, "R - Read Message(s) - R num, RM (Read new messages to me)\r");
+			BBSputs(conn, "R - Read Message(s) - R num \r");
+			BBSputs(conn, "                      RM (Read new messages to me), RMR (RM oldest first)\r");
 			BBSputs(conn, "READ Name - Read File\r");
 
 			BBSputs(conn, "S - Send Message - S or SP Send Personal, SB Send Bull, ST Send NTS,\r");
@@ -10600,9 +10740,7 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 		}
 
 		SendPrompt(conn, user);
-
 		return;
-
 	}
 
 	if (_memicmp(Cmd, "Ver", CmdLen) == 0)
@@ -10610,7 +10748,6 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 		nodeprintf(conn, "BBS Version %s\rNode Version %s\r", VersionStringWithBuild, GetVersionString());
 
 		SendPrompt(conn, user);
-
 		return;
 	}
 
@@ -10801,7 +10938,7 @@ VOID TidyPrompt(char ** pPrompt)
 
 	char * Prompt = *pPrompt;
 
-	int i = strlen(Prompt) - 1;
+	int i = (int)strlen(Prompt) - 1;
 
 	*pPrompt = realloc(Prompt, i + 5);	// In case we need to expand it
 
@@ -10845,7 +10982,7 @@ BOOL SendARQMail(CIRCUIT * conn)
 		if (MsgBytes == 0)
 		{
 			MsgBytes = _strdup("Message file not found\r");
-			conn->FwdMsg->length = strlen(MsgBytes);
+			conn->FwdMsg->length = (int)strlen(MsgBytes);
 		}
 
 		Msg = conn->FwdMsg;
@@ -10875,7 +11012,7 @@ ARQ::ETX
 			TimeString, Msg->to, Msg->from, Msg->title);
 				
 		MsgLen = sprintf(WholeMessage, "ARQ:FILE::Msg%s_%d\nARQ:EMAIL::\nARQ:SIZE::%d\nARQ::STX\n%s%s\nARQ::ETX\n",
-			BBSName, Msg->number, HddrLen + strlen(MsgBytes), MsgHddr, MsgBytes);
+			BBSName, Msg->number, (int)(HddrLen + strlen(MsgBytes)), MsgHddr, MsgBytes);
 
 		WholeMessage[MsgLen] = 0;
 		QueueMsg(conn,WholeMessage, MsgLen);
@@ -10921,6 +11058,7 @@ char *stristr (char *ch1, char *ch2)
 			*chNdx = (char) tolower (*chNdx);
 			chNdx ++;
 		}
+
 		chNdx = strstr (chN1, chN2);
 		if (chNdx)
 			chRet = ch1 + (chNdx - chN1);
@@ -11052,7 +11190,7 @@ void ReadBBSFile(ConnectionInfo * conn, struct UserInfo * user, char * filename)
 
 			// Remove lf chars
 
-			Length = RemoveLF(MsgBytes, strlen(MsgBytes));
+			Length = RemoveLF(MsgBytes, (int)strlen(MsgBytes));
 
 			QueueMsg(conn, MsgBytes, Length);
 			free(MsgBytes);
@@ -11262,10 +11400,10 @@ BOOL ProcessYAPPMessage(CIRCUIT * conn)
 
 		// YAPPC has date/time in dos format
 
-		NameLen = strlen(FN);
+		NameLen = (int)strlen(FN);
 		strcpy(conn->ARQFilename, FN);
 		ptr = &Msg[3 + NameLen];
-		SizeLen = strlen(ptr);
+		SizeLen = (int)strlen(ptr);
 		FileSize = atoi(ptr);
 
 		// Check file name for unsafe characters (.. / \)
@@ -11302,9 +11440,11 @@ BOOL ProcessYAPPMessage(CIRCUIT * conn)
 		if (FileSize > MaxRXSize)
 		{
 			Mess[0] = NAK;
-			Mess[1] = 0;
-			QueueMsg(conn, Mess, 2);
+			Mess[1] = sprintf(&Mess[2], "YAPP File %s size %d larger than limit %d\r", conn->ARQFilename, FileSize, MaxRXSize);
+			QueueMsg(conn, Mess, Mess[1] + 2);
+	
 			Flush(conn);
+
 			len = sprintf_s(Mess, sizeof(Mess), "YAPP File %s size %d larger than limit %d\r", conn->ARQFilename, FileSize, MaxRXSize);
 			QueueMsg(conn, Mess, len);
 			SendPrompt(conn, conn->UserPointer);
@@ -11326,9 +11466,11 @@ BOOL ProcessYAPPMessage(CIRCUIT * conn)
 		if (hFile)
 		{
 			Mess[0] = NAK;
-			Mess[1] = 0;
-			QueueMsg(conn, Mess, 2);
+			Mess[1] = sprintf(&Mess[2], "YAPP File %s already exists\r", conn->ARQFilename);;
+			QueueMsg(conn, Mess, Mess[1] + 2);
+	
 			Flush(conn);
+	
 			len = sprintf_s(Mess, sizeof(Mess), "YAPP File %s already exists\r", conn->ARQFilename);
 			QueueMsg(conn, Mess, len);
 			SendPrompt(conn, conn->UserPointer);
@@ -11404,7 +11546,7 @@ BOOL ProcessYAPPMessage(CIRCUIT * conn)
 		{
 			// Too Big ??
 
-			Mess[0] = NAK;
+			Mess[0] = CAN;
 			Mess[1] = 0;
 			QueueMsg(conn, Mess, 2);
 			Flush(conn);
@@ -11547,7 +11689,7 @@ BOOL ProcessYAPPMessage(CIRCUIT * conn)
 
 			if (Written != conn->YAPPLen)
 			{
-				Mess[0] = NAK;
+				Mess[0] = CAN;
 				Mess[1] = 0;
 				QueueMsg(conn, Mess, 2);
 				Flush(conn);
@@ -11599,6 +11741,21 @@ BOOL ProcessYAPPMessage(CIRCUIT * conn)
 			conn->MailBuffer=0;
 		}
 
+		// There may be a reason after the CAN
+
+		len = Msg[1];
+
+		if (len)
+		{
+			char * errormsg = &Msg[2];
+			errormsg[len] = 0;
+			nodeprintf(conn, "File Rejected - %s\r", errormsg);
+		}
+		else
+			
+			nodeprintf(conn, "File Rejected\r");
+
+
 		len = sprintf_s(Mess, sizeof(Mess), "YAPP Transfer cancelled by Terminal\r");
 		WriteLogLine(conn, '!', Mess, len - 1, LOG_BBS);
 
@@ -11616,7 +11773,7 @@ BOOL ProcessYAPPMessage(CIRCUIT * conn)
 
 			// HD Send_Hdr     SOH  len  (Filename)  NUL  (File Size in ASCII)  NUL (Opt)
 			
-			len = strlen(conn->ARQFilename) + 3;
+			len = (int)strlen(conn->ARQFilename) + 3;
 		
 			strcpy(&Mess[2], conn->ARQFilename);
 			len += sprintf(&Mess[len], "%d", conn->MailBufferSize);
@@ -11675,7 +11832,7 @@ BOOL ProcessYAPPMessage(CIRCUIT * conn)
 
 		// RE Resume       NAK  len  R  NULL  (File size in ASCII)  NULL
 
-		if (Msg[2] == 'R' && Msg[3] == 0)
+		if (conn->InputLen  > 2 && Msg[2] == 'R' && Msg[3] == 0)
 		{
 			int posn = atoi(&Msg[4]);
 			
@@ -11688,14 +11845,34 @@ BOOL ProcessYAPPMessage(CIRCUIT * conn)
 
 		}
 
-		nodeprintf(conn, "File Rejected\r");
+		// There may be a reason after the ack
+
+		len = Msg[1];
+
+		if (len)
+		{
+			char * errormsg = &Msg[2];
+			errormsg[len] = 0;
+			nodeprintf(conn, "File Rejected - %s\r", errormsg);
+		}
+		else
+			
+			nodeprintf(conn, "File Rejected\r");
+
 		conn->InputMode = 0;
 		conn->BBSFlags &= ~YAPPTX;
 		conn->InputLen = 0;
+		SendPrompt(conn, conn->UserPointer);
 		return FALSE;
 	}
 
+	nodeprintf(conn, "Unexpected message during YAPP Transfer. Transfer canncelled\r");
+
+	conn->InputMode = 0;
+	conn->BBSFlags &= ~YAPPTX;
 	conn->InputLen = 0;
+	SendPrompt(conn, conn->UserPointer);
+
 	return FALSE;
 
 }
@@ -11735,7 +11912,6 @@ void YAPPSendFile(ConnectionInfo * conn, struct UserInfo * user, char * filename
 		if (hFile)
 		{	
 			char Mess[255];
-			int len = strlen(filename) + 3;
 			strcpy(conn->ARQFilename, filename);
 			conn->MailBuffer = malloc(FileSize);
 			conn->MailBufferSize = FileSize;
@@ -11783,8 +11959,8 @@ void YAPPSendData(ConnectionInfo * conn)
 			break;
 		}
 
-		if (Left > conn->paclen)
-			Left = conn->paclen;
+		if (Left > conn->paclen - 2)		// 2 byte header
+			Left = conn->paclen -2;
 
 		memcpy(&Mess[2], &conn->MailBuffer[conn->YAPPLen], Left);
 		Mess[0] = STX;
@@ -12063,7 +12239,7 @@ BOOL ProcessReqFile(struct MsgInfo * Msg)
 
 				// Remove lf chars
 
-				Length = RemoveLF(MsgBytes, strlen(MsgBytes));
+				Length = RemoveLF(MsgBytes, (int)strlen(MsgBytes));
 
 				Len = sprintf(Buffer, "%s", MsgBytes);
 				free(MsgBytes);
@@ -12095,7 +12271,7 @@ VOID SendServerReply(char * Title, char * MailBuffer, int Length, char * To)
 	char * Via;
 	char MsgFile[MAX_PATH];
 	FILE * hFile;
-	int WriteLen=0;
+	size_t WriteLen=0;
 
 	Msg->length = Length;
 

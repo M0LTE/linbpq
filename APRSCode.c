@@ -60,14 +60,13 @@ static VOID DoSecTimer();
 static VOID DoMinTimer();
 static int APRSProcessLine(char * buf);
 static BOOL APRSReadConfigFile();
-VOID APRSISThread(BOOL Report);
-pthread_t _beginthread(void(*start_address)(), unsigned stack_size, VOID * arglist);
+VOID APRSISThread(void * Report);
 VOID __cdecl Debugprintf(const char * format, ...);
 VOID __cdecl Consoleprintf(const char * format, ...);
 BOOL APIENTRY  Send_AX(PMESSAGE Block, DWORD Len, UCHAR Port);
 VOID Send_AX_Datagram(PDIGIMESSAGE Block, DWORD Len, UCHAR Port);
 char * strlop(char * buf, char delim);
-int APRSDecodeFrame(char * msg, char * buffer, int Stamp, UINT Mask);		// Unsemaphored DecodeFrame
+int APRSDecodeFrame(char * msg, char * buffer, time_t Stamp, UINT Mask);		// Unsemaphored DecodeFrame
 APRSHEARDRECORD * UpdateHeard(UCHAR * Call, int Port);
 BOOL CheckforDups(char * Call, char * Msg, int Len);
 VOID ProcessQuery(char * Query);
@@ -83,7 +82,7 @@ void PollGPSIn();
 int CountLocalStations();
 BOOL SendAPPLAPRSMessage(char * Frame);
 VOID SendAPRSMessage(char * Message, int toPort);
-static VOID TCPConnect();
+static VOID TCPConnect(void * unuxed);
 struct STATIONRECORD * DecodeAPRSISMsg(char * msg);
 struct STATIONRECORD * ProcessRFFrame(char * buffer, int len);
 VOID APRSSecTimer();
@@ -94,6 +93,7 @@ BOOL KillOldTNC(char * Path);
 BOOL ToLOC(double Lat, double Lon , char * Locator);
 BOOL InternalSendAPRSMessage(char * Text, char * Call);
 void UndoTransparency(char * input);
+char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char * format, ...);
 
 BOOL ProcessConfig();
 
@@ -226,6 +226,9 @@ BOOL SATGate = FALSE;					// Delay Gating to IS directly heard packets
 BOOL DefaultLocalTime = FALSE;
 BOOL DefaultDistKM = FALSE;
 
+int multiple = 0;						// Allows multiple copies of LinBPQ/APRS on one machine
+
+
 typedef struct _ISDELAY
 {
 	struct _ISDELAY * Next;
@@ -333,7 +336,7 @@ struct OBJECT
 	struct OBJECT * Next;
 	UCHAR Path[10][7];		//	Dest, Source and up to 8 digis 
 	int PathLen;			// Actual Length used
-	char Message[80];
+	char Message[81];
 	char PortMap[33];
 	int	Interval;
 	int Timer;
@@ -514,8 +517,6 @@ int DeleteAPRSLogFiles()
 int APRSWriteLog(char * msg)
 {
 	FILE *file;
-	time_t ltime;
-
 	UCHAR Value[MAX_PATH];
 	time_t T;
 	struct tm * tm;
@@ -592,6 +593,8 @@ Dll BOOL APIENTRY Init_APRS()
 	int fd;
 	char RX_SOCK_PATH[] = "BPQAPRSrxsock";
 	char TX_SOCK_PATH[] = "BPQAPRStxsock";
+	char SharedName[256];
+	char * ptr1;
 #endif
 #endif
 	struct STATIONRECORD * Stn1, * Stn2;
@@ -646,7 +649,8 @@ Dll BOOL APIENTRY Init_APRS()
 	// Caluclate size of Shared Segment
 
 	SharedMemorySize = sizeof(struct STATIONRECORD) * (MaxStations + 1) +
-				sizeof(struct APRSMESSAGE) * (MAXMESSAGES + 1 + 32);	// 32 for header
+				sizeof(struct APRSMESSAGE) * (MAXMESSAGES + 1) + 32;	// 32 for header
+
 
 #ifdef LINBPQ
 
@@ -654,9 +658,26 @@ Dll BOOL APIENTRY Init_APRS()
 
 	Shared = NULL;
 
+	// Append last bit of current directory to shared name
+
+	ptr1 = BPQDirectory;
+
+	while (strchr(ptr1, '/'))
+	{
+		ptr1 = strchr(ptr1, '/');
+		ptr1++;
+	}
+
+	if (multiple)
+		sprintf(SharedName, "/BPQAPRSSharedMem%s", ptr1);
+	else
+		strcpy(SharedName, "/BPQAPRSSharedMem");
+
+	printf("Using Shared Memory %s\n", SharedName);
+
 #ifndef WIN32
 
-	fd = shm_open("/BPQAPRSSharedMem", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+	fd = shm_open(SharedName, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 	if (fd == -1)
 	{
 		perror("Create Shared Memory");
@@ -675,7 +696,7 @@ Dll BOOL APIENTRY Init_APRS()
 
 			Shared = mmap((void *)APRSSHAREDMEMORYBASE,
 				SharedMemorySize,
-			    PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
+			    PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
 			if (Shared == MAP_FAILED)
 			{
@@ -683,10 +704,19 @@ Dll BOOL APIENTRY Init_APRS()
 				printf("Map APRS Shared Memory Failed\n");
 				Shared = NULL;
 			}
+
+			if (Shared != (void *)APRSSHAREDMEMORYBASE)
+			{
+				printf("Map APRS Shared Memory Allocated at %x\n", Shared);
+				Shared = NULL;
+			}
+
 		}
 	}
 
 #endif
+
+	printf("Map APRS Shared Memory Allocated at %p\n", Shared);
 
 	if (Shared == NULL)
 	{
@@ -716,7 +746,7 @@ Dll BOOL APIENTRY Init_APRS()
                  PAGE_READWRITE,          // read/write access
                  0,                       // maximum object size (high-order DWORD)
                  SharedMemorySize,		 // maximum object size (low-order DWORD)
-                 "BPQAPRSStationsMappingObject");                 // name of mapping object
+                 "BPQAPRSStationsMappingObject");// name of mapping object
 
    if (hMapFile == NULL)
    {
@@ -976,9 +1006,6 @@ VOID APRSClose()
 
 Dll VOID APIENTRY Poll_APRS()
 {
-	char Msg[256];
-	int numBytes;
-
 	SecTimer--;
 
 	if (SecTimer == 0)
@@ -1052,14 +1079,18 @@ Dll VOID APIENTRY Poll_APRS()
 	}
 #ifdef LINBPQ
 #ifndef WIN32
-
-	// Look for messages from App
-
-	numBytes = recvfrom(sfd, Msg, 256, 0, NULL, NULL);
-
-	if (numBytes > 0)
 	{
-		InternalSendAPRSMessage(&Msg[10], &Msg[0]);
+		char Msg[256];
+		int numBytes;
+
+		// Look for messages from App
+
+		numBytes = recvfrom(sfd, Msg, 256, 0, NULL, NULL);
+
+		if (numBytes > 0)
+		{
+			InternalSendAPRSMessage(&Msg[10], &Msg[0]);
+		}
 	}
 #endif
 #endif
@@ -1077,7 +1108,8 @@ Dll VOID APIENTRY Poll_APRS()
 
 	while (APRSMONVECPTR->HOSTTRACEQ)
 	{
-		int stamp, len;
+		time_t stamp;
+		int len;
 		BOOL MonitorNODES = FALSE;
 		PMESSAGE monbuff;
 		UCHAR * monchars;
@@ -1141,13 +1173,14 @@ Dll VOID APIENTRY Poll_APRS()
 			temp += 7;
 			AdjBuff = (MESSAGE *)temp;
 
-			// If we have already digi'ed it, ignore (Dup Check my fail on slow links)
-
+			// If we have already digi'ed it or if we sent it,
+			// ignore (Dup Check my fail on slow links)
+	
 			if (AdjBuff->ORIGIN[6] & 0x80)
 			{
 				// Used Digi
 
-				if (memcmp(AdjBuff->ORIGIN, AXCall, 6) == 0)
+				if (memcmp(AdjBuff->ORIGIN, AXCall, 7) == 0)
 				{
 					ReleaseBuffer(monbuff);
 					return;
@@ -1167,7 +1200,6 @@ Dll VOID APIENTRY Poll_APRS()
 				FirstUnused = Digis;
 		//		CheckDigi(buff, AdjBuff->ORIGIN);
 			}
-
 		}
 
 		if (Digis > 8)
@@ -1423,6 +1455,12 @@ OK:
 		{
 			// No Digis, so finished
 
+			ReleaseBuffer(monbuff);
+			continue;
+		}
+
+		if (memcmp(monbuff->ORIGIN, AXCall, 7) == 0)		// We sent it
+		{
 			ReleaseBuffer(monbuff);
 			continue;
 		}
@@ -1802,6 +1840,9 @@ static int APRSProcessLine(char * buf)
 			ptr = strtok_s(NULL, " ,\t\n\r", &Context);
 		}
 
+		if (strlen(p_Text) > 80)
+			p_Text[80] = 0;
+
 		strcpy(Object->Message, p_Text);
 		return TRUE;
 	}
@@ -1844,6 +1885,12 @@ static int APRSProcessLine(char * buf)
 	if (_stricmp(ptr, "ReplaceDigiCalls") == 0)
 	{
 		TraceDigi = TRUE;
+		return TRUE;
+	}
+
+	if (_stricmp(ptr, "Multiple") == 0)
+	{
+		multiple = TRUE;
 		return TRUE;
 	}
 
@@ -2064,6 +2111,10 @@ static int APRSProcessLine(char * buf)
 	if (_stricmp(ptr, "MaxStations") == 0)
 	{
 		MaxStations = atoi(p_value);
+
+		if (MaxStations > 10000)
+			MaxStations = 10000;
+
 		return TRUE;
 	}
 
@@ -2330,9 +2381,18 @@ Dll VOID APIENTRY APISendBeacon()
 	BeaconCounter = 2;
 }
 
-VOID * BeaconParams[4];
+typedef struct _BeaconParams
+{
+	int toPort;
+	char * BeaconText;
+	BOOL SendStatus;
+	BOOL SendSOGCOG;
+} Params;
 
-int SendBeaconThread(VOID * BeaconParams[4]);
+
+Params BeaconParams;
+
+void SendBeaconThread(void * Params);
 
 VOID SendBeacon(int toPort, char * BeaconText, BOOL SendStatus, BOOL SendSOGCOG)
 {
@@ -2359,24 +2419,26 @@ VOID SendBeacon(int toPort, char * BeaconText, BOOL SendStatus, BOOL SendSOGCOG)
 		Debugprintf(">%s", ISMsg);
 	}
 
-	BeaconParams[0] = (VOID *)toPort;
-	BeaconParams[1] = BeaconText;
-	BeaconParams[2] = (VOID *)SendStatus;
-	BeaconParams[3] = (VOID *)SendSOGCOG;
+	BeaconParams.toPort = toPort;
+	BeaconParams.BeaconText = BeaconText;
+	BeaconParams.SendStatus = SendStatus;
+	BeaconParams.SendSOGCOG = SendSOGCOG;
 
-	_beginthread((void (*)(int))SendBeaconThread, 0, (VOID *) BeaconParams);
+	_beginthread(SendBeaconThread, 0, (VOID *) &BeaconParams);
 }
 
-int SendBeaconThread(VOID * BeaconParams[])
+void SendBeaconThread(void * Param)
 {
 	// runs as a thread so we can sleep() between calls
 
 	// Params are passed via a param block
 
-	int toPort = (int)BeaconParams[0];
-	char * BeaconText = BeaconParams[1];
-	BOOL SendStatus = (BOOL)BeaconParams[2];
-	BOOL SendSOGCOG = (BOOL)BeaconParams[3];
+	Params * BeaconParams = (Params *)Param;
+
+	int toPort = BeaconParams->toPort;
+	char * BeaconText = BeaconParams->BeaconText;
+	BOOL SendStatus = BeaconParams->SendStatus;
+	BOOL SendSOGCOG = BeaconParams->SendSOGCOG;
 
 	int Port;
 	DIGIMESSAGE Msg;
@@ -2386,7 +2448,7 @@ int SendBeaconThread(VOID * BeaconParams[])
 	struct PORTCONTROL * PORT;
 	
 	if (PosnSet == FALSE)
-		return 0;
+		return;
 
 	if (SendSOGCOG | (COG != 0.0))
 		sprintf(SOGCOG, "%03.0f/%03.0f", COG, SOG);
@@ -2407,14 +2469,14 @@ int SendBeaconThread(VOID * BeaconParams[])
 	// Should we drop it if we've sent it recently ??
 
 	if (CheckforDups(APRSCall, Msg.L2DATA, Len - 23))
-		return 0;
+		return;
 
 	// Add to our station list
 
 	Station = FindStation(APRSCall, TRUE);
 
 	if (Station == NULL)
-		return 0;
+		return;
 
 		
 	strcpy(Station->Path, "APBPQ1");
@@ -2427,7 +2489,7 @@ int SendBeaconThread(VOID * BeaconParams[])
 	if (toPort)
 	{
 		if (BeaconHddrLen[toPort] == 0)
-			return 0;
+			return;
 
 		Debugprintf("Sending APRS Beacon to port %d", toPort);
 
@@ -2437,7 +2499,7 @@ int SendBeaconThread(VOID * BeaconParams[])
 		Send_AX_Datagram(&Msg, Len + 2, toPort);
 		FreeSemaphore(&Semaphore);
 
-		return 0;
+		return;
 	}
 
 	for (Port = 1; Port <= 32; Port++)	// Check all ports
@@ -2468,7 +2530,7 @@ int SendBeaconThread(VOID * BeaconParams[])
 				Sleep(20000);
 		}
 	}
-	return 0;
+	return ;
 }
 
 VOID SendObject(struct OBJECT * Object)
@@ -2479,7 +2541,7 @@ VOID SendObject(struct OBJECT * Object)
 	
 	//	Add to dup list in case we get it back
 
-	CheckforDups(APRSCall, Object->Message, strlen(Object->Message));
+	CheckforDups(APRSCall, Object->Message, (int)strlen(Object->Message));
 
 	for (Port = 1; Port <= 32; Port++)
 	{
@@ -2634,7 +2696,7 @@ VOID DoSecTimer()
 			if (BlueNMEATimer > 15)
 			{
 				BlueNMEATimer = 0;
-				_beginthread(TCPConnect,0,0);
+				_beginthread(TCPConnect, 0, 0);
 			}
 		}
 	}
@@ -2750,7 +2812,7 @@ char APRSMsg[300];
 int ISHostIndex = 0;
 char RealISHost[256];
 
-VOID APRSISThread(BOOL Report)
+VOID APRSISThread(void * Report)
 {
 	// Receive from core server
 
@@ -2760,14 +2822,15 @@ VOID APRSISThread(BOOL Report)
 	struct sockaddr_in sinx; 
 	int addrlen=sizeof(sinx);
 	struct addrinfo hints, *res = 0, *saveres;
-	int len, err;
+	size_t len;
+	int err;
 	u_long param=1;
 	BOOL bcopt=TRUE;
 	char Buffer[1000];
 	int InputLen = 1;		// Non-zero
 	char errmsg[100];
 	char * ptr;
-	int inptr = 0;
+	size_t inptr = 0;
 	char APRSinMsg[1000];
 	char PortString[20];
 	char serv[256];
@@ -2833,7 +2896,7 @@ VOID APRSISThread(BOOL Report)
 
 	}
 
-	getnameinfo(res->ai_addr, res->ai_addrlen, RealISHost, 256, serv, 256, 0);
+	getnameinfo(res->ai_addr, (int)res->ai_addrlen, RealISHost, 256, serv, 256, 0);
 
 	sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
@@ -2846,7 +2909,7 @@ VOID APRSISThread(BOOL Report)
 
 	Debugprintf("Trying  APRSIS Host %d.%d.%d.%d (%d) %s", work[0], work[1], work[2], work[3], ISHostIndex, RealISHost);
 	
-	if (connect(sock, res->ai_addr, res->ai_addrlen))
+	if (connect(sock, res->ai_addr, (int)res->ai_addrlen))
 	{
 		err=WSAGetLastError();
 
@@ -2906,7 +2969,7 @@ VOID APRSISThread(BOOL Report)
 */
 	while (InputLen > 0 && IGateEnabled)
 	{
-		InputLen = recv(sock, &APRSinMsg[inptr], 500 - inptr, 0);
+		InputLen = recv(sock, &APRSinMsg[inptr], (int)(500 - inptr), 0);
 
 		if (InputLen > 0)
 		{
@@ -2935,8 +2998,12 @@ VOID APRSISThread(BOOL Report)
 				if (len < 300)							// Ignore if way too long
 				{
 					memcpy(&APRSMsg, APRSinMsg, len);	
-					MonitorAPRSIS(APRSMsg, len, FALSE);
-					APRSMsg[len - 2] = 0;
+					MonitorAPRSIS(APRSMsg, (int)len, FALSE);
+					if (APRSMsg[len - 2] == 13)
+						APRSMsg[len - 2] = 0;
+					else 
+						APRSMsg[len - 1] = 0;
+
 //					Debugprintf("%s", APRSMsg);
 
 					ProcessAPRSISMsg(APRSMsg);
@@ -3077,6 +3144,9 @@ VOID ProcessAPRSISMsg(char * APRSMsg)
 	{
 		char MsgDest[10];
 		APRSHEARDRECORD * STN;
+
+		if (strlen(Payload) > 100)	// I don't tihnk any valid APRS msgs are more than this
+			return;
 
 		memcpy(MsgDest, &Payload[1], 9);
 		MsgDest[9] = 0;
@@ -3324,7 +3394,7 @@ char * FormatAPRSMH(APRSHEARDRECORD * MH)
 // GPS Handling Code
 
 void SelectSource(BOOL Recovering);
-void DecodeRMC(char * msg, int len);
+void DecodeRMC(char * msg, size_t len);
 
 void PollGPSIn();
 
@@ -3339,7 +3409,7 @@ double P2 = 3.1415926535 / 180;
 double Latitude, Longtitude, SOG, COG, LatIncrement, LongIncrement;
 double LastSOG = -1.0;
 
-BOOL Check0183CheckSum(char * msg,int len)
+BOOL Check0183CheckSum(char * msg, size_t len)
 {
 	BOOL retcode=TRUE;
 	char * ptr;
@@ -3386,10 +3456,14 @@ BOOL OpenGPSPort()
 	if (strlen(GPSPort) < 4)
 	{
 		int port = atoi(GPSPort);
-		portptr->hDevice = OpenCOMPort((VOID *)port, GPSSpeed, TRUE, TRUE, FALSE, 0);
+#ifdef WIN32
+		sprintf(GPSPort, "COM%d", port);
+#else
+		sprintf(GPSPort, "com%d", port);
+#endif	
 	}
-	else
-		portptr->hDevice = OpenCOMPort((VOID *)GPSPort, GPSSpeed, TRUE, TRUE, FALSE, 0);
+
+	portptr->hDevice = OpenCOMPort(GPSPort, GPSSpeed, TRUE, TRUE, FALSE, 0);
 				  
 	if (portptr->hDevice == 0)
 	{
@@ -3401,7 +3475,7 @@ BOOL OpenGPSPort()
 
 void PollGPSIn()
 {
-	int len;
+	size_t len;
 	char GPSMsg[2000] = "$GPRMC,061213.000,A,5151.5021,N,00056.8388,E,0.15,324.11,190414,,,A*6F";
 	char * ptr;
 	struct PortInfo * portptr;
@@ -3430,7 +3504,7 @@ void PollGPSIn()
 
 		if (len > 0)
 		{
-			portptr->gpsinptr+=len;
+			portptr->gpsinptr += (int)len;
 
 			ptr = memchr(portptr->GPSinMsg, 0x0a, portptr->gpsinptr);
 
@@ -3446,7 +3520,7 @@ void PollGPSIn()
 					if (memcmp(&GPSMsg[1], "GPRMC", 5) == 0)
 						DecodeRMC(GPSMsg, len);	
 
-				portptr->gpsinptr-=len;			// bytes left
+				portptr->gpsinptr -= (int)len;			// bytes left
 
 				if (portptr->gpsinptr > 0 && *ptr == 0)
 				{
@@ -3480,7 +3554,7 @@ void ClosePorts()
 	return;
 }
 
-void DecodeRMC(char * msg, int len)
+void DecodeRMC(char * msg, size_t len)
 {
 	char * ptr1;
 	char * ptr2;
@@ -3788,10 +3862,13 @@ Dll BOOL APIENTRY PutAPRSFrame(char * Frame, int Len, int Port)
 
 Dll BOOL APIENTRY APISendAPRSMessage(char * Text, char * ToCall)
 {
-	// Called from BPQAPRS App
+	// Called from BPQAPRS App or BPQMail
 	// Message has to be queued so it can be sent by Timer Process (IS sock is not valid in this context)
 
 	PMSGWITHLEN buffptr;
+
+	if (APRSActive == 0)
+		return FALSE;
 
 	GetSemaphore(&Semaphore, 11);
 
@@ -3864,7 +3941,7 @@ static VOID ProcessReceivedData(SOCKET TCPSock)
 
 		if (ptr)
 		{
-			int Len = ptr - Lastptr;
+			size_t Len = ptr - Lastptr;
 		
 			memcpy(UDPMsg, Lastptr, Len);
 			UDPMsg[Len++] = 13;
@@ -3882,14 +3959,14 @@ static VOID ProcessReceivedData(SOCKET TCPSock)
 
 			}
 			Lastptr = ptr + 1;
-			len -= Len;
+			len -= (int)Len;
 		}
 		else
 			SavedLen = len;
 	}
 }
 
-static VOID TCPConnect()
+static VOID TCPConnect(void * unused)
 {
 	int err, ret;
 	u_long param=1;
@@ -3964,7 +4041,7 @@ static VOID TCPConnect()
 		timeout.tv_sec = 60;
 		timeout.tv_usec = 0;				// We should get messages more frequently that this
 
-		ret = select(TCPSock + 1, &readfs, NULL, &errorfs, &timeout);
+		ret = select((int)TCPSock + 1, &readfs, NULL, &errorfs, &timeout);
 		
 		if (ret == SOCKET_ERROR)
 		{
@@ -4546,8 +4623,6 @@ VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 	char * Path;
 	char * Msg;
 	struct STATIONRECORD * TPStation;
-	int msgLen;
-	unsigned char APIMsg[512];
 
 	Station->Object = NULL;
 
@@ -4683,13 +4758,18 @@ VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 
 #ifdef LINBPQ
 #ifndef WIN32
-		
-		// if Liunx, Pass to Messaging APP - station pointer, then Message
 
-		memcpy(APIMsg, &Station, 4);
-		strcpy(&APIMsg[4], Payload);
-		msgLen = strlen(Payload) + 5;
-		sendto(sfd, APIMsg, msgLen, 0, (struct sockaddr *) &peer_addr, sizeof(struct sockaddr_un));
+		{
+			int msgLen;
+			unsigned char APIMsg[512];
+	
+			// if Linux, Pass to Messaging APP - station pointer, then Message
+
+			memcpy(APIMsg, &Station, 4);
+			strcpy(&APIMsg[4], Payload);
+			msgLen = strlen(Payload) + 5;
+			sendto(sfd, APIMsg, msgLen, 0, (struct sockaddr *) &peer_addr, sizeof(struct sockaddr_un));
+		}
 #endif
 #else
 		if (APRSApplConnected)
@@ -5681,7 +5761,8 @@ VOID SendWeatherBeacon()
 	char HH[3]="";
 	char MM[3]="";
 	char Lat[10], Lon[10];
-	int Len, index;
+	size_t Len;
+	int index;
 	char WXMessage[1024];
 	char * WXptr;
 	char * WXend;
@@ -5732,6 +5813,8 @@ VOID SendWeatherBeacon()
 		return;
 	}
 
+	WXMessage[Len] = 0;
+
 	// see if wview format
 
 //04-09-13, 2245
@@ -5761,7 +5844,7 @@ VOID SendWeatherBeacon()
 
 		ptr = strstr(WXMessage, "TempEx");
 		if (ptr)
-			Temp = (atof(ptr + 7) * 1.8) + 32;
+			Temp = (int)(atof(ptr + 7) * 1.8) + 32;
 
 		ptr = strstr(WXMessage, "WindHi");
 		if (ptr)
@@ -5777,7 +5860,7 @@ VOID SendWeatherBeacon()
 
 		ptr = strstr(WXMessage, "BarmPs");
 		if (ptr)
-			Pressure = atof(ptr + 7) * 0.338638866667;			// Inches to 1/10 millbars
+			Pressure = (int)(atof(ptr + 7) * 0.338638866667);			// Inches to 1/10 millbars
 
 		ptr = strstr(WXMessage, "HumdEx");
 		if (ptr)
@@ -5785,11 +5868,11 @@ VOID SendWeatherBeacon()
 
 		ptr = strstr(WXMessage, "RnFall");
 		if (ptr)
-			Rain24hrs = atof(ptr + 7) * 100.0;
+			Rain24hrs = (int)(atof(ptr + 7) * 100.0);
 
 		ptr = strstr(WXMessage, "DailyRnFall");
 		if (ptr)
-			Raintoday = atof(ptr + 12) * 100.0;
+			Raintoday = (int)(atof(ptr + 12) * 100.0);
 
 		if (Humidity > 99)
 			Humidity = 99;
@@ -5827,8 +5910,10 @@ VOID SendWeatherBeacon()
 	Debugprintf(Msg);
 
 	for (index = 0; index < 32; index++)
+	{
 		if (WXPort[index])
 			SendAPRSMessage(Msg, index);
+	}
 
 	fclose(hFile);
 }
@@ -6441,9 +6526,9 @@ VOID APRSProcessSpecialPage(struct APRSConnectionInfo * sockptr, char * Buffer, 
 
 	char * NewMessage = malloc(250000);
 	char * ptr1 = Buffer, * ptr2, * ptr3, * ptr4, * NewPtr = NewMessage;
-	int PrevLen;
-	int BytesLeft = FileSize;
-	int NewFileSize = FileSize;
+	size_t PrevLen;
+	size_t BytesLeft = FileSize;
+	size_t NewFileSize = FileSize;
 	char * StripPtr = ptr1;
 	int HeaderLen;
 	char Header[256];
@@ -6474,7 +6559,7 @@ VOID APRSProcessSpecialPage(struct APRSConnectionInfo * sockptr, char * Buffer, 
 
 	BytesLeft = StripPtr - Buffer;
 
-	FileSize = BytesLeft;
+	FileSize = (int)BytesLeft;
 	NewFileSize = FileSize;
 	ptr1 = Buffer;
 	ptr1[FileSize] = 0;
@@ -6491,9 +6576,9 @@ loop:
 		if (ptr3)
 		{
 			char Key[80] = "";
-			int KeyLen;
+			size_t KeyLen;
 			char * NewText;
-			int NewTextLen;
+			size_t NewTextLen;
 
 			ptr3 += 2;
 			KeyLen = ptr3 - ptr2;
@@ -6519,7 +6604,7 @@ loop:
 			
 			if (NewText)
 			{
-				NewTextLen = (int)strlen(NewText);
+				NewTextLen = strlen(NewText);
 				NewFileSize = NewFileSize + NewTextLen - KeyLen;					
 			//	NewMessage = realloc(NewMessage, NewFileSize);
 
@@ -6555,9 +6640,9 @@ loop:
 
 	memcpy(NewPtr, ptr1, BytesLeft);
 	
-	HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", NewFileSize);
+	HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", (int)NewFileSize);
 	send(sockptr->sock, Header, HeaderLen, 0); 
-	send(sockptr->sock, NewMessage, NewFileSize, 0); 
+	send(sockptr->sock, NewMessage, (int)NewFileSize, 0); 
 
 	free (NewMessage);
 	free(StationTable);
@@ -6628,9 +6713,9 @@ VOID APRSSendMessageFile(struct APRSConnectionInfo * sockptr, char * FN)
 		// Build Station list, depending on URL
 	
 		int Count = 0;
-		BOOL RFOnly = (BOOL)strstr(_strlwr(FN), "rf");		// Leaves FN in lower case
-		BOOL WX = (BOOL)strstr(FN, "wx");
-		BOOL Mobile = (BOOL)strstr(FN, "mobile");
+		BOOL RFOnly = !(strstr(_strlwr(FN), "rf") == NULL);		// Leaves FN in lower case
+		BOOL WX =!(strstr(FN, "wx") == NULL);
+		BOOL Mobile = !(strstr(FN, "mobile") == NULL);
 		char Objects = (strstr(FN, "obj"))? '*' :0;
 		char * StationList;
 		BOOL KM = DefaultDistKM;
@@ -6859,10 +6944,10 @@ VOID APRSProcessHTTPMessage(SOCKET sock, char * MsgPtr,	BOOL LOCAL, BOOL COOKIE)
 			//	Send Not Authorized
 
 			OutputLen = sprintf(OutBuffer, APRSIndexPage, "<br><B>Not authorized - please return to Node Menu and sign in</B>");
-			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", OutputLen + strlen(Tail));
+			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", (int)(OutputLen + strlen(Tail)));
 			send(sock, Header, HeaderLen, 0);
 			send(sock, OutBuffer, OutputLen, 0);
-			send(sock, Tail, strlen(Tail), 0);
+			send(sock, Tail, (int)strlen(Tail), 0);
 			return;
 		}
 
@@ -7091,10 +7176,10 @@ VOID APRSProcessHTTPMessage(SOCKET sock, char * MsgPtr,	BOOL LOCAL, BOOL COOKIE)
 			if (ptr)
 			{
 				*ptr = 0;
-				RFOnly = (BOOL)strstr(Referrer, "rf");
-				WX = (BOOL)strstr(Referrer, "wx");
-				Mobile = (BOOL)strstr(Referrer, "mobile");
-				Object = (BOOL)strstr(Referrer, "obj");
+				RFOnly = !(strstr(Referrer, "rf") == NULL);
+				WX = !(strstr(Referrer, "wx") == NULL);
+				Mobile = !(strstr(Referrer, "mobile") == NULL);
+				Object = !(strstr(Referrer, "obj") == NULL);
 
 				if (WX)
 					strcpy(URL, "/aprs/infowx_call.html");
@@ -7149,11 +7234,15 @@ VOID ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 	time_t NOW;
 	char noSeq[] = "";
 
-	SMEM->NeedRefresh = TRUE;
-
 	memcpy(FromCall, Station->Callsign, strlen(Station->Callsign));
 	memcpy(MsgDest, &Payload[1], 9);
 	MsgDest[9] = 0;
+
+	if (strcmp(MsgDest, CallPadded) == 0)		// to me?
+		SMEM->NeedRefresh = 255;				// Flag to control Msg popup
+	else
+		SMEM->NeedRefresh = 1;
+
 
 	SeqPtr = strchr(TextPtr, '{');
 
@@ -7320,7 +7409,7 @@ VOID ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 BOOL InternalSendAPRSMessage(char * Text, char * Call)
 {
 	char Msg[255];
-	int len = strlen(Call);
+	size_t len = strlen(Call);
 	APRSHEARDRECORD * STN;
 	struct tm * TM;
 	time_t NOW;
@@ -7432,9 +7521,9 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 
 	if (memcmp(CmdTail, "? ", 2) == 0)
 	{
-		Bufferptr += sprintf(Bufferptr, "APRS Subcommmands:\r");
-		Bufferptr += sprintf(Bufferptr, "STATUS SEND MSGS SENT ENABLEIGATE DISABLEIGATE RECONFIG\r");
-		Bufferptr += sprintf(Bufferptr, "Default is Station list - Params [Port] [Pattern]\r");
+		Bufferptr = Cmdprintf(Session, Bufferptr, "APRS Subcommmands:\r");
+		Bufferptr = Cmdprintf(Session, Bufferptr, "STATUS SEND MSGS SENT ENABLEIGATE DISABLEIGATE RECONFIG\r");
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Default is Station list - Params [Port] [Pattern]\r");
 	
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 		return;
@@ -7447,12 +7536,12 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 
 		if (!ProcessConfig())
 		{
-			Bufferptr += sprintf(Bufferptr, "Configuration File check failed - will continue with old config");
+			Bufferptr = Cmdprintf(Session, Bufferptr, "Configuration File check failed - will continue with old config");
 		}
 		else
 		{
 			APRSReconfigFlag=TRUE;	
-			Bufferptr += sprintf(Bufferptr, "Reconfiguration requested\r");
+			Bufferptr = Cmdprintf(Session, Bufferptr, "Reconfiguration requested\r");
 			SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 			return;
 		}
@@ -7464,7 +7553,7 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 			return;
 
 		IGateEnabled = TRUE;
-		Bufferptr += sprintf(Bufferptr, "IGate Enabled\r");
+		Bufferptr = Cmdprintf(Session, Bufferptr, "IGate Enabled\r");
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 		return;
 	}
@@ -7475,7 +7564,7 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 			return;
 
 		IGateEnabled = FALSE;
-		Bufferptr += sprintf(Bufferptr, "IGate Disabled\r");
+		Bufferptr = Cmdprintf(Session, Bufferptr, "IGate Disabled\r");
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 		return;
 	}
@@ -7483,14 +7572,14 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 	if (memcmp(CmdTail, "STATUS ", 7) == 0)
 	{
 		if (IGateEnabled == FALSE)
-			Bufferptr += sprintf(Bufferptr, "IGate Disabled\r");
+			Bufferptr = Cmdprintf(Session, Bufferptr, "IGate Disabled\r");
 		else
 		{
-			Bufferptr += sprintf(Bufferptr, "IGate Enabled ");
+			Bufferptr = Cmdprintf(Session, Bufferptr, "IGate Enabled ");
 			if (APRSISOpen)
-				Bufferptr += sprintf(Bufferptr, "and connected to %s\r", RealISHost);
+				Bufferptr = Cmdprintf(Session, Bufferptr, "and connected to %s\r", RealISHost);
 			else
-				Bufferptr += sprintf(Bufferptr, "but not connected\r");
+				Bufferptr = Cmdprintf(Session, Bufferptr, "but not connected\r");
 		}
 
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
@@ -7502,21 +7591,19 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 		struct APRSMESSAGE * ptr = SMEM->Messages;
 		char Addrs[32];
 
-		Bufferptr += sprintf(Bufferptr,
+		Bufferptr = Cmdprintf(Session, Bufferptr,
 			"\rTime  Calls               Seq   Text\r");
 
 		while (ptr)
 		{
 			char ToLopped[11] = "";
 
-			Bufferptr = CHECKBUFFER(Session, Bufferptr);
-	
 			memcpy(ToLopped, ptr->ToCall, 10);
 			strlop(ToLopped, ' ');
 
 			sprintf(Addrs, "%s>%s", ptr->FromCall, ToLopped);
 
-			Bufferptr += sprintf(Bufferptr, "%s %-20s%-5s %s\r",
+			Bufferptr = Cmdprintf(Session, Bufferptr, "%s %-20s%-5s %s\r",
 				ptr->Time, Addrs, ptr->Seq, ptr->Text);
 	
 			ptr = ptr->Next;
@@ -7530,7 +7617,7 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 		struct APRSMESSAGE * ptr = SMEM->OutstandingMsgs;
 		char Addrs[32];
 
-		Bufferptr += sprintf(Bufferptr,
+		Bufferptr = Cmdprintf(Session, Bufferptr,
 			"\rTime  Calls               Seq State Text\r");
 
 		while (ptr)
@@ -7545,15 +7632,13 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 			else
 				sprintf(Retries, "%d", ptr->Retries);
 
-
-			Bufferptr = CHECKBUFFER(Session, Bufferptr);
 	
 			memcpy(ToLopped, ptr->ToCall, 10);
 			strlop(ToLopped, ' ');
 
 			sprintf(Addrs, "%s>%s", ptr->FromCall, ToLopped);
 
-			Bufferptr += sprintf(Bufferptr, "%s %-20s%-5s %-2s %s\r",
+			Bufferptr = Cmdprintf(Session, Bufferptr, "%s %-20s%-5s %-2s %s\r",
 				ptr->Time, Addrs, ptr->Seq, Retries, ptr->Text);
 	
 			ptr = ptr->Next;
@@ -7575,18 +7660,18 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 			return;
 
 		if (Call)
-			len = strlen(Call);
+			len = (int)strlen(Call);
 
 		if (len < 3 || len > 9)
 		{
-			Bufferptr += sprintf(Bufferptr, "Invalid Callsign\r");
+			Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid Callsign\r");
 			SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 			return;
 		}
 
 		if (Text == NULL)
 		{
-			Bufferptr += sprintf(Bufferptr, "No Message Text\r");
+			Bufferptr = Cmdprintf(Session, Bufferptr, "No Message Text\r");
 			SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 			return;
 		}
@@ -7655,8 +7740,6 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 			MH++;
 			continue;
 		}
-
-		Bufferptr = CHECKBUFFER(Session, Bufferptr);
 	
 		ptr = FormatAPRSMH(MH);
 
@@ -7667,9 +7750,7 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 			if (Pattern[0] && strstr(ptr, Pattern) == 0)
 				continue;
 
-			len = (int)strlen(ptr);
-			memcpy(Bufferptr, ptr, len);
-			Bufferptr += len;
+			Bufferptr = Cmdprintf(Session, Bufferptr, "%s", ptr);
 		}
 	}
 

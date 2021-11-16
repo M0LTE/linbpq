@@ -113,38 +113,12 @@ char Index[] = "<html><head><title>%s's BPQ32 Web Server</title></head><body><P 
 char IndexNoAPRS[] = "<meta http-equiv=\"refresh\" content=\"0;url=/Node/NodeIndex.html\">"
 	"<html><head></head><body></body></html>";
 
-char NodeMenuHeader[] = "<html><head><title>%s's BPQ32 Web Server</title><script>"
-	"function dev_win(URL,x,y){"
-	"var xx = \"width=\" + x;"
-	"var yy = \",height=\" + y;"
-	"var param = \"toolbar=no, location=no, directories=no, status=no, "
-	"menubar=no, scrollbars=no, resizable=no, titlebar=no, toobar=no, \" + xx + yy;"
-	"window.open(URL,\"_blank\",param);"
-	"}"
-	"function open_win(){";
-
-char NodeMenuLine[] = "dev_win(\"/Node/Port?%d\",%d,%d);";
-char NodeMenuRest[] = "}</script></head>"
-	"<body background=\"/background.jpg\"><h1 align=center>BPQ32 Node %s</h1><P>"
-	"<P align=center><table border=1 cellpadding=2 bgcolor=white><tr>"
-	"<td><a href=/Node/Routes.html>Routes</a></td>"
-	"<td><a href=/Node/Nodes.html>Nodes</a></td>"
-	"<td><a href=/Node/Ports.html>Ports</a></td>"
-	"<td><a href=/Node/Links.html>Links</a></td>"
-	"<td><a href=/Node/Users.html>Users</a></td>"
-	"<td><a href=/Node/Stats.html>Stats</a></td>"
-	"<td><a href=/Node/Terminal.html>Terminal</a></td>%s%s%s%s%s";
-	char DriverBit[] = "<td><a href=\"javascript:open_win();\">Driver Windows</a></td>"
-	"<td><a href=javascript:dev_win(\"/Node/Streams\",820,700);>Stream Status</a></td>";
 char APRSBit[] = "<td><a href=../aprs>APRS Pages</a></td>";
 
 char MailBit[] = "<td><a href=../Mail/Header>Mail Mgmt</a></td>"
 				 "<td><a href=/Webmail>WebMail</a></td>";
 char ChatBit[] = "<td><a href=../Chat/Header>Chat Mgmt</a></td>";
 
-char NodeTail[] = "<td><a href=/Node/Signon.html>SYSOP Signin</a></td>" 
- 				  "<td><a href=/Node/EditCfg.html>Edit Config</a></td>"
-				  "</tr></table>";
 	
 char Tail[] = "</body></html>";
 
@@ -167,13 +141,6 @@ char NodeHddr[] = "<center><form method=get action=/Node/Nodes.html>"
 
 char NodeLine[] = "<td><a href=NodeDetail?%s>%s:%s</td>";
 
-char PortsHddr[] = "<h2 align=center>Ports</h2><table align=center border=2 bgcolor=white>"
-	"<tr><th>Port</th><th>Driver</th><th>ID</th><th>Beacons</th></tr>";
-
-char PortLine[] = "<tr><td>%d</td><td><a href=PortStats?%d&%s>&nbsp;%s</a></td><td>%s</td></tr>";
-char PortLineWithBeacon[] = "<tr><td>%d</td><td><a href=PortStats?%d&%s>&nbsp;%s</a></td><td>%s</td><td><a href=PortBeacons?%d>&nbsp;Beacons</a></td></tr>";
-
-char SessionPortLine[] = "<tr><td>%d</td><td>%s</td><td>%s</td><td> </td></tr>";
 
 char StatsHddr[] = "<h2 align=center>Node Stats</h2><table align=center cellpadding=2 bgcolor=white>"
 	"<col width=250 /><col width=80 /><col width=80 /><col width=80 /><col width=80 /><col width=80 />";
@@ -249,13 +216,11 @@ char TermOutput[] = "<html><head>"
 	"<script type=\"text/javascript\">\r\n"
 	"function ScrollOutput()\r\n"
 	"{window.scrollBy(0,document.body.scrollHeight)}</script>"
-	"</head><body id=Text onload=\"ScrollOutput()\">"
+	"</head><body id=Text>"
 	"<p style=font-family:monospace>";
-//<body onLoad="pageScroll()">
-//char TermOutputTail[] = "</p><script>scrollElementToEnd(document.getElementById(\"Text\"));</script>";
-//char TermOutputTail[] = "</p><script>document.getElementById(\"Text\").scrollTo(0,1500)</script>";
-//char TermOutputTail[] = "</p><script>window.scrollBy(0,500);</script></body></html>";
-char TermOutputTail[] = "</p></script></body></html>";
+
+char TermOutputTail[] = "</p><script type=\"text/javascript\">\r\nsetTimeout(ScrollOutput, 1)</script></body></html>";
+
 /*
 char InputLine[] = "<html><head></head><body onload='resize()' onresize='resize()'>"
 	"<form name=inputform method=post action=/TermInput?%s>"
@@ -440,7 +405,7 @@ VOID PollSession(struct HTTPConnectionInfo * Session)
 					Line = Session->LastLine++;
 					free(Session->ScreenLines[Line]);
 
-					LineLen = strlen(Formatted);
+					LineLen = (int)strlen(Formatted);
 
 					// if line starts with a colour code, process it
 
@@ -586,7 +551,7 @@ VOID HTTPTimer()
 						break;
 				}
 
-				ReplyLen = strlen(_REPLYBUFFER);
+				ReplyLen = (int)strlen(_REPLYBUFFER);
 				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], "%s", TermOutputTail);
 		
 				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen);
@@ -630,7 +595,7 @@ struct HTTPConnectionInfo * AllocateSession(SOCKET sock, char Mode)
 	
 	KeyVal = (int)sock * time(NULL);
 
-	sprintf(Session->Key, "%c%012X", Mode, KeyVal);
+	sprintf(Session->Key, "%c%012X", Mode, (int)KeyVal);
 
 	if (SessionList)
 		Session->Next = SessionList;
@@ -737,10 +702,10 @@ void ProcessTermInput(SOCKET sock, char * MsgPtr, int MsgLen, char * Key)
 				//No L4 sessions free
 
 				ReplyLen = sprintf(_REPLYBUFFER, "%s", NoSessions);
-				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));
+				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 				send(sock, Header, HeaderLen, 0);
-				send(sock, _REPLYBUFFER, ReplyLen, 0);
-				send(sock, Tail, strlen(Tail), 0);
+				send(sock, _REPLYBUFFER, ReplyLen, 0);                                                                                                                                                                                                                                        				
+				send(sock, Tail, (int)strlen(Tail), 0);
 				return;
 			}
 
@@ -752,15 +717,15 @@ void ProcessTermInput(SOCKET sock, char * MsgPtr, int MsgLen, char * Key)
 				Debugprintf("HTTP Term Session->USER is NULL");
 		}
 
-		SendMsg(Stream, input, end - input);
+		SendMsg(Stream, input, (int)(end - input));
 		Session->Changed = TRUE;
 		Session->KillTimer = 0;
 	}
 
-	HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));
+	HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 	send(sock, Header, HeaderLen, 0);
 	send(sock, _REPLYBUFFER, ReplyLen, 0);
-	send(sock, Tail, strlen(Tail), 0);
+	send(sock, Tail, (int)strlen(Tail), 0);
 }
 
 
@@ -780,10 +745,10 @@ void ProcessTermClose(SOCKET sock, char * MsgPtr, int MsgLen, char * Key)
 	ReplyLen = SetupNodeMenu(_REPLYBUFFER);
 
 	HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n"
-		"\r\n", ReplyLen + strlen(Tail));
+		"\r\n", ReplyLen + (int)strlen(Tail));
 	send(sock, Header, HeaderLen, 0);
 	send(sock, _REPLYBUFFER, ReplyLen, 0);
-	send(sock, Tail, strlen(Tail), 0);
+	send(sock, Tail, (int)strlen(Tail), 0);
 }
 
 int ProcessTermSignon(struct TNCINFO * TNC, SOCKET sock, char * MsgPtr, int MsgLen)
@@ -846,7 +811,7 @@ int ProcessTermSignon(struct TNCINFO * TNC, SOCKET sock, char * MsgPtr, int MsgL
 					if (Appl[0])
 					{
 						strcat(Appl, "\r");
-						SendMsg(Session->Stream, Appl, strlen(Appl));
+						SendMsg(Session->Stream, Appl, (int)strlen(Appl));
 					}
 
 				}
@@ -872,10 +837,10 @@ int ProcessTermSignon(struct TNCINFO * TNC, SOCKET sock, char * MsgPtr, int MsgL
 
 Sendit:
 
-	HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));
+	HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 	send(sock, Header, HeaderLen, 0);
 	send(sock, _REPLYBUFFER, ReplyLen, 0);
-	send(sock, Tail, strlen(Tail), 0);
+	send(sock, Tail, (int)strlen(Tail), 0);
 
 	return 1;
 }
@@ -912,18 +877,18 @@ int ProcessSpecialPage(char * Buffer, int FileSize)
 		ptr2 = strstr(ptr4, "-->");
 		if (ptr2)
 		{
-			PrevLen = (ptr4 - ptr1);
+			PrevLen = (int)(ptr4 - ptr1);
 			memcpy(StripPtr, ptr1, PrevLen);
 			StripPtr += PrevLen;
 			ptr1 = ptr2 + 3;
-			BytesLeft = FileSize - (ptr1 - Buffer);
+			BytesLeft = (int)(FileSize - (ptr1 - Buffer));
 		}
 	}
 
 	memcpy(StripPtr, ptr1, BytesLeft);
 	StripPtr += BytesLeft;
 
-	BytesLeft = StripPtr - Buffer;
+	BytesLeft = (int)(StripPtr - Buffer);
 
 	FileSize = BytesLeft;
 	NewFileSize = FileSize;
@@ -935,7 +900,7 @@ loop:
 
 	if (ptr2)
 	{
-		PrevLen = (ptr2 - ptr1);			// Bytes before special text
+		PrevLen = (int)(ptr2 - ptr1);			// Bytes before special text
 		
 		ptr3 = strstr(ptr2+2, "##");
 
@@ -947,7 +912,7 @@ loop:
 			int NewTextLen;
 
 			ptr3 += 2;
-			KeyLen = ptr3 - ptr2;
+			KeyLen = (int)(ptr3 - ptr2);
 
 			if (KeyLen < 80)
 				memcpy(Key, ptr2, KeyLen);
@@ -956,7 +921,7 @@ loop:
 			
 			if (NewText)
 			{
-				NewTextLen = strlen(NewText);
+				NewTextLen = (int)strlen(NewText);
 				NewFileSize = NewFileSize + NewTextLen - KeyLen;					
 			//	NewMessage = realloc(NewMessage, NewFileSize);
 
@@ -977,7 +942,7 @@ loop:
 			}
 
 			ptr1 = ptr3;			// Continue scan from here
-			BytesLeft = Buffer + FileSize - ptr3;
+			BytesLeft = (int)(Buffer + FileSize - ptr3);
 		}
 		else		// Unmatched ##
 		{
@@ -1065,7 +1030,7 @@ int SendMessageFile(SOCKET sock, char * FN, BOOL OnlyifExists)
 
 	MsgBytes = malloc(FileSize + 1);
 
-	ReadLen = fread(MsgBytes, 1, FileSize, hFile); 
+	ReadLen = (int)fread(MsgBytes, 1, FileSize, hFile);
 
 	fclose(hFile);
 
@@ -1182,7 +1147,7 @@ int RefreshTermWindow(struct HTTPConnectionInfo * Session, char * _REPLYBUFFER)
 
 				Session->Changed = 0;
 
-				ReplyLen = strlen(_REPLYBUFFER);
+				ReplyLen = (int)strlen(_REPLYBUFFER);
 				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], "%s", TermOutputTail);
 
 				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen);
@@ -1202,6 +1167,47 @@ int SetupNodeMenu(char * Buff)
 {
 	int Len = 0, i;
 	struct TNCINFO * TNC;
+	int top = 0, left = 0;
+
+	char NodeMenuHeader[] = "<html><head><title>%s's BPQ32 Web Server</title><script>"
+		"function dev_win(URL,w,h,top,left){"
+		"var ww = \"width=\" + w;"
+		"var xx = \",height=\" + h;"
+		"var yy = \",top=\" + top;"
+		"var zz = \",left=\" + left;"
+		"var param = \"toolbar=no, location=no, directories=no, status=no, "
+		"menubar=no, scrollbars=no, resizable=no, titlebar=no, toobar=no, \" + ww + xx + yy + zz;"
+		"window.open(URL,\"_blank\",param);"
+		"}"
+		"function open_win(){";
+
+	char NodeMenuLine[] = "dev_win(\"/Node/Port?%d\",%d,%d,%d,%d);";
+
+	char NodeMenuRest[] = "}</script></head>"
+		"<body background=\"/background.jpg\"><h1 align=center>BPQ32 Node %s</h1><P>"
+		"<P align=center><table border=1 cellpadding=2 bgcolor=white><tr>"
+		"<td><a href=/Node/Routes.html>Routes</a></td>"
+		"<td><a href=/Node/Nodes.html>Nodes</a></td>"
+		"<td><a href=/Node/Ports.html>Ports</a></td>"
+		"<td><a href=/Node/Links.html>Links</a></td>"
+		"<td><a href=/Node/Users.html>Users</a></td>"
+		"<td><a href=/Node/Stats.html>Stats</a></td>"
+		"<td><a href=/Node/Terminal.html>Terminal</a></td>%s%s%s%s%s";
+
+	char DriverBit[] = "<td><a href=\"javascript:open_win();\">Driver Windows</a></td>"
+		"<td><a href=javascript:dev_win(\"/Node/Streams\",820,700,200,200);>Stream Status</a></td>";
+
+	char APRSBit[] = "<td><a href=../aprs>APRS Pages</a></td>";
+
+	char MailBit[] = "<td><a href=../Mail/Header>Mail Mgmt</a></td>"
+		"<td><a href=/Webmail>WebMail</a></td>";
+
+	char ChatBit[] = "<td><a href=../Chat/Header>Chat Mgmt</a></td>";
+
+	char NodeTail[] = "<td><a href=/Node/Signon.html>SYSOP Signin</a></td>" 
+		"<td><a href=/Node/EditCfg.html>Edit Config</a></td>"
+		"</tr></table>";
+
 
 	Len = sprintf(Buff, NodeMenuHeader, Mycall);
 		
@@ -1212,7 +1218,11 @@ int SetupNodeMenu(char * Buff)
 			continue;
 	
 		if (TNC->WebWindowProc)
-			Len += sprintf(&Buff[Len], NodeMenuLine, i, TNC->WebWinX, TNC->WebWinY);
+		{
+			Len += sprintf(&Buff[Len], NodeMenuLine, i, TNC->WebWinX, TNC->WebWinY, top, left);
+			top += 22;
+			left += 22;
+		}
 	}
 		
 	Len += sprintf(&Buff[Len], NodeMenuRest, Mycall,
@@ -1247,10 +1257,10 @@ VOID SaveConfigFile(SOCKET sock , char * MsgPtr, char * Rest)
 		{
 			ReplyLen = SetupNodeMenu(Reply);
 //			ReplyLen = sprintf(Reply, "%s", "<html><script>window.close();</script></html>");
-			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));
+			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 			send(sock, Header, HeaderLen, 0);
 			send(sock, Reply, ReplyLen, 0);
-			send(sock, Tail, strlen(Tail), 0);
+			send(sock, Tail, (int)strlen(Tail), 0);
 			return;
 		}
 
@@ -1292,7 +1302,7 @@ VOID SaveConfigFile(SOCKET sock , char * MsgPtr, char * Rest)
 
 			*(ptr2++) = 0;
 
-			MsgLen = strlen(input + 8);
+			MsgLen = (int)strlen(input + 8);
 	
 			if (BPQDirectory[0] == 0)
 			{
@@ -1338,7 +1348,7 @@ VOID SaveConfigFile(SOCKET sock , char * MsgPtr, char * Rest)
 	
 			if (fp1)
 			{
-				WriteLen = fwrite(input + 8, 1, MsgLen, fp1); 
+				WriteLen = (int)fwrite(input + 8, 1, MsgLen, fp1);
 				fclose(fp1);
 			}
 
@@ -1350,10 +1360,10 @@ VOID SaveConfigFile(SOCKET sock , char * MsgPtr, char * Rest)
 		}
 	
 		ReplyLen = sprintf(Reply, "<html><script>alert(\"%s\");window.close();</script></html>", Mess);
-		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));
+		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 		send(sock, Header, HeaderLen, 0);
 		send(sock, Reply, ReplyLen, 0);
-		send(sock, Tail, strlen(Tail), 0);
+		send(sock, Tail, (int)strlen(Tail), 0);
 	}
 	return;
 }
@@ -1371,7 +1381,6 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 	struct HTTPConnectionInfo * sockptr = &CI;
 	struct HTTPConnectionInfo * Session = NULL;
 
-	HANDLE hPipe;
 	char URL[100000];
 	char * ptr;
 	char * Context, * Method, * NodeURL, * Key;
@@ -1386,6 +1395,25 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 	BOOL COOKIE = FALSE;
 	int Len;
 
+	char PortsHddr[] = "<h2 align=center>Ports</h2><table align=center border=2 bgcolor=white>"
+			"<tr><th>Port</th><th>Driver</th><th>ID</th><th>Beacons</th><th>Driver Window</th></tr>";
+
+	char PortLine[] = "<tr><td>%d</td><td><a href=PortStats?%d&%s>&nbsp;%s</a></td><td>%s</td></tr>";
+
+	char PortLineWithBeacon[] = "<tr><td>%d</td><td><a href=PortStats?%d&%s>&nbsp;%s</a></td><td>%s</td>"
+			"<td><a href=PortBeacons?%d>&nbsp;Beacons</a><td> </td></td></tr>\r\n";
+
+	char SessionPortLine[] = "<tr><td>%d</td><td>%s</td><td>%s</td><td> </td>"
+		"<td> </td></tr>\r\n";
+
+	char PortLineWithDriver[] = "<tr><td>%d</td><td>%s</td><td>%s</td><td> </td>"
+		"<td><a href=\"javascript:dev_win('/Node/Port?%d',%d,%d,%d,%d);\">Driver Window</a></td></tr>\r\n";
+
+
+	char PortLineWithBeaconAndDriver[] = "<tr><td>%d</td><td>%s</td><td>%s</td>"
+		"<td><a href=PortBeacons?%d>&nbsp;Beacons</a></td>"
+		"<td><a href=\"javascript:dev_win('/Node/Port?%d',%d,%d,%d,%d);\">Driver Window</a></td></tr>\r\n";
+
 #ifdef WIN32
 
 	struct _EXCEPTION_POINTERS exinfo;
@@ -1394,7 +1422,7 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 	__try {
 #endif
 
-	Len = strlen(MsgPtr);
+	Len = (int)strlen(MsgPtr);
 	if (Len > 100000)
 		return 0; 
 
@@ -1633,7 +1661,7 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 
 	if (Session == NULL)
 	{
-		int Sent, Loops;
+		int Sent, Loops = 0;
 		ReplyLen = sprintf(Reply, MailLostSession, Key);
 		RLen = ReplyLen;
 Returnit:
@@ -1662,27 +1690,27 @@ Returnit:
 			return 0;
 		}
 		
-		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));	
+		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 		send(sock, Header, HeaderLen, 0);
 		
 		// May block
 
 		Sent = send(sock, Reply, ReplyLen, 0);
 
-		while (Sent != ReplyLen && Loops++ < 3000)					// 100 secs max
+		while (Sent < ReplyLen && Loops++ < 3000)					// 100 secs max
 		{	
 //			Debugprintf("%d out of %d sent %d Loops", Sent, InputLen, Loops);
 		
 			if (Sent > 0)					// something sent
 			{
-				InputLen -= Sent;
+				ReplyLen -= Sent;
 				memmove(Reply, &Reply[Sent], ReplyLen);
 			}
 					
 			Sleep(30);
 			Sent = send(sock, Reply, ReplyLen, 0);
 		}
-		send(sock, Tail, strlen(Tail), 0);
+		send(sock, Tail, (int)strlen(Tail), 0);
 
 		return 0;
 	}
@@ -1696,7 +1724,7 @@ doHeader:
 	{
 		char _REPLYBUFFER[250000];
 		struct HTTPConnectionInfo Dummy = {0};
-		int Sent, Loops;
+		int Sent, Loops = 0;
 
 		ReplyLen = 0;
 
@@ -1729,15 +1757,18 @@ doHeader:
 			return 0;
 		}
 		
-		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));	
+		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 
-		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));	
+		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 		send(sock, Header, HeaderLen, 0);
 
 		// Send may block
 
 		Sent = send(sock, _REPLYBUFFER, ReplyLen, 0);
 		
+		if (Sent == -1)
+			return 0;
+
 		while (Sent != ReplyLen && Loops++ < 3000)					// 100 secs max
 		{	
 //			Debugprintf("%d out of %d sent %d Loops", Sent, InputLen, Loops);
@@ -1752,7 +1783,7 @@ doHeader:
 			Sent = send(sock, _REPLYBUFFER, ReplyLen, 0);
 		}
 
-		send(sock, Tail, strlen(Tail), 0);
+		send(sock, Tail, (int)strlen(Tail), 0);
 		return 0;
 
 	}
@@ -1765,10 +1796,10 @@ doHeader:
 
 		ProcessChatHTTPMessage(Session, Method, Context, MsgPtr, _REPLYBUFFER, &ReplyLen);
 
-		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));	
+		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 		send(sock, Header, HeaderLen, 0);
 		send(sock, _REPLYBUFFER, ReplyLen, 0);
-		send(sock, Tail, strlen(Tail), 0);
+		send(sock, Tail, (int)strlen(Tail), 0);
 
 		return 0;
 
@@ -1801,6 +1832,8 @@ doHeader:
 	if ((_memicmp(Context, "/MAIL/", 6) == 0) || (_memicmp(Context, "/WebMail", 8) == 0))
 	{
 		// If for Mail, Pass to Mail Server via Named Pipe
+
+		HANDLE hPipe;
 
 		hPipe = CreateFile(MAILPipeFileName, GENERIC_READ | GENERIC_WRITE,
                   0,                    // exclusive access
@@ -1842,6 +1875,8 @@ doHeader:
 
 	if (_memicmp(Context, "/CHAT/", 6) == 0)
 	{
+		HANDLE hPipe;
+
 		hPipe = CreateFile(CHATPipeFileName, GENERIC_READ | GENERIC_WRITE,
                   0,                    // exclusive access
                   NULL,                 // no security attrs
@@ -1915,9 +1950,11 @@ doHeader:
 			char * input = strstr(MsgPtr, "\r\n\r\n");	// End of headers
 			int Port;
 			char Param[100];
+#ifndef LINBPQ
 			int retCode, disp;
 			char Key[80];
 			HKEY hKey;
+#endif
 			struct PORTCONTROL * PORT;
 			int Slot = 0;
 
@@ -1928,10 +1965,10 @@ doHeader:
 
 				ReplyLen = SetupNodeMenu(_REPLYBUFFER);	
 				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], "<br><B>Not authorized - please sign in</B>");
-				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));
+				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 				send(sock, Header, HeaderLen, 0);
 				send(sock, _REPLYBUFFER, ReplyLen, 0);
-				send(sock, Tail, strlen(Tail), 0);
+				send(sock, Tail, (int)strlen(Tail), 0);
 
 				return 1;
 			}
@@ -1939,10 +1976,10 @@ doHeader:
 			if (strstr(input, "Cancel=Cancel"))
 			{
 				ReplyLen = SetupNodeMenu(_REPLYBUFFER);	
-				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));
+				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 				send(sock, Header, HeaderLen, 0);
 				send(sock, _REPLYBUFFER, ReplyLen, 0);
-				send(sock, Tail, strlen(Tail), 0);
+				send(sock, Tail, (int)strlen(Tail), 0);
 
 				return 1;
 			}
@@ -2018,10 +2055,10 @@ doHeader:
 			ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], Beacons, Port,		
 				Interval[Slot], &UIUIDEST[Slot][0], &UIUIDigi[Slot][0], &FN[Slot][0], &Message[Slot][0], Port);
 			
-			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));
+			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 			send(sock, Header, HeaderLen, 0);
 			send(sock, _REPLYBUFFER, ReplyLen, 0);
-			send(sock, Tail, strlen(Tail), 0);
+			send(sock, Tail, (int)strlen(Tail), 0);
 
 			return 1;
 		}
@@ -2051,10 +2088,10 @@ doHeader:
 			
 	
 		ReplyLen = sprintf(Reply, "<html><script>alert(\"%s\");window.close();</script></html>", "Ok");
-		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));
+		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 		send(sock, Header, HeaderLen, 0);
 		send(sock, Reply, ReplyLen, 0);
-		send(sock, Tail, strlen(Tail), 0);
+		send(sock, Tail, (int)strlen(Tail), 0);
 
 //				goto SendResp;
 
@@ -2087,10 +2124,10 @@ doHeader:
 			else
 				ReplyLen = sprintf(_REPLYBUFFER, IndexNoAPRS, Mycall, Mycall);
 
-			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));	
+			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 			send(sock, Header, HeaderLen, 0);
 			send(sock, _REPLYBUFFER, ReplyLen, 0);
-			send(sock, Tail, strlen(Tail), 0);
+			send(sock, Tail, (int)strlen(Tail), 0);
 
 			return 0;
 		}
@@ -2198,10 +2235,10 @@ doHeader:
 			char _REPLYBUFFER[2000];	
 			ReplyLen = SetupNodeMenu(_REPLYBUFFER);	
 			ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], "<br><B>Not authorized - please sign in</B>");
-			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));
+			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 			send(sock, Header, HeaderLen, 0);
 			send(sock, _REPLYBUFFER, ReplyLen, 0);
-			send(sock, Tail, strlen(Tail), 0);
+			send(sock, Tail, (int)strlen(Tail), 0);
 			return 1;
 		}
 
@@ -2238,7 +2275,7 @@ doHeader:
 
 				CfgBytes = malloc(CfgLen + 1);
 
-				CfgLen = fread(CfgBytes, 1, CfgLen, fp1); 
+				CfgLen = (int)fread(CfgBytes, 1, CfgLen, fp1);
 				CfgBytes[CfgLen] = 0;
 			}		
 		}
@@ -2248,10 +2285,10 @@ doHeader:
 		ReplyLen = sprintf(_REPLYBUFFER, ConfigEditPage, Key, CfgBytes);
 		free (CfgBytes);
 
-		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));
+		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
 		sendandcheck(sock, Header, HeaderLen);
 		sendandcheck(sock, _REPLYBUFFER, ReplyLen);
-		sendandcheck(sock, Tail, strlen(Tail));
+		sendandcheck(sock, Tail, (int)strlen(Tail));
 		free (_REPLYBUFFER);
 
 		return 1;
@@ -2376,10 +2413,23 @@ doHeader:
 				strcpy(DLL, "HDLC");
 
 
-		if (Port->PORTTYPE == 16 && Port->PROTOCOL == 10 && Port->UICAPABLE == 0)		// EXTERNAL, Pactor/WINMO
-			ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], SessionPortLine, Port->PORTNUMBER, DLL, Port->PORTDESCRIPTION);
-		else
-			ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], PortLineWithBeacon, Port->PORTNUMBER, Port->PORTNUMBER,
+			if (Port->TNC && Port->TNC->WebWindowProc)		// Has a Window
+			{
+				if (Port->UICAPABLE)
+					ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], PortLineWithBeaconAndDriver, Port->PORTNUMBER, DLL,
+						Port->PORTDESCRIPTION, Port->PORTNUMBER, Port->PORTNUMBER, Port->TNC->WebWinX, Port->TNC->WebWinY, 200, 200);
+				else
+					ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], PortLineWithDriver, Port->PORTNUMBER, DLL,
+						Port->PORTDESCRIPTION, Port->PORTNUMBER, Port->TNC->WebWinX, Port->TNC->WebWinY, 200, 200);
+
+				continue;
+			}
+			
+			if (Port->PORTTYPE == 16 && Port->PROTOCOL == 10 && Port->UICAPABLE == 0)		// EXTERNAL, Pactor/WINMO
+				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], SessionPortLine, Port->PORTNUMBER, DLL,
+					Port->PORTDESCRIPTION, Port->PORTNUMBER);
+			else
+				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], PortLineWithBeacon, Port->PORTNUMBER, Port->PORTNUMBER,
 					DLL, DLL, Port->PORTDESCRIPTION, Port->PORTNUMBER);
 		}
 	}
@@ -2418,9 +2468,9 @@ doHeader:
 		if (n > 1)
 		{
 			if (Param == 'C') 
-				qsort(List, n, 4, CompareNode);
+				qsort(List, n, sizeof(void *), CompareNode);
 			else
-				qsort(List, n, 4, CompareAlias);
+				qsort(List, n, sizeof(void *), CompareAlias);
 		}
 		
 		Alias[6] = 0; 
@@ -3009,10 +3059,10 @@ SendResp:
 	FormatTime3(TimeString, time(NULL));
 
 	HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n"
-		"Date: %s\r\n\r\n", ReplyLen + strlen(Tail), TimeString);
+		"Date: %s\r\n\r\n", ReplyLen + (int)strlen(Tail), TimeString);
 	sendandcheck(sock, Header, HeaderLen);
 	sendandcheck(sock, _REPLYBUFFER, ReplyLen);
-	sendandcheck(sock, Tail, strlen(Tail));
+	sendandcheck(sock, Tail, (int)strlen(Tail));
 	}
 	return 0;
 
@@ -3020,16 +3070,17 @@ SendResp:
 	}
 	#include "StdExcept.c"
 	}
+	return 0;
 #endif
 }
 
-int ProcessHTTPMessage(struct ConnectionInfo * conn)
+void ProcessHTTPMessage(void * conn)
 {
 	// conn is a malloc'ed copy to handle reused connections, so need to free it
 
-	int ret = InnerProcessHTTPMessage(conn);
+	InnerProcessHTTPMessage((struct ConnectionInfo *)conn);
 	free(conn);
-	return ret;
+	return;
 }
 
 static char *month[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
@@ -3159,10 +3210,10 @@ int ProcessNodeSignon(SOCKET sock, struct TCPINFO * TCP, char * MsgPtr, char * A
 					ReplyLen =  SetupNodeMenu(Reply);
 
 					HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n"
-						"Set-Cookie: BPQSessionCookie=%s; Path = /\r\n\r\n", ReplyLen + strlen(Tail), Sess->Key);	
+						"Set-Cookie: BPQSessionCookie=%s; Path = /\r\n\r\n", (int)(ReplyLen + strlen(Tail)), Sess->Key);	
 					send(sock, Header, HeaderLen, 0);
 					send(sock, Reply, ReplyLen, 0);
-					send(sock, Tail, strlen(Tail), 0);
+					send(sock, Tail, (int)strlen(Tail), 0);
 
 					return ReplyLen;
 				}
@@ -3173,10 +3224,10 @@ int ProcessNodeSignon(SOCKET sock, struct TCPINFO * TCP, char * MsgPtr, char * A
 	ReplyLen = sprintf(Reply, NodeSignon, Mycall, Mycall);
 	ReplyLen += sprintf(&Reply[ReplyLen], "%s", PassError);
 
-	HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + strlen(Tail));	
+	HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", (int)(ReplyLen + strlen(Tail)));	
 	send(sock, Header, HeaderLen, 0);
 	send(sock, Reply, ReplyLen, 0);
-	send(sock, Tail, strlen(Tail), 0);
+	send(sock, Tail, (int)strlen(Tail), 0);
 
 		return 0;
 

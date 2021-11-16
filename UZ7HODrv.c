@@ -55,8 +55,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define AGWHDDRLEN sizeof(struct AGWHEADER)
 
-pthread_t _beginthread(void(*start_address)(), unsigned stack_size, VOID * arglist);
-
 extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 
 //int ResetExtDriver(int num);
@@ -64,7 +62,7 @@ extern char * PortConfig[33];
 
 struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
 
-void ConnecttoUZ7HOThread(int port);
+void ConnecttoUZ7HOThread(void * portptr);
 
 void CreateMHWindow();
 int Update_MH_List(struct in_addr ipad, char * call, char proto);
@@ -76,7 +74,7 @@ int KillTNC(struct TNCINFO * TNC);
 int RestartTNC(struct TNCINFO * TNC);
 VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message);
 struct TNCINFO * GetSessionKey(char * key, struct TNCINFO * TNC);
-static VOID SendData(struct TNCINFO * TNC, char * key, char * Msg, int MsgLen);
+static VOID SendData(int Stream, struct TNCINFO * TNC, char * key, char * Msg, int MsgLen);
 static VOID DoMonitorHddr(struct TNCINFO * TNC, struct AGWHEADER * RXHeader, UCHAR * Msg);
 VOID SendRPBeacon(struct TNCINFO * TNC);
 VOID MHPROC(struct PORTCONTROL * PORT, MESSAGE * Buffer);
@@ -239,6 +237,15 @@ void RegisterAPPLCalls(struct TNCINFO * TNC, BOOL Unregister)
 	strcpy(AGW->TXHeader.callfrom, NodeCall);
 	send(TNC->TCPSock,(const char FAR *)&AGW->TXHeader,AGWHDDRLEN,0);
 
+	// Add Alias
+
+	memcpy(NodeCall, MYALIASTEXT, 10);
+	strlop(NodeCall, ' ');
+	memset(AGW->TXHeader.callfrom, 0, 10);
+	strcpy(AGW->TXHeader.callfrom, NodeCall);
+	send(TNC->TCPSock,(const char FAR *)&AGW->TXHeader,AGWHDDRLEN,0);
+
+	
 	for (App = 0; App < 32; App++)
 	{
 		APPL=&APPLCALLTABLE[App];
@@ -270,9 +277,9 @@ VOID UZ7HOReleasePort(struct TNCINFO * TNC)
 	RegisterAPPLCalls(TNC, FALSE);
 }
 
-static int ExtProc(int fn, int port, PDATAMESSAGE buff)
+static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 {
-	UINT * buffptr;
+	PMSGWITHLEN buffptr;
 	char txbuff[500];
 	unsigned int bytes,txlen=0;
 	struct TNCINFO * TNC = TNCInfo[port];
@@ -324,15 +331,28 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 		{
 			// Only on first port using a host
 
+			time( &ltime );
+			
 			if (TNC->CONNECTED == FALSE && TNC->CONNECTING == FALSE)
 			{
 				//	See if time to reconnect
 		
-				time( &ltime );
 				if (ltime-lasttime[port] >9 )
 				{
 					ConnecttoUZ7HO(port);
 					lasttime[port]=ltime;
+				}
+			}
+			else
+			{
+				// See if time to refresh registrations
+
+				if (ltime - AGW->LastParamTime > 60)
+				{
+					AGW->LastParamTime = ltime;
+
+					if (TNC->PortRecord->PORTCONTROL.PortStopped == FALSE)
+						RegisterAPPLCalls(TNC, FALSE);
 				}
 			}
 		
@@ -353,7 +373,7 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 		
 			if (TNC->CONNECTING ||TNC->CONNECTED) FD_SET(TNC->TCPSock,&errorfs);
 
-			if (select(3,&readfs,&writefs,&errorfs,&timeout) > 0)
+			if (select((int)TNC->TCPSock+ 1, &readfs, &writefs, &errorfs, &timeout) > 0)
 			{
 				//	See what happened
 
@@ -435,11 +455,11 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 					{
 						// Write block has cleared. Send rest of packet
 
-						buffptr=Q_REM(&BPQtoUZ7HO_Q[port]);
+						buffptr = Q_REM(&BPQtoUZ7HO_Q[port]);
 
-						txlen=buffptr[1];
+						txlen = (int)buffptr->Len;
 
-						memcpy(txbuff,buffptr+2,txlen);
+						memcpy(txbuff, buffptr->Data, txlen);
 
 						bytes=send(TNC->TCPSock,(const char FAR *)&txbuff,txlen,0);
 					
@@ -490,7 +510,7 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 					if (buffptr)
 					{
-						buffptr[1] = sprintf((UCHAR *)&buffptr[2], "UZ7HO} Failure with %s\r", STREAM->RemoteCall);
+						buffptr->Len = sprintf(buffptr->Data, "UZ7HO} Failure with %s\r", STREAM->RemoteCall);
 						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 					}
 	
@@ -553,18 +573,16 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 			
 				buffptr=Q_REM(&STREAM->PACTORtoBPQ_Q);
 
-				datalen=buffptr[1];
+				datalen = (int)buffptr->Len;
 
-				buff->PORT = Stream;
+				buff->PORT = Stream;						// Compatibility with Kam Driver
 				buff->PID = 0xf0;
-				memcpy(&buff->L2DATA[0],buffptr+2,datalen);		// Data goes to +7, but we have an extra byte
-				datalen+=8;
+				memcpy(&buff->L2DATA, &buffptr->Data[0], datalen);		// Data goes to + 7, but we have an extra byte
+				datalen += sizeof(void *) + 4;
 
 				PutLengthinBuffer(buff, datalen);
 
-	//			buff[5]=(datalen & 0xff);
-	//			buff[6]=(datalen >> 8);
-				
+
 				ReleaseBuffer(buffptr);
 	
 				return (1);
@@ -626,13 +644,10 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 		STREAM = &TNC->Streams[Stream]; 
 		AGW = TNC->AGWInfo;
 
-//		txlen=(buff[6]<<8) + buff[5] - 8;	
-
-		txlen = GetLengthfromBuffer(buff) - 8;
-			
+		txlen = GetLengthfromBuffer(buff) - (MSGHDDRLEN + 1);		// 1 as no PID
 		if (STREAM->Connected)
 		{
-			SendData(TNC, &STREAM->AGWKey[0], &buff->L2DATA[0], txlen);
+			SendData(Stream, TNC, &STREAM->AGWKey[0], &buff->L2DATA[0], txlen);
 			STREAM->FramesOutstanding++;
 		}
 		else
@@ -747,7 +762,7 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 				{
 					// Set it
 
-					int ret = SendMessage(AGW->cbinfo.hwndCombo,CB_SETCURSEL, AGW->Modem, 0);
+					LRESULT ret = SendMessage(AGW->cbinfo.hwndCombo,CB_SETCURSEL, AGW->Modem, 0);
 					int pos = 13 * AGW->Modem + 7;
 															
 					ret = SendMessage(AGW->cbinfo.hwndCombo, WM_LBUTTONDOWN, 1, 1);
@@ -789,14 +804,18 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 				char Key[21];
 				int sent = 0;
 
-				_strupr(&buff->L2DATA[0]);
 				buff->L2DATA[txlen] = 0;
+				_strupr(&buff->L2DATA[0]);
 
 				memset(STREAM->RemoteCall, 0, 10);
 
 				// See if any digis - accept V VIA or nothing, seps space or comma
 
 				ptr = strtok_s(&buff->L2DATA[2], " ,\r", &context);
+
+				if (*ptr == '!')
+					ptr++;
+
 				strcpy(STREAM->RemoteCall, ptr);
 	
 				Key[0] = UZ7HOChannel[port] + '1';
@@ -957,8 +976,8 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 	case 3:	
 
-		Stream = (int)buff;
-	
+		Stream = (int)(size_t)buff;
+
 		TNCOK = TNCInfo[MasterPort[port]]->CONNECTED;
 
 		STREAM = &TNC->Streams[Stream];
@@ -1004,7 +1023,7 @@ static int ExtProc(int fn, int port, PDATAMESSAGE buff)
 	return 0;
 }
 
-UINT UZ7HOExtInit(EXTPORTDATA * PortEntry)
+void * UZ7HOExtInit(EXTPORTDATA * PortEntry)
 {
 	int i, port;
 	char Msg[255];
@@ -1031,7 +1050,7 @@ UINT UZ7HOExtInit(EXTPORTDATA * PortEntry)
 		sprintf(Msg," ** Error - no info in BPQ32.cfg for this port\n");
 		WritetoConsole(Msg);
 
-		return (int) ExtProc;
+		return ExtProc;
 	}
 
 	TNC->Port = port;
@@ -1104,8 +1123,8 @@ UINT UZ7HOExtInit(EXTPORTDATA * PortEntry)
 	}
 
 	time(&lasttime[port]);			// Get initial time value
-	
-	return ((int) ExtProc);
+
+	return ExtProc;
 
 }
 
@@ -1410,12 +1429,13 @@ BOOL CALLBACK uz_enum_windows_callback(HWND handle, LPARAM lParam)
 
 int ConnecttoUZ7HO(int port)
 {
-	_beginthread(ConnecttoUZ7HOThread, 0, (void *)port);
+	_beginthread(ConnecttoUZ7HOThread, 0, (void *)(size_t)port);
 	return 0;
 }
 
-VOID ConnecttoUZ7HOThread(int port)
+VOID ConnecttoUZ7HOThread(void * portptr)
 {
+	int port = (int)(size_t)portptr;
 	char Msg[255];
 	int err,i;
 	u_long param=1;
@@ -1423,10 +1443,10 @@ VOID ConnecttoUZ7HOThread(int port)
 	struct hostent * HostEnt;
 	struct TNCINFO * TNC = TNCInfo[port];
 	struct AGWINFO * AGW = TNC->AGWInfo;
+	
+	Sleep(3000);		// Allow init to complete 
 
 	TNC->CONNECTING = TRUE;
-
-	Sleep(3000);		// Allow init to complete 
 
 #ifndef LINBPQ
 
@@ -1449,7 +1469,6 @@ VOID ConnecttoUZ7HOThread(int port)
 		EnumWindows(uz_enum_windows_callback, (LPARAM)TNC);
 	}
 #endif
-
 
 
 	TNC->destaddr.sin_addr.s_addr = inet_addr(TNC->HostName);
@@ -1483,6 +1502,7 @@ VOID ConnecttoUZ7HOThread(int port)
 		i=sprintf(Msg, "Socket Failed for UZ7HO socket - error code = %d\n", WSAGetLastError());
 		WritetoConsole(Msg);
 		TNC->CONNECTING = FALSE;
+
   	 	return; 
 	}
  
@@ -1518,7 +1538,8 @@ VOID ConnecttoUZ7HOThread(int port)
 		return;
 	}
 
-	TNC->LastFreq = 0;			//	so V4 display will be updated
+	TNC->LastFreq = 0;					// so V4 display will be updated
+	RegisterAPPLCalls(TNC, FALSE);		// Register Calls
 
 	return;
 
@@ -1741,7 +1762,7 @@ extern VOID PROCESSUZ7HONODEMESSAGE();
 
 VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 {
-	UINT * buffptr;
+	PMSGWITHLEN buffptr;
 	MESSAGE Monframe;
 
  	struct AGWINFO * AGW = TNC->AGWInfo;
@@ -1780,8 +1801,8 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 				buffptr = GetBuff();
 				if (buffptr == 0) return;			// No buffers, so ignore
 
-				buffptr[1]  = RXHeader->DataLength;
-				memcpy(&buffptr[2], Message, RXHeader->DataLength);
+				buffptr->Len  = RXHeader->DataLength;
+				memcpy(buffptr->Data, Message, RXHeader->DataLength);
 
 				C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 				return;
@@ -1825,7 +1846,7 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 
 					if (buffptr == 0) return;			// No buffers, so ignore
 
-					buffptr[1] = sprintf((UCHAR *)&buffptr[2], "UZ7HO} Failure with %s\r", STREAM->RemoteCall);
+					buffptr->Len = sprintf(buffptr->Data, "UZ7HO} Failure with %s\r", STREAM->RemoteCall);
 
 					C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 					STREAM->DiscWhenAllSent = 10;
@@ -1875,6 +1896,8 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 
 		if (strstr(Message, " To Station"))
 		{
+			char noStreams[] = "No free sessions - disconnecting\r";
+
 			// Incoming. Look for a free Stream
 
 			Stream = 1;
@@ -1887,8 +1910,30 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 				Stream++;
 			}
 
-			// No free streams - send Disconnect
+			// No free streams - send message then Disconnect
 
+			// Do we need to swap From and To? - yes
+
+			memcpy(RXHeader->callfrom, &Key[11], 10);
+			memcpy(RXHeader->callto, &Key[1], 10);
+
+#ifdef __BIG_ENDIAN__
+			AGW->RXHeader.DataLength = reverse(strlen(noStreams));
+#else
+			AGW->RXHeader.DataLength = strlen(noStreams);
+#endif
+			RXHeader->DataKind = 'D';
+			AGW->RXHeader.PID = 0xf0;
+
+			send(TNCInfo[MasterPort[TNC->Port]]->TCPSock, (char *)&AGW->RXHeader, AGWHDDRLEN, 0);
+			send(TNCInfo[MasterPort[TNC->Port]]->TCPSock, noStreams, strlen(noStreams), 0);
+
+			Sleep(500);
+			RXHeader->DataKind = 'd';
+			RXHeader->DataLength = 0;
+
+
+			send(TNCInfo[MasterPort[TNC->Port]]->TCPSock, (char *)&AGW->RXHeader, AGWHDDRLEN, 0);
 			return;
 
 	GotStream:
@@ -1906,7 +1951,7 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 			if (HFCTEXTLEN)
 			{
 				if (HFCTEXTLEN > 1)
-					SendData(TNC, &STREAM->AGWKey[0], HFCTEXT, HFCTEXTLEN);
+					SendData(Stream, TNC, &STREAM->AGWKey[0], HFCTEXT, HFCTEXTLEN);
 			}
 			else
 			{
@@ -1917,11 +1962,11 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 
 					while (Len > CTPaclen)		// CTEXT Paclen
 					{
-						SendData(TNC, &STREAM->AGWKey[0], &CTEXTMSG[Next], CTPaclen);
+						SendData(Stream, TNC, &STREAM->AGWKey[0], &CTEXTMSG[Next], CTPaclen);
 						Next += CTPaclen;
 						Len -= CTPaclen;
 					}
-					SendData(TNC, &STREAM->AGWKey[0], &CTEXTMSG[Next], Len);
+					SendData(Stream, TNC, &STREAM->AGWKey[0], &CTEXTMSG[Next], Len);
 				}
 			}
 
@@ -1963,8 +2008,8 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 
 						if (buffptr == 0) return;			// No buffers, so ignore
 
-						buffptr[1] = MsgLen;
-						memcpy(buffptr+2, Buffer, MsgLen);
+						buffptr->Len = MsgLen;
+						memcpy(buffptr->Data, Buffer, MsgLen);
 
 						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 						TNC->SwallowSignon = TRUE;
@@ -1975,7 +2020,7 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 					
 						// Send a Message, then a disconenct
 					
-						SendData(TNC, Key, Msg, strlen(Msg));
+						SendData(Stream, TNC, Key, Msg, (int)strlen(Msg));
 
 						STREAM->DiscWhenAllSent = 100;	// 10 secs
 					}
@@ -2011,7 +2056,7 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 					buffptr = GetBuff();
 					if (buffptr == 0) return;			// No buffers, so ignore
 
-					buffptr[1]  = sprintf((UCHAR *)&buffptr[2], "*** Connected to %s\r", RXHeader->callfrom);
+					buffptr->Len  = sprintf(buffptr->Data, "*** Connected to %s\r", RXHeader->callfrom);
 
 					C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 
@@ -2124,6 +2169,9 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 	case 'X':
 		break;
 
+	case 'x':
+		break;
+
 	case 'Y':				// Session Queue
 
 		AGWPort = RXHeader->Port;
@@ -2213,15 +2261,54 @@ CallTo is the call of the other station
 DataLen is the length of the data that follow
 */
 
-VOID SendData(struct TNCINFO * TNC, char * Key, char * Msg, int MsgLen)
+VOID SendData(int Stream, struct TNCINFO * TNC, char * Key, char * Msg, int MsgLen)
 {
 	struct AGWINFO * AGW = TNC->AGWInfo;
 	SOCKET sock = TNCInfo[MasterPort[TNC->Port]]->TCPSock;
+	int Paclen;
 	
 	AGW->TXHeader.Port = Key[0] - '1';
 	AGW->TXHeader.DataKind='D';
 	memcpy(AGW->TXHeader.callfrom, &Key[11], 10);
 	memcpy(AGW->TXHeader.callto, &Key[1], 10);
+
+	// If Length is greater than Paclen we should fragment
+
+	Paclen = TNC->PortRecord->ATTACHEDSESSIONS[Stream]->SESSPACLEN;
+
+	if (Paclen == 0)
+		Paclen = 80;
+
+	if (MsgLen > Paclen)
+	{
+		// Fragment it. 
+		// Is it best to send Paclen packets then short or equal length?
+		// I think equal length;
+
+		int Fragments = (MsgLen + Paclen - 1) / Paclen;
+		int Fraglen = MsgLen / Fragments;
+
+		if ((MsgLen & 1))		// Odd
+			Fraglen ++;
+
+		while (MsgLen > Fraglen)
+		{
+#ifdef __BIG_ENDIAN__
+			AGW->TXHeader.DataLength = reverse(MsgLen);
+#else
+			AGW->TXHeader.DataLength = Fraglen;
+#endif
+			AGW->TXHeader.PID = 0xf0;
+
+			send(sock, (char *)&AGW->TXHeader, AGWHDDRLEN, 0);
+			send(sock, Msg, Fraglen, 0);
+
+			Msg += Fraglen;
+			MsgLen -= Fraglen;
+		}
+
+		// Drop through to send last bit
+	}
 #ifdef __BIG_ENDIAN__
 	AGW->TXHeader.DataLength = reverse(MsgLen);
 #else
@@ -2301,8 +2388,6 @@ static VOID DoMonitorHddr(struct TNCINFO * TNC, struct AGWHEADER * RXHeader, UCH
 	char * temp;
 
 	Msg[RXHeader->DataLength] = 0;
-
-//	OutputDebugString(Msg);
 
 	Monframe.LENGTH = MSGHDDRLEN + 16;				// Control Frame
 	Monframe.PORT = BPQPort[RXHeader->Port][TNC->Port];
@@ -2439,6 +2524,8 @@ DigiLoop:
 	}
 
 	CPPtr = strchr(ptr, ' ');		
+	if (CPPtr == NULL)
+		return;
 
 	if (strchr(&CPPtr[1], 'P'))
 	{

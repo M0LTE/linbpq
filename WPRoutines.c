@@ -41,7 +41,7 @@ WPRec * AllocateWPRecord()
 
 	GetSemaphore(&AllocSemaphore, 0);
 
-	WPRecPtr=realloc(WPRecPtr,(++NumberofWPrecs+1)*4);
+	WPRecPtr=realloc(WPRecPtr,(++NumberofWPrecs+1) * sizeof(void *));
 	WPRecPtr[NumberofWPrecs]= WP;
 
 	FreeSemaphore(&AllocSemaphore);
@@ -81,7 +81,7 @@ VOID GetWPDatabase()
 
 	// Set up control record
 
-	WPRecPtr=malloc(4);
+	WPRecPtr=malloc(sizeof(void *));
 	WPRecPtr[0]= zalloc(sizeof (WPRec));
 	NumberofWPrecs = 0;
 
@@ -169,7 +169,7 @@ tryOld:
 	{
 		// Initialise a new File
 
-		WPRecPtr=malloc(4);
+		WPRecPtr=malloc(sizeof(void *));
 		WPRecPtr[0]= malloc(sizeof (WPRec));
 		memset(WPRecPtr[0], 0, sizeof (WPRec));
 		NumberofWPrecs = 0;
@@ -191,7 +191,7 @@ tryOld:
 
 	// Set up control record
 
-	WPRecPtr=malloc(4);
+	WPRecPtr=malloc(sizeof(void *));
 	WPRecPtr[0]= malloc(sizeof (WPRec));
 	memcpy(WPRecPtr[0], &WPRec,  sizeof (WPRec));
 
@@ -354,14 +354,18 @@ WPRec * LookupWP(char * Call)
 char * FormatWPDate(time_t Datim)
 {
 	struct tm *tm;
-	static char Date[]="xx-xxx-xx";
+	static char Date[]="xx-xxx-xx ";
 
 	tm = gmtime(&Datim);
 	
 	if (tm)
-		sprintf_s(Date, sizeof(Date), "%02d-%3s-%02d",
+	{
+		if (tm->tm_year >= 100)
+			sprintf_s(Date, sizeof(Date), "%02d-%3s-%02d",
 					tm->tm_mday, month[tm->tm_mon], tm->tm_year - 100);
-
+		else
+			sprintf_s(Date, sizeof(Date), "");
+	}
 	return Date;
 }
 
@@ -389,7 +393,7 @@ int Do_WP_Sel_Changed(HWND hDlg)
 
 			SetDlgItemText(hDlg, IDC_WPNAME, WP->name);
 			SetDlgItemText(hDlg, IDC_HOMEBBS1, WP->first_homebbs);
-			SetDlgItemText(hDlg, IDC_HOMEBBS2, WP->first_homebbs);
+			SetDlgItemText(hDlg, IDC_HOMEBBS2, WP->secnd_homebbs);
 			SetDlgItemText(hDlg, IDC_QTH1, WP->first_qth);
 			SetDlgItemText(hDlg, IDC_QTH2, WP->secnd_qth);
 			SetDlgItemText(hDlg, IDC_ZIP1, WP->first_zip);
@@ -438,7 +442,7 @@ VOID Do_Save_WPRec(HWND hDlg)
 
 	GetDlgItemText(hDlg, IDC_WPNAME, WP->name, 13);
 	GetDlgItemText(hDlg, IDC_HOMEBBS1, WP->first_homebbs, 41);
-	GetDlgItemText(hDlg, IDC_HOMEBBS2, WP->first_homebbs, 41);
+	GetDlgItemText(hDlg, IDC_HOMEBBS2, WP->secnd_homebbs, 41);
 	GetDlgItemText(hDlg, IDC_QTH1, WP->first_qth, 31);
 	GetDlgItemText(hDlg, IDC_QTH2, WP->secnd_qth, 31);
 	GetDlgItemText(hDlg, IDC_ZIP1, WP->first_zip, 31);
