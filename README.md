@@ -21,7 +21,13 @@ Raspberry Pi 3B
 sudo apt install libminiupnpc-dev libconfig-dev libpcap-dev
 ```
 
-# Post-installation
+## Build
+```
+make
+```
+... yep, that's it
+
+# Post-build
 ```
 sudo setcap "CAP_NET_ADMIN=ep CAP_NET_RAW=ep CAP_NET_BIND_SERVICE=ep" linbpq
 chmod +x linbpq
