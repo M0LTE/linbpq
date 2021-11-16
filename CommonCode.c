@@ -49,7 +49,7 @@ extern struct CONFIGTABLE xxcfg;
 
 #endif
 
-extern struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
+extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 extern int ReportTimer;
 
@@ -75,17 +75,18 @@ char * FormatMH(PMHSTRUC MH, char Format);
 //	Needed for Big/LittleEndian and ARM5 (unaligned operation problem) portability
 
 
-VOID PutLengthinBuffer(PDATAMESSAGE buff, int datalen)
+VOID PutLengthinBuffer(PDATAMESSAGE buff, USHORT datalen)
 {
 	if (datalen <= sizeof(void *) + 4)
 		datalen = sizeof(void *) + 4;		// Protect
 
-	memcpy(&buff->LENGTH, &datalen, 2);	
+	memcpy(&buff->LENGTH, &datalen, 2);
 }
 
 int GetLengthfromBuffer(PDATAMESSAGE buff)
 {
 	USHORT Length;
+
 	memcpy(&Length, &buff->LENGTH, 2);
 	return Length;
 }
@@ -163,9 +164,6 @@ VOID * _Q_REM_NP(VOID *PQ, char * File, int Line)
 
 	Q = PQ;
 
-	if (Semaphore.Flag == 0)
-		Debugprintf("Q_REM called without semaphore from %s Line %d", File, Line);
-
 	if (CheckQHeadder((UINT *)Q) == 0)
 		return(0);
 
@@ -229,7 +227,7 @@ BOK1:
 	{
 		if (pointer == BUFF)
 		{
-			Debugprintf("Trying to free buffer when already on FREE_Q");
+			Debugprintf("Trying to free buffer %p when already on FREE_Q", BUFF);
 //			WriteMiniDump();
 
 			return 0;
@@ -447,7 +445,11 @@ char * strlop(char * buf, char delim)
 {
 	// Terminate buf at delim, and return rest of string
 
-	char * ptr = strchr(buf, delim);
+	char * ptr;
+
+	if (buf == NULL) return NULL;		// Protect
+
+	ptr = strchr(buf, delim);
 
 	if (ptr == NULL) return NULL;
 
@@ -754,7 +756,7 @@ VOID SetApplPorts()
 }
 
 
-struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
+struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 BOOL ProcessIncommingConnect(struct TNCINFO * TNC, char * Call, int Stream, BOOL SENDCTEXT)
 {
@@ -766,6 +768,9 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 	TRANSPORTENTRY * Session;
 	int Index = 0;
 	PMSGWITHLEN buffptr;
+	int Totallen = 0;
+	UCHAR * ptr;
+	struct PORTCONTROL * PORT = &TNC->PortRecord->PORTCONTROL;
 
 	// Stop Scanner
 
@@ -779,7 +784,7 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 		UpdateMH(TNC, Call, '+', 'I');
 	}
 
-	Session=L4TABLE;
+	Session = L4TABLE;
 
 	// Find a free Circuit Entry
 
@@ -823,14 +828,39 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 
 	TNC->Streams[Stream].Connected = TRUE;			// Subsequent data to data channel
 
-	if (HFCTEXTLEN > 1 && SENDCTEXT)
+	if (SENDCTEXT == 0)
+		return TRUE;
+
+	// if Port CTEXT defined, use it
+	
+	if (PORT->CTEXT)
 	{
+		Totallen = strlen(PORT->CTEXT);
+		ptr = PORT->CTEXT;
+	}
+	else if (HFCTEXTLEN > 0)
+	{
+		Totallen = HFCTEXTLEN;
+		ptr = HFCTEXT;
+	}
+	else
+		return 0;
+
+	while (Totallen)
+	{
+		int sendLen = 250;
+		
+		if (Totallen < 250)
+			sendLen = Totallen;
+			
 		buffptr = (PMSGWITHLEN)GetBuff();
 		if (buffptr == 0) return TRUE;			// No buffers
 
-		buffptr->Len = HFCTEXTLEN;
-		memcpy(&buffptr->Data[0], HFCTEXT, HFCTEXTLEN);
+		buffptr->Len = sendLen;
+		memcpy(&buffptr->Data[0], ptr, sendLen);
 		C_Q_ADD(&TNC->Streams[Stream].BPQtoPACTOR_Q, buffptr);
+		Totallen -= sendLen;
+		ptr += sendLen;
 	}
 	return TRUE;
 }
@@ -3138,6 +3168,67 @@ VOID SendMH(struct TNCINFO * TNC, char * call, char * freq, char * LOC, char * M
 	return;
 
 }
+
+time_t TimeLastNRRouteSent = 0;
+
+char NRRouteMessage[256];
+int NRRouteLen = 0;
+
+
+VOID SendNETROMRoute(struct PORTCONTROL * PORT, unsigned char * axcall)
+{
+	//	Called to update Link Map when a NODES Broadcast is received
+	//  Batch to reduce Load
+
+	MESSAGE AXMSG;
+	PMESSAGE AXPTR = &AXMSG;
+	char Msg[300];
+	int Len;
+	char Call[10];
+	char Report[16];
+	time_t Now = time(NULL);
+	int NeedSend = FALSE;
+
+
+	if (ReportSocket == 0 || LOCATOR[0] == 0)
+		return;
+
+	Call[ConvFromAX25(axcall, Call)] = 0;
+
+	sprintf(Report, "%s,%d,", Call, PORT->PORTTYPE);
+
+	if (Now - TimeLastNRRouteSent > 60)
+		NeedSend = TRUE;
+	
+	if (strstr(NRRouteMessage, Report) == 0)	//  reported recently
+		strcat(NRRouteMessage, Report);
+		
+	if (strlen(NRRouteMessage) > 230 || NeedSend)
+	{
+		Len = sprintf(Msg, "LINK %s", NRRouteMessage);
+
+		// Block includes the Msg Header (7 bytes), Len Does not!
+
+		memcpy(AXPTR->DEST, ReportDest, 7);
+		memcpy(AXPTR->ORIGIN, MYCALL, 7);
+		AXPTR->DEST[6] &= 0x7e;			// Clear End of Call
+		AXPTR->DEST[6] |= 0x80;			// set Command Bit
+
+		AXPTR->ORIGIN[6] |= 1;			// Set End of Call
+		AXPTR->CTL = 3;		//UI
+		AXPTR->PID = 0xf0;
+		memcpy(AXPTR->L2DATA, Msg, Len);
+
+		SendReportMsg((char *)&AXMSG.DEST, Len + 16) ;
+
+		TimeLastNRRouteSent = Now;
+		NRRouteMessage[0] = 0;
+	}
+
+	return;
+
+}
+
 DllExport char * APIENTRY GetApplCall(int Appl)
 {
 	if (Appl < 1 || Appl > NumberofAppls ) return NULL;
@@ -3218,6 +3309,8 @@ int __sync_lock_test_and_set(int * ptr, int val)
 }
 #endif // __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__
 #endif // MACBPQ
+
+
 
 void GetSemaphore(struct SEM * Semaphore, int ID)
 {
@@ -3328,6 +3421,9 @@ void printStack(void)
 
 pthread_t ResolveUpdateThreadId = 0;
 
+char NodeMapServer[80] = "update.g8bpq.net";
+char ChatMapServer[80] = "chatupdate.g8bpq.net";
+
 VOID ResolveUpdateThread(void * Unused)
 {
 	struct hostent * HostEnt1;
@@ -3345,15 +3441,16 @@ VOID ResolveUpdateThread(void * Unused)
 
 		//	Resolve name to address
 
-		Debugprintf("Resolving %s", "update.g8bpq.net");
-		HostEnt1 = gethostbyname ("update.g8bpq.net");
+		Debugprintf("Resolving %s", NodeMapServer);
+		HostEnt1 = gethostbyname (NodeMapServer);
 //		HostEnt1 = gethostbyname ("192.168.1.64");
 
 		if (HostEnt1)
 			memcpy(&reportdest.sin_addr.s_addr,HostEnt1->h_addr,4);
 
-		Debugprintf("Resolving %s", "chatmap.g8bpq.net");
-		HostEnt2 = gethostbyname ("chatmap.g8bpq.net");
+		Debugprintf("Resolving %s", ChatMapServer);
+		HostEnt2 = gethostbyname (ChatMapServer);
+//		HostEnt2 = gethostbyname ("192.168.1.64");
 
 		if (HostEnt2)
 			memcpy(&Chatreportdest.sin_addr.s_addr,HostEnt2->h_addr,4);
@@ -3402,12 +3499,12 @@ VOID OpenReportingSockets()
 	// Socket must be opened in MailChat Process
 
 	Chatreportdest.sin_family = AF_INET;
-	Chatreportdest.sin_port = htons(10090);
+	Chatreportdest.sin_port = htons(81);
 
 	_beginthread(ResolveUpdateThread, 0, NULL);
 }
 
-/*
+
 VOID WriteMiniDump()
 {
 #ifdef WIN32
@@ -3416,7 +3513,7 @@ VOID WriteMiniDump()
 	BOOL ret;
 	char FN[256];
 
-	sprintf(FN, "MiniDump%d.dmp", (time(NULL) & 0xffff));
+	sprintf(FN, "%s/Logs/MiniDump%x.dmp", BPQDirectory, time(NULL));
 
 	hFile = CreateFile(FN, GENERIC_READ | GENERIC_WRITE,
 		0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -3436,7 +3533,7 @@ VOID WriteMiniDump()
 	}
 #endif
 }
-*/
+
 
 // UI Util Code
 
@@ -4392,4 +4489,73 @@ LRESULT CALLBACK UIWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 }
 
 #endif
+
+extern struct DATAMESSAGE * REPLYBUFFER;
+char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char * format, ...);
+void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+{
+	char FN[250];
+	FILE *hFile;
+	struct stat STAT;
+	struct PORTCONTROL * PORT = PORTTABLE;
+	char PortList[256] = "";
+
+	while (PORT)
+	{
+		if (PORT->CTEXT)
+		{
+			free(PORT->CTEXT);
+			PORT->CTEXT = 0;
+		}
+
+		if (BPQDirectory[0] == 0)
+			sprintf(FN, "Port%dCTEXT.txt", PORT->PORTNUMBER);
+		else
+			sprintf(FN, "%s/Port%dCTEXT.txt", BPQDirectory, PORT->PORTNUMBER);
+
+		if (stat(FN, &STAT) == -1)
+		{
+			PORT = PORT->PORTPOINTER;
+			continue;
+		}
+
+		hFile = fopen(FN, "rb");
+
+		if (hFile)
+		{
+			char * ptr;
+			
+			PORT->CTEXT = zalloc(STAT.st_size + 1);
+			fread(PORT->CTEXT , 1, STAT.st_size, hFile); 
+			fclose(hFile);
+			
+			// convert CRLF or LF to CR
+	
+			while (ptr = strstr(PORT->CTEXT, "\r\n"))
+				memmove(ptr, ptr + 1, strlen(ptr));
+
+			// Now has LF
+
+			while (ptr = strchr(PORT->CTEXT, '\n'))
+				*ptr = '\r';
+
+
+			sprintf(PortList, "%s,%d", PortList, PORT->PORTNUMBER);
+		}
+
+		PORT = PORT->PORTPOINTER;
+	}
+
+	if (Session)
+	{	
+		Bufferptr = Cmdprintf(Session, Bufferptr, "CTEXT Read for ports %s\r", &PortList[1]);
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+	}
+	else
+		Debugprintf("CTEXT Read for ports %s\r", &PortList[1]);
+}
+
+
+
+
 

@@ -103,6 +103,7 @@ int SendReporttoWL2K(struct TNCINFO * TNC);
 char * CheckAppl(struct TNCINFO * TNC, char * Appl);
 int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len);
 BOOL KillOldTNC(char * Path);
+int standardParams(struct TNCINFO * TNC, char * buf);
 
 static char ClassName[]="WINMORSTATUS";
 static char WindowTitle[] = "WINMOR";
@@ -121,7 +122,7 @@ extern int SemHeldByAPI;
 
 static RECT Rect;
 
-struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
+struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 static int ProcessLine(char * buf, int Port);
 
@@ -271,20 +272,13 @@ lineloop:
 	Msg[SaveLen] = Save;
 
 }
-
-VOID MySetWindowText(HWND hWnd, char * Msg)
+				
+VOID MySetWindowTextWithSem(HWND hWnd, char * Msg)
 {
 #ifndef LINBPQ
 
 	PMSGWITHLEN buffptr;
-	BOOL Sem = FALSE;
 
-	if (Semaphore.Flag == 0)
-	{
-		GetSemaphore(&Semaphore, 88);
-		Sem = TRUE;
-	}
-	
 	buffptr = GetBuff();
 
 	if (buffptr)
@@ -295,65 +289,89 @@ VOID MySetWindowText(HWND hWnd, char * Msg)
 		C_Q_ADD(&SetWindowTextQ, buffptr);
 	}
 
-	if (Sem)
-		FreeSemaphore(&Semaphore);
-
 #endif
 }
 
-VOID SetWindowTextSupport(PMSGWITHLEN Buffer)
-{
-	HWND hWnd = (HWND)Buffer->Len;
-	char * Msg = Buffer->Data;
+int C_Q_ADD_NP(VOID *PQ, VOID *PBUFF);
 
-	SetWindowText(hWnd, Msg);
-	ReleaseBuffer(Buffer);
+struct SEM SetWindTextSem = {0, 0, 0, 0};
+
+VOID MySetWindowText(HWND hWnd, char * Msg)
+{
+	PMSGWITHLEN buffptr;
+
+#ifndef LINBPQ
+
+	GetSemaphore(&SetWindTextSem, 61);
+	buffptr = zalloc(400);
+
+	if (buffptr)
+	{
+		buffptr->Len= (UINT)hWnd;
+		memcpy(&buffptr->Data[0], Msg, strlen(Msg) + 1);
+	
+		C_Q_ADD_NP(&SetWindowTextQ, buffptr);
+	}
+
+	FreeSemaphore(&SetWindTextSem);
+#endif
+}
+
+VOID SetWindowTextSupport()
+{
+	PMSGWITHLEN Buffer;
+
+	while (SetWindowTextQ)
+	{
+		GetSemaphore(&SetWindTextSem, 61);
+		Buffer = Q_REM_NP(&SetWindowTextQ);
+		SetWindowText((HWND)Buffer->Len, Buffer->Data);
+		FreeSemaphore(&SetWindTextSem);
+		free(Buffer);
+	}
 }
 
 
 VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len)
 {
-
 	//	It seems writing from multiple threads can cause problems in Windows
 	//	Queue and process in main thread
 
-
 #ifdef LINBPQ
-
 	WritetoTraceSupport(TNC, Msg, Len);
 }
-
 #else
+	UINT * buffptr;
+	BOOL Sem = FALSE;
+
+	if (Len < 0)
+		return;
+
+	// Get semaphore if it isn't set
+
+	if (InterlockedExchange(&Semaphore.Flag, 1) == 0) 
 	{
-		UINT * buffptr;
-		BOOL Sem = FALSE;
-
-		if (Len < 0)
-			return;
-
-		if (Semaphore.Flag == 0)
-		{
-			GetSemaphore(&Semaphore, 88);
-			Sem = TRUE;
-		}
-
-		buffptr = GetBuff();
-
-		if (buffptr)
-		{
-			if (Len > 340)
-				Len = 340;
-
-			buffptr[1] = (UINT)TNC;
-			buffptr[2] = (UINT)Len;
-			memcpy(&buffptr[3], Msg, Len + 1);	
-
-			C_Q_ADD(&WINMORTraceQ, buffptr);
-		}
-
-		if (Sem)
-			FreeSemaphore(&Semaphore);
+		Sem = TRUE;
+		Semaphore.Gets++;
 	}
+
+	buffptr = GetBuff();
+
+	if (buffptr)
+	{
+		if (Len > 340)
+			Len = 340;
+
+		buffptr[1] = (UINT)TNC;
+		buffptr[2] = (UINT)Len;
+		memcpy(&buffptr[3], Msg, Len + 1);	
+
+		C_Q_ADD(&WINMORTraceQ, buffptr);
+	}
+
+	if (Sem)
+		FreeSemaphore(&Semaphore);
+
 }
 #endif
 
@@ -484,20 +502,6 @@ static int ProcessLine(char * buf, int Port)
 			}
 			else
 */
-			if (_memicmp(buf, "WL2KREPORT", 10) == 0)
-				TNC->WL2K = DecodeWL2KReportLine(buf);
-			else
-			if (_memicmp(buf, "SESSIONTIMELIMIT", 16) == 0)
-				TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit = atoi(&buf[16]) * 60;
-			else
-			if (_memicmp(buf, "BUSYHOLD", 8) == 0)		// Hold Time for Busy Detect
-				TNC->BusyHold = atoi(&buf[8]);
-
-			else
-			if (_memicmp(buf, "BUSYWAIT", 8) == 0)		// Wait time beofre failing connect if busy
-				TNC->BusyWait = atoi(&buf[8]);
-
-			else
 			if (_memicmp(buf, "STARTINROBUST", 13) == 0)
 				TNC->StartInRobust = TRUE;
 			
@@ -509,9 +513,8 @@ static int ProcessLine(char * buf, int Port)
 				
 				strcat (TNC->InitScript, buf);
 			}
-			else
-
-			strcat (TNC->InitScript, buf);
+			else if (standardParams(TNC, buf) == FALSE)
+				strcat (TNC->InitScript, buf);
 		}
 
 
@@ -1964,7 +1967,7 @@ Lost:
 				TNC->Alerted = FALSE;
 
 				if (TNC->PTTMode)
-					Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+					Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 				if (TNC->Streams[0].Attached)
 					TNC->Streams[0].ReportDISC = TRUE;
@@ -1994,7 +1997,7 @@ Lost:
 			TNC->Alerted = FALSE;
 
 			if (TNC->PTTMode)
-				Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+				Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 			if (TNC->Streams[0].Attached)
 				TNC->Streams[0].ReportDISC = TRUE;
@@ -2096,13 +2099,13 @@ VOID ProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		TNC->Busy = TNC->BusyHold * 10;				// BusyHold  delay
 
 		if (TNC->PTTMode)
-			Rig_PTT(TNC->RIG, TRUE);
+			Rig_PTT(TNC, TRUE);
 		return;
 	}
 	if (_memicmp(Buffer, "PTT F", 5) == 0)
 	{
 		if (TNC->PTTMode)
-			Rig_PTT(TNC->RIG, FALSE);
+			Rig_PTT(TNC, FALSE);
 		return;
 	}
 
@@ -2225,13 +2228,39 @@ VOID ProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			{
 				if (CheckExcludeList(SESS->L4USER) == FALSE)
 				{
-					char Status[32];
+					char Status[64];
 
 					TidyClose(TNC, 0);
 					sprintf(Status, "%d SCANSTART 15", TNC->Port);
 					Rig_Command(-1, Status);
 					Debugprintf("WINMOR Call from %s rejected", Call);
 					return;
+				}
+			}
+
+			//	IF WE HAVE A PERMITTED CALLS LIST, SEE IF HE IS IN IT
+
+			if (TNC->PortRecord->PORTCONTROL.PERMITTEDCALLS)
+			{
+				UCHAR * ptr = TNC->PortRecord->PORTCONTROL.PERMITTEDCALLS;
+
+				while (TRUE)
+				{
+					if (memcmp(SESS->L4USER, ptr, 6) == 0)	// Ignore SSID
+						break;
+
+					ptr += 7;
+
+					if ((*ptr) == 0)							// Not in list
+					{
+						char Status[64];
+
+						TidyClose(TNC, 0);
+						sprintf(Status, "%d SCANSTART 15", TNC->Port);
+						Rig_Command(-1, Status);
+						Debugprintf("WINMOR Call from %s not in ValidCalls - rejected", Call);
+						return;
+					}
 				}
 			}
 
@@ -2911,7 +2940,7 @@ int KillTNC(struct TNCINFO * TNC)
 	Debugprintf("KillTNC Called for Pid %d", TNC->PID);
 
 	if (TNC->PTTMode)
-		Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+		Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 	hProc =  OpenProcess(PROCESS_TERMINATE | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, TNC->PID);
 
@@ -2929,7 +2958,7 @@ int KillTNC(struct TNCINFO * TNC)
 
 BOOL RestartTNC(struct TNCINFO * TNC)
 {
-	if (TNC->ProgramPath == NULL)
+	if (TNC->ProgramPath == NULL || TNC->DontRestart)
 		return 0;
 
 	if (_memicmp(TNC->ProgramPath, "REMOTE:", 7) == 0)
@@ -3036,6 +3065,7 @@ BOOL RestartTNC(struct TNCINFO * TNC)
 		
 		STARTUPINFO  SInfo;			// pointer to STARTUPINFO 
 	    PROCESS_INFORMATION PInfo; 	// pointer to PROCESS_INFORMATION 
+//		char workingDirectory[256];
 
 		SInfo.cb=sizeof(SInfo);
 		SInfo.lpReserved=NULL; 
@@ -3051,6 +3081,7 @@ BOOL RestartTNC(struct TNCINFO * TNC)
 		{
 			Sleep(100);
 		}
+
 
 		if (CreateProcess(NULL, TNC->ProgramPath, NULL, NULL, FALSE,0 ,NULL ,NULL, &SInfo, &PInfo))
 		{

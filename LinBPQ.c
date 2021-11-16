@@ -68,6 +68,7 @@ int GetHTMLForms();
 char * AddUser(char * Call, char * password, BOOL BBSFlag);
 VOID SaveChatConfigFile(char * ConfigName);
 VOID SaveMH();
+int upnpClose();
 
 BOOL IncludesMail = FALSE;
 BOOL IncludesChat = FALSE;
@@ -797,12 +798,12 @@ int main(int argc, char * argv[])
 
 	// Make backup copies of Databases
 
-	CopyConfigFile(ConfigName);
+//	CopyConfigFile(ConfigName);
 
-	CopyBIDDatabase();
-	CopyMessageDatabase();
-	CopyUserDatabase();
-	CopyWPDatabase();
+//	CopyBIDDatabase();
+//	CopyMessageDatabase();
+//	CopyUserDatabase();
+//	CopyWPDatabase();
 
 	SetupMyHA();
 	SetupFwdAliases();
@@ -1302,6 +1303,8 @@ int main(int argc, char * argv[])
 	if (RunMail)
 		FreeWebMailMallocs();
 
+	upnpClose();
+
 	// Close any open logs
 
 	for (i = 0; i < 4; i++)
@@ -1349,6 +1352,8 @@ void * AXIPExtInit(struct PORTCONTROL *  PortEntry);
 void * ARDOPExtInit(EXTPORTDATA * PortEntry);
 void * VARAExtInit(EXTPORTDATA * PortEntry);
 void * SerialExtInit(EXTPORTDATA * PortEntry);
+void * WinRPRExtInit(EXTPORTDATA * PortEntry);
+void * HSMODEMExtInit(EXTPORTDATA * PortEntry);
 
 void * InitializeExtDriver(PEXTPORTDATA PORTVEC)
 {
@@ -1426,6 +1431,12 @@ void * InitializeExtDriver(PEXTPORTDATA PORTVEC)
 
 	if (strstr(Value, "SERIAL"))
 		return SerialExtInit;
+
+	if (strstr(Value, "WINRPR"))
+		return WinRPRExtInit;
+
+	if (strstr(Value, "HSMODEM"))
+		return HSMODEMExtInit;
 
 	return(0);
 }

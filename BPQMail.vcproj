@@ -138,7 +138,7 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
-				DebugInformationFormat="0"
+				DebugInformationFormat="3"
 				CompileAs="1"
 			/>
 			<Tool
@@ -156,8 +156,8 @@
 				AdditionalDependencies="..\lib\bpq32.lib wsock32.lib comctl32.lib winmm.lib ..\lib\libconfig.lib"
 				OutputFile="c:\DevProgs\bpq32\BPQMail.exe"
 				LinkIncremental="1"
-				GenerateDebugInformation="false"
-				ProgramDatabaseFile="$(IntDir)$(TargetName).pdb"
+				GenerateDebugInformation="true"
+				ProgramDatabaseFile="$(IntDir)\$(TargetName).pdb"
 				GenerateMapFile="true"
 				MapFileName="$(IntDir)\BBSListings\bpqmail.map"
 				SubSystem="2"
@@ -462,6 +462,10 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\bpqmailrc.h"
+				>
+			</File>
 			<File
 				RelativePath="..\CommonSource\Versions.h"
 				>

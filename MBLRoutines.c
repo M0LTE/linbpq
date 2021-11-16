@@ -185,8 +185,15 @@ VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int l
 			set_fwd_bit(conn->FwdMsg->forw, user->BBSNumber);
 			conn->UserPointer->ForwardingInfo->MsgCount--;
 
-			conn->FwdMsg->Locked = 0;	// Unlock
+			//  Only mark as forwarded if sent to all BBSs that should have it
+			
+			if (memcmp(conn->FwdMsg->fbbs, zeros, NBMASK) == 0)
+			{
+				conn->FwdMsg->status = 'F';			// Mark as forwarded
+				conn->FwdMsg->datechanged=time(NULL);
+			}
 
+			conn->FwdMsg->Locked = 0;	// Unlock
 		}
 
 		return;
@@ -384,7 +391,7 @@ VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int l
 			{
 				if (Msg->type == 'P' && Msg->status == 'Y')
 				{
-					FlagAsKilled(Msg);
+					FlagAsKilled(Msg, TRUE);
 					nodeprintfEx(conn, "Message #%d Killed\r", Msg->number);
 				}
 			}

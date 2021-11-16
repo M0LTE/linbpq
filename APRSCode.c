@@ -17,7 +17,6 @@ You should have received a copy of the GNU General Public License
 along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 */	
 
-
 // Module to implement APRS "New Paradigm" Digipeater and APRS-IS Gateway
 
 // First Version, November 2011
@@ -82,17 +81,18 @@ BOOL SendAPPLAPRSMessage(char * Frame);
 VOID SendAPRSMessage(char * Message, int toPort);
 static VOID TCPConnect(void * unuxed);
 struct STATIONRECORD * DecodeAPRSISMsg(char * msg);
-struct STATIONRECORD * ProcessRFFrame(char * buffer, int len);
+struct STATIONRECORD * ProcessRFFrame(char * buffer, int len, int * ourMessage);
 VOID APRSSecTimer();
 double myDistance(double laa, double loa, BOOL KM);
 struct STATIONRECORD * FindStation(char * Call, BOOL AddIfNotFound);
-VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station);
+int DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station);
 BOOL KillOldTNC(char * Path);
 int FromLOC(char * Locator, double * pLat, double * pLon);
 BOOL ToLOC(double Lat, double Lon , char * Locator);
 BOOL InternalSendAPRSMessage(char * Text, char * Call);
 void UndoTransparency(char * input);
 char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char * format, ...);
+char * GetStandardPage(char * FN, int * Len);
 
 BOOL ProcessConfig();
 
@@ -1159,6 +1159,7 @@ Dll VOID APIENTRY Poll_APRS()
 		char MsgCopy[500];
 		int toPort;
 		struct STATIONRECORD * Station;
+		int ourMessage = 0;
 	
 #ifdef WIN32
 		struct _EXCEPTION_POINTERS exinfo;
@@ -1310,13 +1311,13 @@ Dll VOID APIENTRY Poll_APRS()
 		__try 
 		{
 
-		Station = ProcessRFFrame(MsgCopy, len);
+		Station = ProcessRFFrame(MsgCopy, len, &ourMessage);
 		}
 		#include "StdExcept.c"
 
 		}
 #else
-		Station = ProcessRFFrame(MsgCopy, len);
+		Station = ProcessRFFrame(MsgCopy, len, &ourMessage);
 #endif
 
 		if (Station == NULL)
@@ -1486,6 +1487,14 @@ OK:
 */
 		
 		// If there are unused digis, we may need to digi it.
+
+		if (ourMessage)
+		{
+			// A message addressed to us, so no point in digi'ing it
+
+			ReleaseBuffer(monbuff);
+			continue;
+		}
 
 		if (Digis == 0 || FirstUnused == 0)
 		{
@@ -4266,7 +4275,7 @@ VOID APRSPoll();
 VOID OSMThread();
 VOID ResolveThread();
 VOID RefreshTile(char * FN, int Zoom, int x, int y);
-VOID ProcessMessage(char * Payload, struct STATIONRECORD * Station);
+int ProcessMessage(char * Payload, struct STATIONRECORD * Station);
 VOID APRSSecTimer();
 double myBearing(double laa, double loa);
 
@@ -4491,7 +4500,7 @@ struct STATIONRECORD * FindStation(char * Call, BOOL AddIfNotFount)
 		return NULL;
 }
 
-struct STATIONRECORD * ProcessRFFrame(char * Msg, int len)
+struct STATIONRECORD * ProcessRFFrame(char * Msg, int len, int * ourMessage)
 {
 	char * Payload;
 	char * Path = NULL;
@@ -4547,13 +4556,19 @@ struct STATIONRECORD * ProcessRFFrame(char * Msg, int len)
 
 	// Look up station - create a new one if not found
 
+	if (strcmp(Callsign, "AIS") == 0)
+	{
+		Debugprintf(Payload);
+		return 0;
+	}
+
 	Station = FindStation(Callsign, TRUE);
 	
 	strcpy(Station->Path, Path);
 	strcpy(Station->LastPacket, Payload);
 	Station->LastPort = Port;
 
-	DecodeAPRSPayload(Payload, Station);
+	*ourMessage = DecodeAPRSPayload(Payload, Station);
 	Station->TimeLastUpdated = time(NULL);
 
 	return Station;
@@ -4771,7 +4786,7 @@ BOOL DecodeLocationString(UCHAR * Payload, struct STATIONRECORD * Station)
 	return TRUE;
 }
 
-VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
+int DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 {
 	char * TimeStamp;
 	char * ObjName;
@@ -4795,7 +4810,7 @@ VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 	case 0x1d:					// MIC-E
 
 		Decode_MIC_E_Packet(Payload, Station);
-		return;
+		return 0;
 
 	case '$':					// NMEA
 		Debugprintf(Payload);
@@ -4812,7 +4827,7 @@ VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 		{
 			ObjState = *ptr;
 			if (ObjState == 0)
-				return;					// Corrupt
+				return 0;					// Corrupt
 
 			if (ObjState == '!' || ObjState == '_')	// Item Terminator
 				break;
@@ -4844,7 +4859,7 @@ VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 
 		Object->TimeLastUpdated = time(NULL);
 		Station->Object = Object;
-		return;
+		return 0;
 
 
 	case ';':					// Object
@@ -4878,7 +4893,7 @@ VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 		
 		Object->TimeLastUpdated = time(NULL);
 		Station->Object = Object;
-		return;
+		return 0;
 
 	case '@':
 	case '/':					// Timestamp, No Messaging
@@ -4893,7 +4908,7 @@ VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 	
 		DecodeLocationString(Payload, Station);
 
-		return;	
+		return 0;	
 
 	case '>':				// Status
 
@@ -4907,10 +4922,7 @@ VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 
 	case ':':				// Message
 
-
-		ProcessMessage(Payload, Station);
-		return;
-
+		return ProcessMessage(Payload, Station);
 
 	case '}':			// Third Party Header
 			
@@ -4922,21 +4934,21 @@ VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 		Path = strchr(Msg, '>');
 
 		if (Path == NULL)
-			return;
+			return 0;
 
 		*Path++ = 0;
 
 		Payload = strchr(Path, ':');
 
 		if (Payload == NULL)
-			return;
+			return 0;
 
 		*(Payload++) = 0;
 
 		// Check Dup Filter
 
 		if (CheckforDups(Callsign, Payload, (int)strlen(Payload)))
-			return;
+			return 0;
 
 		// Look up station - create a new one if not found
 
@@ -4949,14 +4961,14 @@ VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 		DecodeAPRSPayload(Payload, TPStation);
 		TPStation->TimeLastUpdated = time(NULL);
 
-		return;
+		return 0;
 
 	default:
 
 		// Non - APRS Message. If Payload contains a valid 6 char locator derive a position from it
 
 		if (Station->Lat != 0.0 || Station->Lon != 0.0)
-			return;				// already have position
+			return 0;				// already have position
 
 		ptr = strtok_s(Payload, ",[](){} \n", &context);
 
@@ -4985,8 +4997,9 @@ VOID DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 			ptr = strtok_s(NULL, ",[](){} \n", &context);
 		}
 
-		return;
+		return 0;
 	}
+	return 0;
 }
 
 // Convert MIC-E Char to Lat Digit (offset by 0x30)
@@ -6271,7 +6284,7 @@ char * DoDetailLine(struct STATIONRECORD * ptr, BOOL LocalTime, BOOL KM)
 	sprintf(DistString, "%6.1f", myDistance(ptr->Lat, ptr->Lon, KM));
 	sprintf(BearingString, "%3.0f", myBearing(ptr->Lat, ptr->Lon));
 	
-	sprintf(Line, "<tr><td align=""left""><a href=""find.cgi?call=%s"">&nbsp;%s%s</a></td><td align=""left"">%s</td><td align=""center"">%s  %s</td><td align=""right"">%s</td><td align=""right"">%s</td><td align=""left"">%s</td></tr>",
+	sprintf(Line, "<tr><td align=""left""><a href=""find.cgi?call=%s"">&nbsp;%s%s</a></td><td align=""left"">%s</td><td align=""center"">%s  %s</td><td align=""right"">%s</td><td align=""right"">%s</td><td align=""left"">%s</td></tr>\r\n",
 			XCall, ptr->Callsign, 
 			(strchr(ptr->Path, '*'))?  "*": "", &SymbolText[ptr->iconRow << 4 | ptr->iconCol][0], LatString, LongString, DistString, BearingString, Time);
 
@@ -6815,8 +6828,8 @@ loop:
 VOID APRSSendMessageFile(struct APRSConnectionInfo * sockptr, char * FN)
 {
 	int FileSize = 0;
-	char * MsgBytes;
-	char * SaveMsgBytes;
+	char * MsgBytes = 0;
+	char * SaveMsgBytes = 0;
 
 	char MsgFile[MAX_PATH];
 	FILE * hFile;
@@ -6830,6 +6843,14 @@ VOID APRSSendMessageFile(struct APRSConnectionInfo * sockptr, char * FN)
 
 	FN = strtok_s(FN, "?", &Param);
 
+	UndoTransparency(FN);
+
+	if (strstr(FN, ".."))
+	{
+		FN[0] = '/';
+		FN[1] = 0;
+	}
+
 	if (strcmp(FN, "/") == 0)
 		sprintf_s(MsgFile, sizeof(MsgFile), "%s/%s/%s/index.html", BPQDirectory, APRSDir, SpecialDocs);
 	else
@@ -6841,32 +6862,49 @@ VOID APRSSendMessageFile(struct APRSConnectionInfo * sockptr, char * FN)
 	{
 		// Try normal pages
 
+
 		if (strcmp(FN, "/") == 0)
 			sprintf_s(MsgFile, sizeof(MsgFile), "%s/%s/%s/index.html", BPQDirectory, APRSDir, HTDocs);
 		else
 			sprintf_s(MsgFile, sizeof(MsgFile), "%s/%s/%s%s", BPQDirectory,APRSDir, HTDocs, &FN[5]);
 	
-		hFile = fopen(MsgFile, "rb");
+		// My standard page set is now hard coded
 
-		if (hFile == NULL)
+
+
+		MsgBytes = SaveMsgBytes = GetStandardPage(&FN[6], &FileSize);
+
+		if (MsgBytes)
 		{
-			HeaderLen = sprintf(Header, "HTTP/1.1 404 Not Found\r\nContent-Length: 16\r\n\r\nPage not found\r\n");
-			send(sockptr->sock, Header, HeaderLen, 0); 
-			return;
+			if (FileSize == 0)
+				FileSize = strlen(MsgBytes);
+		}
+		else
+		{
+			hFile = fopen(MsgFile, "rb");
 
+			if (hFile == NULL)
+			{
+				HeaderLen = sprintf(Header, "HTTP/1.1 404 Not Found\r\nContent-Length: 16\r\n\r\nPage not found\r\n");
+				send(sockptr->sock, Header, HeaderLen, 0); 
+				return;
+			}
 		}
 	}
 	else
 		Special = TRUE;
 
-	if (stat(MsgFile, &STAT) == 0)
-		FileSize = STAT.st_size;
+	if (FileSize == 0)				// Not from internal template
+	{
+		if (stat(MsgFile, &STAT) == 0)
+			FileSize = STAT.st_size;
 
-	MsgBytes = SaveMsgBytes = malloc(FileSize+1);
+		MsgBytes = SaveMsgBytes = malloc(FileSize+1);
 
-	fread(MsgBytes, 1, FileSize, hFile); 
+		fread(MsgBytes, 1, FileSize, hFile); 
 
-	fclose(hFile);
+		fclose(hFile);
+	}
 
 	// if HTML file, look for ##...## substitutions
 
@@ -7382,7 +7420,7 @@ VOID APRSProcessHTTPMessage(SOCKET sock, char * MsgPtr,	BOOL LOCAL, BOOL COOKIE)
 // Code for handling APRS messages within BPQ32/LinBPQ instead of GUI
 
 
-VOID ProcessMessage(char * Payload, struct STATIONRECORD * Station)
+int ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 {
 	char MsgDest[10];
 	struct APRSMESSAGE * Message;
@@ -7394,16 +7432,19 @@ VOID ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 	struct tm * TM;
 	time_t NOW;
 	char noSeq[] = "";
+	int ourMessage = 0;
 
 	memcpy(FromCall, Station->Callsign, strlen(Station->Callsign));
 	memcpy(MsgDest, &Payload[1], 9);
 	MsgDest[9] = 0;
 
 	if (strcmp(MsgDest, CallPadded) == 0)		// to me?
+	{
 		SMEM->NeedRefresh = 255;				// Flag to control Msg popup
+		ourMessage = 1;
+	}
 	else
 		SMEM->NeedRefresh = 1;
-
 
 	SeqPtr = strchr(TextPtr, '{');
 
@@ -7423,7 +7464,7 @@ VOID ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 		ptr = SMEM->OutstandingMsgs;
 
 		if (ptr == 0)
-			return;
+			return ourMessage;
 
 		do
 		{
@@ -7436,14 +7477,14 @@ VOID ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 				ptr->Retries = 0;
 				ptr->Acked = TRUE;
 
-				return;
+				return ourMessage;
 			}
 			ptr = ptr->Next;
 			n++;
 
 		} while (ptr);
 	
-		return;
+		return ourMessage;
 	}
 
 	// See if we already have this message
@@ -7459,7 +7500,7 @@ VOID ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 		
 			// Duplicate
 
-			return;
+			return ourMessage;
 
 		ptr = ptr->Next;
 	}
@@ -7467,7 +7508,7 @@ VOID ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 	Message = APRSGetMessageBuffer();
 
 	if (Message == NULL)
-		return;
+		return ourMessage;
 
 	memset(Message, 0, sizeof(struct APRSMESSAGE));
 	memset(Message->FromCall, ' ', 9);
@@ -7571,7 +7612,7 @@ VOID ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 		}
 		ptr->Next = Message;
 	}
-
+	return ourMessage;
 }
 
 BOOL InternalSendAPRSMessage(char * Text, char * Call)
@@ -7923,4 +7964,21 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 		}
 	}
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+}
+
+int GetPosnFromAPRS(char * Call, double * Lat, double * Lon)
+{
+	struct STATIONRECORD * Station;
+
+	Station = FindStation(Call, FALSE);
+
+	if (Station)
+	{
+		*Lat = Station->Lat;
+		*Lon = Station->Lon;
+
+		return 1;
+	}
+
+	return 0;
 }

@@ -62,6 +62,9 @@ BOOL CheckCMS(struct TNCINFO * TNC);
 VOID L2SENDXID(struct _LINKTABLE * LINK);
 int CountBits(unsigned long in);
 VOID SaveMH();
+BOOL RestartTNC(struct TNCINFO * TNC);
+void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
+VOID WriteMiniDump();
 
 char COMMANDBUFFER[81] = "";		// Command Hander input buffer
 char OrigCmdBuffer[81] = "";		// Command Hander input buffer
@@ -72,6 +75,7 @@ UCHAR SAVEDAPPLFLAGS = 0;
 
 UCHAR ALIASINVOKED = 0;
 
+struct TNCINFO * TNCInfo[41];	
 
 VOID * CMDPTR = 0;
 
@@ -260,8 +264,7 @@ VOID SAVENODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 
 VOID DUMPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
 {
-	char * ptr = 0;
-	*ptr = 0;
+	WriteMiniDump();
 
 	strcpy(Bufferptr, OKMSG);
 	Bufferptr += (int)strlen(OKMSG);
@@ -311,6 +314,48 @@ VOID RESTART(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 	{
 		strcpy(Bufferptr, RESTARTFAILED);
 		Bufferptr += (int)strlen(RESTARTFAILED);
+	}
+							
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+}
+
+VOID RESTARTTNC(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+{
+	char * ptr, *Context;
+	int portno;
+
+	ptr = strtok_s(CmdTail, " ", &Context);
+
+	if (ptr)
+	{
+		portno = atoi (ptr);
+
+		if (portno && portno < 33)
+		{
+			struct TNCINFO * TNC = TNCInfo[portno];
+			
+			if (TNC == NULL)
+			{
+				Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid Port\r");
+			}
+			else
+			{
+				if (TNC->ProgramPath)
+				{
+					if (RestartTNC(TNC))
+						Bufferptr = Cmdprintf(Session, Bufferptr, "Restart %s Ok\r", TNC->ProgramPath);
+					else
+						Bufferptr = Cmdprintf(Session, Bufferptr, "Restart %s Failed\r", TNC->ProgramPath);
+				}
+				else
+				{
+					Bufferptr = Cmdprintf(Session, Bufferptr, "PATH not defined so can't restart TNC\r");
+				}
+			}
+		}
+		else
+			Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid Port\r");
+
 	}
 							
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
@@ -1270,7 +1315,8 @@ VOID CMDP00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 
 	while (PORT)
 	{
-		Bufferptr = Cmdprintf(Session, Bufferptr, " %2d %s\r", PORT->PORTNUMBER, PORT->PORTDESCRIPTION);
+		if (PORT->Hide == 0) 
+			Bufferptr = Cmdprintf(Session, Bufferptr, " %2d %s\r", PORT->PORTNUMBER, PORT->PORTDESCRIPTION);
 
 		PORT = PORT->PORTPOINTER;
 	}
@@ -2156,6 +2202,9 @@ VOID CMDC00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 		}
 		
 		CONNECTPORT = Port;
+
+		if (strcmp(ptr, "CMS") == 0 || strcmp(ptr, "HOST") == 0)	// In case someeone has CMS or HOST as an alias
+			goto Downlink;
 	
 	}
 
@@ -2167,6 +2216,13 @@ NoPort:
 	{
 		CallEvenIfInNodes = TRUE;
 		ptr++;
+	}
+
+	if (memcmp(ptr, "RELAY ", 5) == 0)
+	{
+		// c p relay with extra parms
+
+		goto Downlink;
 	}
 
 	if (DecodeCallString(ptr, &Stay, &Spy, &axcalls[0]) == 0)
@@ -2832,6 +2888,10 @@ VOID CMDN00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 	int Qual;
 	char line[160];
 	int cursor, len;
+	UCHAR axcall[7];
+	int SavedOBSINIT = OBSINIT;
+	struct ROUTE * ROUTE = NULL;
+
 
 	ptr = strtok_s(CmdTail, " ", &Context);
 
@@ -3081,6 +3141,13 @@ NODE_ADD:
 
 	Call = strlop(ptr, ':');
 
+	if (Call == NULL)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Missing Alias:Call\r");
+		goto SendReply;
+	}
+
+
 	ConvToAX25(Call, AXCALL);
 
 	Qualptr = strtok_s(NULL, " ", &Context);
@@ -3115,8 +3182,8 @@ NODE_ADD:
 	memcpy(Dest->DEST_ALIAS, ptr, 6);
 
 	NUMBEROFNODES++;
-/*
-	ptr = strtok_s(NULL, seps, &Context);
+
+	ptr = strtok_s(NULL, " ", &Context);
 	
 	if (ptr == NULL || ptr[0] == 0)
 	{
@@ -3126,28 +3193,42 @@ NODE_ADD:
 
 	if (ConvToAX25(ptr, axcall) == 0)
 	{
-			ptr = strtok_s(NULL, seps, &Context);
-			if (ptr == NULL) continue;
-			Port = atoi(ptr);
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid Neighbour\r");
+		goto SendReply;
+	}
+	else
+	{
+		int Port;
 
-			ptr = strtok_s(NULL, seps, &Context);
-			if (ptr == NULL) continue;
-			Qual = atoi(ptr);
+		ptr = strtok_s(NULL, " ", &Context);
+		if (ptr == NULL)
+		{
+			Bufferptr = Cmdprintf(Session, Bufferptr, "Port missing\r");
+			goto SendReply;
+		}
 
-			if (Context[0] == '!')
-			{
-				OBSINIT = 255;			//; SPECIAL FOR LOCKED
-			}
+		Port = atoi(ptr);
+
+		if (Context[0] == '!')
+		{
+			OBSINIT = 255;			//; SPECIAL FOR LOCKED
+		}
 		
-			if (FindNeighbour(axcall, Port, &ROUTE))
-			{
-				PROCROUTES(DEST, ROUTE, Qual);
-			}
+		if (FindNeighbour(axcall, Port, &ROUTE))
+		{
+			PROCROUTES(Dest, ROUTE, Qual);
+		}
 
-			OBSINIT = SavedOBSINIT;
+		OBSINIT = SavedOBSINIT;
 
-			goto RouteLoop;
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Node Added\r");
+		goto SendReply;
+	}
+
+
+
 	
+/*
 PNODE48:
 
 
@@ -3900,6 +3981,7 @@ CMDX COMMANDS[] =
 	"REBOOT      ",6, REBOOT, 0,
 	"RIGRECONFIG ",8 , RIGRECONFIG, 0,
 	"RESTART     ",7,RESTART,0,
+	"RESTARTTNC  ",10,RESTARTTNC,0,
 	"SENDNODES   ",8,SENDNODES,0,
 	"EXTRESTART  ",10, EXTPORTVAL, offsetof(EXTPORTDATA, EXTRESTART),
 	"TXDELAY     ",3, PORTVAL, offsetof(PORTCONTROLX, PORTTXDELAY),
@@ -3926,6 +4008,7 @@ CMDX COMMANDS[] =
 
 	"FINDBUFFS   ",4,FINDBUFFS,0,
 	"KISS        ",4,KISSCMD,0,
+	"GETPORTCTEXT",9,GetPortCTEXT, 0,
 
 #ifdef EXCLUDEBITS
 
@@ -4646,7 +4729,7 @@ VOID AXMHEARD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 
 #pragma pack()
 
-struct TNCINFO * TNCInfo[34];	
+struct TNCINFO * TNCInfo[41];	
 
 extern char WL2KCall[10];
 extern char WL2KLoc[7];
@@ -5175,6 +5258,9 @@ VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 			*(ptr++) = FEND;
 
 			PORT = (struct PORTCONTROL *)KISS->FIRSTPORT;			// ALL FRAMES GO ON SAME Q
+
+			PORT->Session = Session;
+			PORT->LastKISSCmdTime = time(NULL);
 
 			ASYSEND(PORT, ENCBUFF, 4);
 

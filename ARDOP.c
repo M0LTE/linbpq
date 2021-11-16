@@ -102,6 +102,7 @@ void ProcessKISSBytes(struct TNCINFO * TNC, UCHAR * Data, int Len);
 void ProcessKISSPacket(struct TNCINFO * TNC, UCHAR * KISSBuffer, int Len);
 int ARDOPProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen);
 int ConnecttoARDOP(struct TNCINFO * TNC);
+int standardParams(struct TNCINFO * TNC, char * buf);
 
 #ifndef LINBPQ
 BOOL CALLBACK EnumARDOPWindowsProc(HWND hwnd, LPARAM  lParam);
@@ -124,7 +125,7 @@ extern int SemHeldByAPI;
 
 static RECT Rect;
 
-struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
+struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 static int ProcessLine(char * buf, int Port);
 
@@ -139,7 +140,7 @@ BOOL ARDOPStopPort(struct PORTCONTROL * PORT)
 	TNC->Alerted = FALSE;
 
 	if (TNC->PTTMode)
-		Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+		Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 	if (TNC->Streams[0].Attached)
 		TNC->Streams[0].ReportDISC = TRUE;
@@ -537,22 +538,9 @@ static int ProcessLine(char * buf, int Port)
 			}
 			else
 */
-			if (_memicmp(buf, "WL2KREPORT", 10) == 0)
-				TNC->WL2K = DecodeWL2KReportLine(buf);
-			else
-			if (_memicmp(buf, "SESSIONTIMELIMIT", 16) == 0)
-				TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit = atoi(&buf[16]) * 60;
-			else
+
 			if (_memicmp(buf, "PACKETCHANNELS", 14) == 0)	// Packet Channels
 				TNC->PacketChannels = atoi(&buf[14]);
-			else
-			if (_memicmp(buf, "BUSYHOLD", 8) == 0)		// Hold Time for Busy Detect
-				TNC->BusyHold = atoi(&buf[8]);
-
-			else
-			if (_memicmp(buf, "BUSYWAIT", 8) == 0)		// Wait time beofre failing connect if busy
-				TNC->BusyWait = atoi(&buf[8]);
-
 			else
 			if (_memicmp(buf, "MAXCONREQ", 9) == 0)		// Hold Time for Busy Detect
 				TNC->MaxConReq = atoi(&buf[9]);
@@ -579,15 +567,15 @@ static int ProcessLine(char * buf, int Port)
 					TNC->PacketChannels = 5;
 			//	AddVirtualKISSPort(TNC, Port, buf);
 			}
-			else
-//			if (_memicmp(buf, "PAC ", 4) == 0 && _memicmp(buf, "PAC MODE", 8) != 0)
+
+//			else if (_memicmp(buf, "PAC ", 4) == 0 && _memicmp(buf, "PAC MODE", 8) != 0)
 //			{
 				// PAC MODE goes to TNC, others are parsed locally
 //
 //				ConfigVirtualKISSPort(TNC, buf);
 //			}
-//			else
-				strcat (TNC->InitScript, buf);
+			else if (standardParams(TNC, buf) == FALSE)
+				strcat(TNC->InitScript, buf);
 		}
 
 
@@ -1889,8 +1877,15 @@ VOID ARDOPReleaseTNC(struct TNCINFO * TNC)
 
 	//	Start Scanner
 				
-	sprintf(TXMsg, "%d SCANSTART 15", TNC->Port);
+	//	Start Scanner
 
+	if (TNC->DefaultRadioCmd)
+	{
+		sprintf(TXMsg, "%d %s", TNC->Port, TNC->DefaultRadioCmd);
+		Rig_Command(-1, TXMsg);
+	}
+
+	sprintf(TXMsg, "%d SCANSTART 15", TNC->Port);
 	Rig_Command(-1, TXMsg);
 
 	ReleaseOtherPorts(TNC);
@@ -2688,7 +2683,7 @@ VOID ARDOPThread(struct TNCINFO * TNC)
 					TNC->Alerted = FALSE;
 
 					if (TNC->PTTMode)
-					Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+					Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 					TNCLost(TNC);
 					return;					
@@ -2727,7 +2722,7 @@ Lost:
 				TNC->Alerted = FALSE;
 
 				if (TNC->PTTMode)
-					Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+					Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 				if (TNC->Streams[0].Attached)
 					TNC->Streams[0].ReportDISC = TRUE;
@@ -2751,7 +2746,7 @@ Lost:
 				TNC->Alerted = FALSE;
 
 				if (TNC->PTTMode)
-					Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+					Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 				if (TNC->Streams[0].Attached)
 					TNC->Streams[0].ReportDISC = TRUE;
@@ -2771,7 +2766,7 @@ Lost:
 				TNC->Alerted = FALSE;
 
 				if (TNC->PTTMode)
-					Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+					Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 				if (TNC->Streams[0].Attached)
 					TNC->Streams[0].ReportDISC = TRUE;
@@ -2803,7 +2798,7 @@ Lost:
 			TNC->Alerted = FALSE;
 
 			if (TNC->PTTMode)
-				Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+				Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 			if (TNC->Streams[0].Attached)
 				TNC->Streams[0].ReportDISC = TRUE;
@@ -2963,7 +2958,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		TNC->PTTState = TRUE;
 
 		if (TNC->PTTMode)
-			Rig_PTT(TNC->RIG, TRUE);
+			Rig_PTT(TNC, TRUE);
 
 		return;
 	}
@@ -2971,7 +2966,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 	{
 		TNC->PTTState = FALSE;
 		if (TNC->PTTMode)
-			Rig_PTT(TNC->RIG, FALSE);
+			Rig_PTT(TNC, FALSE);
 
 		return;
 	}
@@ -3138,7 +3133,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			{
 				if (CheckExcludeList(SESS->L4USER) == FALSE)
 				{
-					char Status[32];
+					char Status[64];
 
 					TidyClose(TNC, 0);
 					sprintf(Status, "%d SCANSTART 15", TNC->Port);
@@ -3147,6 +3142,33 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 					return;
 				}
 			}
+
+			//	IF WE HAVE A PERMITTED CALLS LIST, SEE IF HE IS IN IT
+
+			if (TNC->PortRecord->PORTCONTROL.PERMITTEDCALLS)
+			{
+				UCHAR * ptr = TNC->PortRecord->PORTCONTROL.PERMITTEDCALLS;
+
+				while (TRUE)
+				{
+					if (memcmp(SESS->L4USER, ptr, 6) == 0)	// Ignore SSID
+						break;
+
+					ptr += 7;
+
+					if ((*ptr) == 0)							// Not in list
+					{
+						char Status[64];
+
+						TidyClose(TNC, 0);
+						sprintf(Status, "%d SCANSTART 15", TNC->Port);
+						Rig_Command(-1, Status);
+						Debugprintf("ARDOP Call from %s not in ValidCalls - rejected", Call);
+						return;
+					}
+				}
+			}
+
 
 			// See which application the connect is for
 
@@ -3169,6 +3191,10 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 				memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
 				AppName[12] = 0;
+
+				if (TNC->SendTandRtoRelay && memcmp(AppName, "RMS ", 4) == 0
+					&& (strstr(Call, "-T" ) || strstr(Call, "-R")))
+						strcpy(AppName, "RELAY       ");
 
 				// Make sure app is available
 
@@ -3898,7 +3924,7 @@ VOID ARDOPProcessDataPacket(struct TNCINFO * TNC, UCHAR * Type, UCHAR * Data, in
 							buffptr->CTL = 3;
 							buffptr->PID = 0xF0;
 							memcpy(buffptr->L2DATA, ptr3, APLen);
-							buffptr->LENGTH  = 23 + APLen;
+							buffptr->LENGTH  = 16 + MSGHDDRLEN + APLen;
 							time(&buffptr->Timestamp);
 
 							BPQTRACE((MESSAGE *)buffptr, TRUE);
@@ -4976,6 +5002,29 @@ tcpHostFrame:
 						return 0;
 					}
 				}
+
+				//	IF WE HAVE A PERMITTED CALLS LIST, SEE IF HE IS IN IT
+
+				if (TNC->PortRecord->PORTCONTROL.PERMITTEDCALLS)
+				{
+					UCHAR * ptr = TNC->PortRecord->PORTCONTROL.PERMITTEDCALLS;
+
+					while (TRUE)
+					{
+						if (memcmp(SESS->L4USER, ptr, 6) == 0)	// Ignore SSID
+							break;
+
+						ptr += 7;
+
+						if ((*ptr) == 0)							// Not in list
+						{
+							TidyClose(TNC, 0);
+							Debugprintf("ARDOP Packet Call from %s not in ValidCalls - rejected", Call);
+							return 0;
+						}
+					}
+				}
+
 
 				// See which application the connect is for
 	

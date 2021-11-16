@@ -87,6 +87,9 @@ static const char cd64[]="|$$$}rstuvwxyz{$$$$$$$>?@ABCDEFGHIJKLMNOPQRSTUVW$$$$$$
 //char *month[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 //char *dat[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
+char sockTypes[6][12] = {"Undefined", "SMTPServer", "POP3Server", "SMTPClient", "POP3Client", "NNTPServer"};
+
+
 void decodeblock( unsigned char in[4], unsigned char out[3] );
 VOID FormatTime(char * Time, time_t cTime);
 static int Socket_Accept(SOCKET SocketId);
@@ -335,7 +338,25 @@ VOID TCPFastTimer()
 	retval = select((int)maxsock + 1, &readfd, &writefd, &exceptfd, &timeout);
 
 	if (retval == -1)
+	{
 		perror("select");
+	
+		// we need to do something or the error will recur. 
+		// As there are unlikely to be a lot of open tcp connections perhaps
+		// simplest is to close all
+
+		sockptr = Sockets;
+		
+		while (sockptr)
+		{		
+			Debugprintf("MAILTCP Select Failed Active %s Socket", sockTypes[sockptr->Type]);
+			shutdown(sockptr->socket, 0);
+			closesocket(sockptr->socket);
+			ReleaseSock(sockptr->socket);
+
+			sockptr = Sockets;		// We've messed with chain
+		}
+	}
 	else
 	{
 		if (retval)
@@ -2686,7 +2707,7 @@ VOID ProcessPOP3ServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 		Msg = sockptr->POP3Msgs[i-1];
 
-		FlagAsKilled(Msg);
+		FlagAsKilled(Msg, TRUE);
 
 		SendSock(sockptr, "+OK ");
 		return;
@@ -3223,7 +3244,7 @@ BOOL SendtoAMPR(CIRCUIT * conn)
 
 	if (Body == NULL)
 	{
-		FlagAsKilled(Msg);
+		FlagAsKilled(Msg, TRUE);
 		return FALSE;
 	}
 		
@@ -3280,7 +3301,7 @@ BOOL SendtoISP()
 
 			if (Body == NULL)
 			{
-				FlagAsKilled(Msg);
+				FlagAsKilled(Msg, TRUE);
 				return FALSE;
 			}
 
@@ -3736,6 +3757,8 @@ VOID ProcessPOP3ClientMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 }
 
+static char Winlink[] = "WINLINK.ORG";
+
 int CreatePOP3Message(char * From, char * To, char * MsgTitle, time_t Date, char * MsgBody, int MsgLen, BOOL B2Flag)
 {
 	struct MsgInfo * Msg;
@@ -3836,7 +3859,13 @@ int CreatePOP3Message(char * From, char * To, char * MsgTitle, time_t Date, char
 		{
 			// Local User. If Home BBS is specified, use it
 
-			if (ToUser->HomeBBS[0])
+			if (ToUser->flags & F_RMSREDIRECT)
+			{
+				// sent to Winlink
+				
+				strcpy(Msg->via, Winlink);
+			}
+			else if (ToUser->HomeBBS[0])
 				strcpy(Msg->via, ToUser->HomeBBS);
 		}
 		else

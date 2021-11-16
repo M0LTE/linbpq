@@ -41,7 +41,8 @@ VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer);
 VOID ProcessIframe(struct _LINKTABLE * LINK, PDATAMESSAGE Buffer);
 VOID FindLostBuffers();
 VOID ReadMH();
-
+void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
+int upnpInit();
 
 #include "configstructs.h"
 
@@ -442,6 +443,11 @@ VOID EXTTIMER(PEXTPORTDATA PORTVEC)
 	}
 
 	PORTVEC->PORT_EXT_ADDR(7, PORTVEC->PORTCONTROL.PORTNUMBER, 0);		// Timer Routine
+}
+
+VOID EXTSLOWTIMER(PEXTPORTDATA PORTVEC)
+{
+	PORTVEC->PORT_EXT_ADDR(8, PORTVEC->PORTCONTROL.PORTNUMBER, 0);		// Timer Routine
 }
 
 size_t EXTTXCHECK(PEXTPORTDATA PORTVEC, int Chan)
@@ -1001,6 +1007,8 @@ BOOL Start()
 		else
 			PORT->PERMITTEDAPPLS = 0xffffffff;		// Default to all
 
+		PORT->Hide = PortRec->Hide;
+
 		if (PortRec->BBSFLAG)						// Appl 1 no permitted - BBSFLAG=NOBBS
 			PORT->PERMITTEDAPPLS &= 0xfffffffe;		// Clear bottom bit
 
@@ -1293,8 +1301,8 @@ BOOL Start()
 	Consoleprintf("PORTS %p LINKS %p DESTS %p ROUTES %p L4 %p BUFFERS %p\n",
 		PORTTABLE, LINKS, DESTS, NEIGHBOURS, L4TABLE, BUFFERPOOL);
 
-	Debugprintf("PORTS %p LINKS %p DESTS %p ROUTES %p L4 %p BUFFERS %p ",
-		PORTTABLE, LINKS, DESTS, NEIGHBOURS, L4TABLE, BUFFERPOOL);
+	Debugprintf("PORTS %p LINKS %p DESTS %p ROUTES %p L4 %p BUFFERS %p END POOL %p",
+		PORTTABLE, LINKS, DESTS, NEIGHBOURS, L4TABLE, BUFFERPOOL, DATAAREA + DATABYTES);
 
 	i = NUMBEROFBUFFERS;
 
@@ -1310,6 +1318,8 @@ BOOL Start()
 		NUMBEROFBUFFERS++;
 		MAXBUFFS++;
 	}
+
+
 
 	//	Copy Bridge Map
 
@@ -1391,6 +1401,12 @@ BOOL Start()
 	// Set random start value for NETROM Session ID
 
 	NEXTID = (rand() % 254) + 1;
+
+	GetPortCTEXT(0, 0, 0, 0);
+
+	upnpInit();
+
+	CurrentSecs = lastSlowSecs = time(NULL);
 
 	return 0;
 }
@@ -1887,6 +1903,9 @@ RouteLoop:
 
 int DelayBuffers = 0;
 
+void sendModeReport();
+void sendFreqReport();
+
 VOID TIMERINTERRUPT()
 {
 	// Main Processing loop - CALLED EVERY 100 MS
@@ -1898,7 +1917,8 @@ VOID TIMERINTERRUPT()
 	struct _MESSAGE * Message;
 	int toPort;
 
-//	RAN1++;
+	CurrentSecs =  time(NULL);
+
 	BGTIMER++;
 	REALTIMETICKS++;
 	L2TIMERFLAG++;		// INCREMENT FLAG FOR BG
@@ -1921,16 +1941,38 @@ VOID TIMERINTERRUPT()
 		L2TimerProc();					// 300 mS
 	}
 
-	if (L3TIMERFLAG >= 549)				// 1 PER MIN, but PC Clock is a bit slow
+	if (CurrentSecs - lastSlowSecs >= 60)		// 1 PER MIN
 	{
-		L3TIMERFLAG -= 549;
+		lastSlowSecs = CurrentSecs;
 
 		L3TimerProc();
+
 		if (APRSActive)
 			Debugprintf("BPQ32 Heartbeat Buffers %d APRS Queues %d %d", QCOUNT, C_Q_COUNT(&APRSMONVECPTR->HOSTTRACEQ), C_Q_COUNT(&APPL_Q));
 		else
 			Debugprintf("BPQ32 Heartbeat Buffers %d", QCOUNT);
+		
 		StatsTimer();
+
+		// Call EXT Port Slow Timer
+
+		PORT = PORTTABLE;
+
+		for (i = 0; i < NUMBEROFPORTS; i++)
+		{	
+			if (PORT->PROTOCOL == 10)
+			{
+				PEXTPORTDATA PORTVEC = (PEXTPORTDATA)PORT;
+				EXTSLOWTIMER(PORTVEC);
+			}
+			
+			PORT = PORT->PORTPOINTER;
+		}
+	
+		// Call Mode Map support routine
+
+		sendFreqReport();
+		sendModeReport();
 
 /*
 		if (QCOUNT < 200)
@@ -2399,7 +2441,12 @@ VOID FindLostBuffers()
 	struct _TRANSPORTENTRY * L4;	// Pointer to Session
 	
 	struct DEST_LIST * DEST = DESTS;
-	
+
+	struct ROUTE * Routes = NEIGHBOURS;
+	int MaxRoutes = MAXNEIGHBOURS;
+	int Queued;
+	char Call[10]; 
+
 	n = MAXDESTS;
 
 	Debugprintf("Looking for missing Buffers");
@@ -2451,6 +2498,23 @@ VOID FindLostBuffers()
 			Debugprintf("L4 %d TX %d RX %d HOLD %d RESEQ %d", MAXCIRCUITS - n, C_Q_COUNT(&L4->L4TX_Q),
 				C_Q_COUNT(&L4->L4RX_Q), C_Q_COUNT(&L4->L4HOLD_Q), C_Q_COUNT(&L4->L4RESEQ_Q));
 		L4++;
+	}
+
+	// Routes
+
+	while (MaxRoutes--)
+	{
+		if (Routes->NEIGHBOUR_CALL[0] != 0)
+		{
+			Call[ConvFromAX25(Routes->NEIGHBOUR_CALL, Call)] = 0;
+			if (Routes->NEIGHBOUR_LINK)					
+			{
+				Queued = COUNT_AT_L2(Routes->NEIGHBOUR_LINK);			// SEE HOW MANY QUEUED
+				if (Queued)
+					Debugprintf("Route %s %d", Call, Queued);
+			}
+		}
+		Routes++;
 	}
 
 	// Build list of buffers, then mark off all on free Q

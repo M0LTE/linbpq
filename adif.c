@@ -92,7 +92,7 @@ extern char LOC[7];
 extern char TextVerstring[50];
 struct WL2KInfo * WL2KReports;
 
-extern char WL2KModes[54][18];
+extern char WL2KModes[55][18];
 
 BOOL ADIFLogEnabled = FALSE;
 
@@ -184,15 +184,30 @@ BOOL UpdateADIFRecord(ADIF * ADIF, char * Msg, char Dirn)
 
 	// Try to build complete lines
 
-	Len = strlen(&ADIF->PartMessage[0]);
+	if (Dirn == 'R')
+	{
+		Len = strlen(&ADIF->PartMessageRX[0]);
 
-	if (Len + strlen(Msg) < 256)
-		strcat(ADIF->PartMessage, Msg);
+		if (Len + strlen(Msg) < 512)
+			strcat(ADIF->PartMessageRX, Msg);
 
-	if (strstr(Msg, "<cr>"))
-		Msg = ADIF->PartMessage;
+		if (strstr(Msg, "<cr>"))
+			Msg = ADIF->PartMessageRX;
+		else
+			return TRUE;
+	}
 	else
-		return TRUE;
+	{
+		Len = strlen(&ADIF->PartMessageTX[0]);
+
+		if (Len + strlen(Msg) < 256)
+			strcat(ADIF->PartMessageTX, Msg);
+
+		if (strstr(Msg, "<cr>"))
+			Msg = ADIF->PartMessageTX;
+		else
+			return TRUE;
+	}
 
 	switch (Dirn)
 	{
@@ -207,7 +222,7 @@ BOOL UpdateADIFRecord(ADIF * ADIF, char * Msg, char Dirn)
 				if (endsid && (endsid - Msg) < 78)
 					memcpy(ADIF->ServerSID, Msg, ++endsid - Msg);
 			}
-			ADIF->PartMessage[0] = 0;
+			Msg[0] = 0;
 			return TRUE;
 		}
 
@@ -225,13 +240,15 @@ BOOL UpdateADIFRecord(ADIF * ADIF, char * Msg, char Dirn)
 					memcpy(ADIF->UserSID, Msg, ++endsid - Msg);
 			}
 
-			ADIF->PartMessage[0] = 0;		
+			Msg[0] = 0;		
 			return TRUE;
 		}
 
 		if (ADIF->LOC[0] == 0 && Msg[0] == ';' && stristr(Msg, "DE "))
 		{
 			// Look for ; GM8BPQ-10 DE G8BPQ (IO92KX)
+			// AirMail EA8URF de KG5VSG (GK86qo) QTC: 1 209 
+
 
 			// Paclink-Unix Sends
 
@@ -246,7 +263,7 @@ BOOL UpdateADIFRecord(ADIF * ADIF, char * Msg, char Dirn)
 			if ((EndLoc - StartLoc) < 10)
 				memcpy(ADIF->LOC, StartLoc + 1, (EndLoc - StartLoc) - 1);
 
-			ADIF->PartMessage[0] = 0;
+			Msg[0] = 0;
 			return TRUE;
 		}
 	}
@@ -284,7 +301,7 @@ BOOL UpdateADIFRecord(ADIF * ADIF, char * Msg, char Dirn)
 			ADIF->Dirn = Dirn;
 		}
 		strcpy(ADIF->Termination, "FC");
-		ADIF->PartMessage[0] = 0;
+		Msg[0] = 0;
 		return TRUE;
 	}
 
@@ -311,7 +328,7 @@ BOOL UpdateADIFRecord(ADIF * ADIF, char * Msg, char Dirn)
 		}
 
 		strcpy(ADIF->Termination, "FS");
-		ADIF->PartMessage[0] = 0;
+		Msg[0] = 0;
 		return TRUE;
 	}
 
@@ -322,7 +339,7 @@ BOOL UpdateADIFRecord(ADIF * ADIF, char * Msg, char Dirn)
 		CountMessages(ADIF);			// This acks last batch
 
 		memcpy(ADIF->Termination, Msg, 2);
-		ADIF->PartMessage[0] = 0;
+		Msg[0] = 0;
 		return TRUE;
 	}
 
@@ -330,7 +347,7 @@ BOOL UpdateADIFRecord(ADIF * ADIF, char * Msg, char Dirn)
 	if (Msg[0] == ';' && Msg[3] == ':' )
 		memcpy(ADIF->Termination, &Msg[1],2);
 
-	ADIF->PartMessage[0] = 0;
+	Msg[0] = 0;
 	return TRUE;
 }
 
@@ -377,13 +394,13 @@ BandLimits Bands[] =
 
 int FreqCount = sizeof(Bands)/sizeof(struct BandLimits);
 
-char ADIFModes [54][18] = {
+char ADIFModes [55][18] = {
 	"PKT", "PKT", "PKT", "PKT", "PKT", "PKT", "PKT", "", "", "", "",
 	"", "PAC", "", "", "PAC/PAC2", "", "PAC/PAC3", "", "", "PAC/PAK4", // 10 - 20
 	"WINMOR", "WINMOR", "", "", "", "", "", "", "",				// 21 - 29
 	"Robust Packet", "", "", "", "", "", "", "", "", "",					// 30 - 39
 	"ARDOP", "ARDOP", "ARDOP", "ARDOP", "ARDOP", "", "", "", "", "",	// 40 - 49
-	"VARA", "VARAFM", "VARAFM96", "VARA500"};
+	"VARA", "VARAFM", "VARAFM96", "VARA500", "VARA2750"};
 
 
 BOOL WriteADIFRecord(ADIF * ADIF)
@@ -536,7 +553,7 @@ BOOL WriteADIFRecord(ADIF * ADIF)
 	sprintf	(Date, "%04d-%02d-%02d %02d:%02d:%02d", 
 		endtm.tm_year + 1900, endtm.tm_mon + 1, endtm.tm_mday, endtm.tm_hour, endtm.tm_min, endtm.tm_sec);
 
-	CommentLen = sprintf(Comment, "0|%s|%s|%s|%s|%s|%s|%s|%s|%d|%d|%d|%s|%d|%d|%d|%d|%d|%s|%s",
+	CommentLen = sprintf(Comment, "0|%s|%s|%s|%s|%s|%s|%s|%s|%lld|%d|%d|%s|%d|%d|%d|%d|%d|%s|%s",
 		Date,
 		"BPQ32",
 		TextVerstring,
@@ -574,7 +591,7 @@ VOID ADIFWriteFreqList()
 	char Locator[16];
 	char Call[16];
 	int i, freqCount = 0;
-	int Freqs[100] = {0};
+	long long Freqs[100] = {0};
 
 	if (WL2KReport == NULL)
 		return;
@@ -629,7 +646,7 @@ VOID ADIFWriteFreqList()
 
 
 	for (i = 0; i < freqCount; i++)
-		fprintf(Handle, "Frequency %d=%d\r\n" , i + 1, Freqs[i]); 
+		fprintf(Handle, "Frequency %d=%lld\r\n" , i + 1, Freqs[i]); 
 
 	fclose(Handle);
 }

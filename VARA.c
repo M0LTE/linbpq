@@ -63,6 +63,8 @@ BOOL KillOldTNC(char * Path);
 int VARASendData(struct TNCINFO * TNC, UCHAR * Buff, int Len);
 VOID VARASendCommand(struct TNCINFO * TNC, char * Buff, BOOL Queue);
 VOID VARAProcessDataPacket(struct TNCINFO * TNC, UCHAR * Data, int Length);
+void CountRestarts(struct TNCINFO * TNC);
+int standardParams(struct TNCINFO * TNC, char * buf);
 
 #ifndef LINBPQ
 BOOL CALLBACK EnumVARAWindowsProc(HWND hwnd, LPARAM  lParam);
@@ -85,7 +87,7 @@ extern int SemHeldByAPI;
 
 static RECT Rect;
 
-struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
+struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 static int ProcessLine(char * buf, int Port)
 {
@@ -118,8 +120,6 @@ static int ProcessLine(char * buf, int Port)
 
 	TNC = TNCInfo[BPQport] = malloc(sizeof(struct TNCINFO));
 	memset(TNC, 0, sizeof(struct TNCINFO));
-
-	TNC->DefaultMode = TNC->WL2KMode = 50;					// Default to 2300
 
 	TNC->InitScript = malloc(1000);
 	TNC->InitScript[0] = 0;
@@ -205,15 +205,7 @@ static int ProcessLine(char * buf, int Port)
 			*ptr++ = 13;
 			*ptr = 0;
 		}
-
-		if (_memicmp(buf, "WL2KREPORT", 10) == 0)
-			TNC->WL2K = DecodeWL2KReportLine(buf);
-		else if (_memicmp(buf, "SESSIONTIMELIMIT", 16) == 0)
-			TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit = atoi(&buf[16]) * 60;
-		else if (_memicmp(buf, "BUSYHOLD", 8) == 0)		// Hold Time for Busy Detect
-			TNC->BusyHold = atoi(&buf[8]);
-		else if (_memicmp(buf, "BUSYWAIT", 8) == 0)		// Wait time beofre failing connect if busy
-			TNC->BusyWait = atoi(&buf[8]);
+	
 		else if (_memicmp(buf, "BW2300", 6) == 0)
 		{
 			TNC->ARDOPCurrentMode[0] = 'W';				// Save current state for scanning
@@ -226,17 +218,17 @@ static int ProcessLine(char * buf, int Port)
 			strcat(TNC->InitScript, buf);
 			TNC->DefaultMode = TNC->WL2KMode = 53;
 		}
+		else if (_memicmp(buf, "BW2750", 6) == 0)
+		{
+			TNC->ARDOPCurrentMode[0] = 'W';				// Save current state for scanning
+			strcat(TNC->InitScript, buf);
+			TNC->DefaultMode = TNC->WL2KMode = 54;
+		}
 		else if (_memicmp(buf, "FM1200", 6) == 0)
-		{
-			strcat(TNC->InitScript, buf);
 			TNC->DefaultMode = TNC->WL2KMode = 51;
-		}
 		else if (_memicmp(buf, "FM9600", 5) == 0)
-		{
-			strcat(TNC->InitScript, buf);
 			TNC->DefaultMode = TNC->WL2KMode = 52;
-		}
-		else
+		else if (standardParams(TNC, buf) == FALSE)
 			strcat(TNC->InitScript, buf);	
 	}
 	return (TRUE);	
@@ -293,9 +285,16 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 	switch (fn)
 	{
-	case 1:				// poll
+	case 8:
 
+		return 0;
+
+	case 7:
+
+		// approx 100 mS Timer. May now be needed, as Poll can be called more frequently in some circumstances
+		
 		// Check session limit timer
+
 
 		if ((STREAM->Connecting || STREAM->Connected) && !STREAM->Disconnecting)
 		{
@@ -372,24 +371,9 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			}
 		}
 
-/*
-		// not needed - tnc sends IMALIAVE every minute
+		return 0;
 
-		if (TNC->HeartBeat++ > 600)			// Every Minute 		{
-		{
-			TNC->HeartBeat = 0;
-
-			if (TNC->CONNECTED)
-			{
-				// Probe link
-
-				if (TNC->Streams[0].Connecting || TNC->Streams[0].Connected)
-				{}
-				else
-					VARASendCommand(TNC, "STATE\r", TRUE);
-			}
-		}
-*/
+	case 1:				// poll
 
 		if (STREAM->NeedDisc)
 		{
@@ -403,31 +387,8 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			}
 		}
 
-		if (TNC->DiscPending)
-		{
-			TNC->DiscPending--;
-
-			if (TNC->DiscPending == 0)
-			{
-				// Too long in Disc Pending - Kill and Restart TNC
-
-				if (TNC->PID)
-					KillTNC(TNC);
-					
-				RestartTNC(TNC);
-			}
-		}
-
-		if (TNC->TimeSinceLast++ > 800)			// Allow 10 secs for Keepalive
-		{
-			// Restart TNC
-		
-			TNC->TimeSinceLast = 0;
-			
-			if (TNC->CONNECTED && TNC->ProgramPath)
-			{
-//				if (strstr(TNC->ProgramPath, "WINMOR TNC"))
-				{
+	/*
+	{
 					struct tm * tm;
 					char Time[80];
 				
@@ -445,12 +406,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 					sprintf_s(Time, sizeof(Time),"%d", TNC->Restarts);
 					MySetWindowText(TNC->xIDC_RESTARTS, Time);
 					strcpy(TNC->WEB_RESTARTS, Time);
-	
-					KillTNC(TNC);
-					RestartTNC(TNC);
-				}
-			}
-		}
+*/	
 
 		if (TNC->PortRecord->ATTACHEDSESSIONS[0] && TNC->Streams[0].Attached == 0)
 		{
@@ -828,6 +784,11 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				VARASendCommand(TNC, "BW2300\r", TRUE);
 				TNC->WL2KMode = 50;
 			}
+			if (Scan->VARAMode == 'T')		// Set Wide Mode
+			{
+				VARASendCommand(TNC, "BW2750\r", TRUE);
+				TNC->WL2KMode = 54;
+			}
 			else if (Scan->VARAMode == 'N')		// Set Narrow Mode
 			{
 				VARASendCommand(TNC, "BW500\r", TRUE);
@@ -843,6 +804,27 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 		return 0;
 	}
 	return 0;
+}
+
+void CountRestarts(struct TNCINFO * TNC)
+{
+	struct tm * tm;
+	char Time[80];
+
+	TNC->Restarts++;
+	TNC->LastRestart = time(NULL);
+
+	tm = gmtime(&TNC->LastRestart);	
+
+	sprintf_s(Time, sizeof(Time),"%04d/%02d/%02d %02d:%02dZ",
+		tm->tm_year +1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min);
+
+	MySetWindowText(TNC->xIDC_RESTARTTIME, Time);
+	strcpy(TNC->WEB_RESTARTTIME, Time);
+
+	sprintf_s(Time, sizeof(Time),"%d", TNC->Restarts);
+	MySetWindowText(TNC->xIDC_RESTARTS, Time);
+	strcpy(TNC->WEB_RESTARTS, Time);
 }
 
 
@@ -927,7 +909,7 @@ void * VARAExtInit(EXTPORTDATA * PortEntry)
 	TNC->ARDOPDataBuffer = malloc(8192);
 
 	if (TNC->ProgramPath)
-		TNC->WeStartedTNC = RestartTNC(TNC);
+		TNC->WeStartedTNC = 1;
 
 	TNC->Hardware = H_VARA;
 
@@ -1017,6 +999,16 @@ void * VARAExtInit(EXTPORTDATA * PortEntry)
 		if (PortEntry->PORTCONTROL.WL2KInfo.RMSCall[0])			// Alrerady decoded
 			TNC->WL2K = &PortEntry->PORTCONTROL.WL2KInfo;
 
+	// if mode hasn't been set explicitly or via WL2KREPORT set to HF Wide mode (BW2300)
+
+	if (TNC->DefaultMode == 0)
+	{
+		if (TNC->WL2K && TNC->WL2K->mode >= 50 && TNC->WL2K->mode <= 53)		// A VARA Mode
+			TNC->DefaultMode = TNC->WL2KMode = TNC->WL2K->mode;
+		else
+			TNC->DefaultMode = TNC->WL2KMode = 50;		// Default to 2300
+	}
+
 	if (TNC->destaddr.sin_family == 0)
 	{
 		// not defined in config file, so use localhost and port from IOBASE
@@ -1075,7 +1067,7 @@ void * VARAExtInit(EXTPORTDATA * PortEntry)
 	TNC->xIDC_TRAFFIC = CreateWindowEx(0, "STATIC", "0 0 0 0", WS_CHILD | WS_VISIBLE,116,116,374,20 , TNC->hDlg, NULL, hInstance, NULL);
 
 	CreateWindowEx(0, "STATIC", "TNC Restarts", WS_CHILD | WS_VISIBLE,10,138,100,20, TNC->hDlg, NULL, hInstance, NULL);
-	TNC->xIDC_RESTARTS = CreateWindowEx(0, "STATIC", "0", WS_CHILD | WS_VISIBLE,116,138,40,20 , TNC->hDlg, NULL, hInstance, NULL);
+	TNC->xIDC_RESTARTS = CreateWindowEx(0, "STATIC", "0", WS_CHILD | WS_VISIBLE,116,138,20,20 , TNC->hDlg, NULL, hInstance, NULL);
 	CreateWindowEx(0, "STATIC", "Last Restart", WS_CHILD | WS_VISIBLE,140,138,100,20, TNC->hDlg, NULL, hInstance, NULL);
 	TNC->xIDC_RESTARTTIME = CreateWindowEx(0, "STATIC", "Never", WS_CHILD | WS_VISIBLE,250,138,200,20, TNC->hDlg, NULL, hInstance, NULL);
 
@@ -1139,17 +1131,20 @@ VOID VARAThread(void * portptr)
 
 	Sleep(3000);		// Allow init to complete 
 
+//	printf("Starting VARA Thread\n");
+
+// if on Windows and Localhost see if TNC is running
+
 #ifdef WIN32
+
 	if (strcmp(TNC->HostName, "127.0.0.1") == 0)
 	{
 		// can only check if running on local host
 		
 		TNC->PID = GetListeningPortsPID(TNC->destaddr.sin_port);
+		
 		if (TNC->PID == 0)
-		{
-			TNC->CONNECTING = FALSE;
-			return;						// Not listening so no point trying to connect
-		}
+			goto TNCNotRunning;
 
 		// Get the File Name in case we want to restart it.
 
@@ -1171,17 +1166,32 @@ VOID VARAThread(void * portptr)
 				}
 			}
 		}
+		goto TNCRunning;
 	}
+
 #endif
 
-//	// If we started the TNC make sure it is still running.
+TNCNotRunning:
 
-//	if (!IsProcess(TNC->PID))
-//	{
-//		RestartTNC(TNC);
-//		Sleep(3000);
-//	}
+	// Not running or can't check, restart if we have a path 
 
+	if (TNC->ProgramPath)
+	{
+		Consoleprintf("Trying to (re)start TNC %s", TNC->ProgramPath);
+
+		if (RestartTNC(TNC))
+			CountRestarts(TNC);
+
+		Sleep(2000);
+	}
+
+TNCRunning:
+
+	if (TNC->Alerted == FALSE)
+	{
+		sprintf(TNC->WEB_COMMSSTATE, "Connecting to TNC");
+		MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
+	}
 
 	TNC->destaddr.sin_addr.s_addr = inet_addr(TNC->HostName);
 	TNC->Datadestaddr.sin_addr.s_addr = inet_addr(TNC->HostName);
@@ -1195,6 +1205,8 @@ VOID VARAThread(void * portptr)
 		 if (!HostEnt)
 		 {
 		 	TNC->CONNECTING = FALSE;
+			sprintf(Msg, "Resolve Failed for VARA socket - error code = %d\r\n", WSAGetLastError());
+			WritetoConsole(Msg);
 			return;			// Resolve failed
 		 }
 		 memcpy(&TNC->destaddr.sin_addr.s_addr,HostEnt->h_addr,4);
@@ -1236,30 +1248,37 @@ VOID VARAThread(void * portptr)
 	sinx.sin_addr.s_addr = INADDR_ANY;
 	sinx.sin_port = 0;
 
+//	printf("Trying to connect to VARA TNC\n");
+
 	if (connect(TNC->TCPSock,(LPSOCKADDR) &TNC->destaddr,sizeof(TNC->destaddr)) == 0)
 	{
-		//
 		//	Connected successful
-		//
-	}
-	else
-	{
-		if (TNC->Alerted == FALSE)
-		{
-			err=WSAGetLastError();
-   			i=sprintf(Msg, "Connect Failed for VARA socket - error code = %d\r\n", err);
-			WritetoConsole(Msg);
-			sprintf(TNC->WEB_COMMSSTATE, "Connection to TNC failed");
-			MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
 
-			TNC->Alerted = TRUE;
-		}
-		
-		closesocket(TNC->TCPSock);
-		TNC->TCPSock = 0;
-	 	TNC->CONNECTING = FALSE;
-		return;
+		goto VConnected;
+
 	}
+
+	if (TNC->Alerted == FALSE)
+	{
+		err=WSAGetLastError();
+		i=sprintf(Msg, "Connect Failed for VARA socket - error code = %d\r\n", err);
+		WritetoConsole(Msg);
+		TNC->Alerted = TRUE;
+
+		sprintf(TNC->WEB_COMMSSTATE, "Connection to TNC failed");
+		MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
+	}
+
+//	printf("VARA Connect failed\n");
+
+	closesocket(TNC->TCPSock);
+	closesocket(TNC->TCPDataSock);
+
+	TNC->TCPSock = 0;
+	TNC->CONNECTING = FALSE;
+	return;
+
+VConnected:
 
 	// Connect Data Port
 
@@ -1278,7 +1297,6 @@ VOID VARAThread(void * portptr)
 			WritetoConsole(Msg);
 			sprintf(TNC->WEB_COMMSSTATE, "Connection to TNC failed");
 			MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
-
 			TNC->Alerted = TRUE;
 		}
 		
@@ -1286,13 +1304,14 @@ VOID VARAThread(void * portptr)
 		closesocket(TNC->TCPDataSock);
 		TNC->TCPSock = 0;
 	 	TNC->CONNECTING = FALSE;
+			
+		RestartTNC(TNC);
 		return;
 	}
 
-
 	Sleep(1000);
 
-	TNC->LastFreq = 0;			//	so V4 display will be updated
+	TNC->LastFreq = 0;
 
  	TNC->CONNECTING = FALSE;
 	TNC->CONNECTED = TRUE;
@@ -1355,7 +1374,6 @@ VOID VARAThread(void * portptr)
 //	GetSemaphore(&Semaphore, 52);
 #endif
 
-
 	while (TNC->CONNECTED)
 	{
 		FD_ZERO(&readfs);	
@@ -1372,7 +1390,7 @@ VOID VARAThread(void * portptr)
 		
 		if (TNC->CONNECTING || TNC->CONNECTED) FD_SET(TNC->TCPDataSock,&errorfs);
 
-		timeout.tv_sec = 60;
+		timeout.tv_sec = 90;
 		timeout.tv_usec = 0;				// We should get messages more frequently that this
 
 		ret = select((int)TNC->TCPDataSock + 1, &readfs, NULL, &errorfs, &timeout);
@@ -1413,14 +1431,15 @@ Lost:
 				TNC->Alerted = FALSE;
 
 				if (TNC->PTTMode)
-					Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+					Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 				if (TNC->Streams[0].Attached)
 					TNC->Streams[0].ReportDISC = TRUE;
 
+				closesocket(TNC->TCPSock);
 				closesocket(TNC->TCPDataSock);
 				TNC->TCPSock = 0;
-				return;
+				break;
 			}
 
 			if (FD_ISSET(TNC->TCPDataSock, &errorfs))
@@ -1435,7 +1454,7 @@ Lost:
 				TNC->Alerted = FALSE;
 
 				if (TNC->PTTMode)
-					Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+					Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 				if (TNC->Streams[0].Attached)
 					TNC->Streams[0].ReportDISC = TRUE;
@@ -1443,7 +1462,7 @@ Lost:
 				closesocket(TNC->TCPSock);
 				closesocket(TNC->TCPDataSock);
 				TNC->TCPSock = 0;
-				return;
+				break;
 			}
 			continue;
 		}
@@ -1466,7 +1485,7 @@ Lost:
 			TNC->Alerted = FALSE;
 
 			if (TNC->PTTMode)
-				Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+				Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 			if (TNC->Streams[0].Attached)
 				TNC->Streams[0].ReportDISC = TRUE;
@@ -1479,7 +1498,7 @@ Lost:
 			shutdown(TNC->TCPSock, SD_BOTH);
 			Sleep(100);
 
-			closesocket(TNC->TCPDataSock);
+			closesocket(TNC->TCPSock);
 
 			Sleep(100);
 			shutdown(TNC->TCPDataSock, SD_BOTH);
@@ -1491,9 +1510,24 @@ Lost:
 //	{
 //		KillTNC(TNC);
 //
-			return;
+			break;
 		}
 	}
+
+	if (TNC->TCPSock)
+	{
+		shutdown(TNC->TCPSock, SD_BOTH);
+		Sleep(100);
+		closesocket(TNC->TCPSock);
+	}
+
+	if (TNC->TCPDataSock)
+	{
+		shutdown(TNC->TCPDataSock, SD_BOTH);
+		Sleep(100);
+		closesocket(TNC->TCPDataSock);
+	}
+
 	sprintf(Msg, "VARA Thread Terminated Port %d\r\n", TNC->Port);
 	WritetoConsole(Msg);
 }
@@ -1515,7 +1549,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		TNC->Busy = TNC->BusyHold * 10;				// BusyHold  delay
 
 		if (TNC->PTTMode)
-			Rig_PTT(TNC->RIG, TRUE);
+			Rig_PTT(TNC, TRUE);
 
 		return;
 	}
@@ -1525,7 +1559,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 //		Debugprintf("PTT Off");
 
 		if (TNC->PTTMode)
-			Rig_PTT(TNC->RIG, FALSE);
+			Rig_PTT(TNC, FALSE);
 
 		return;
 	}
@@ -1567,6 +1601,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 	if (_memicmp(&Buffer[0], "CANCELPENDING", 13) == 0)
 	{
 		TNC->ConnectPending = FALSE;
+		Debugprintf(Buffer);
 
 		// If a callsign is present it is the calling station - add to MH
 
@@ -1664,7 +1699,8 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 		if (ptr)
 		{
-			strcpy(TNC->TargetCall, ++ptr);
+			memcpy(TNC->TargetCall, ++ptr, 10);
+			strlop(TNC->TargetCall, ' ');
 		}
 	
 		TNC->HadConnect = TRUE;
@@ -1725,7 +1761,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			{
 				if (CheckExcludeList(SESS->L4USER) == FALSE)
 				{
-					char Status[32];
+					char Status[64];
 
 					TidyClose(TNC, 0);
 					sprintf(Status, "%d SCANSTART 15", TNC->Port);
@@ -1734,6 +1770,33 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 					return;
 				}
 			}
+
+			//	IF WE HAVE A PERMITTED CALLS LIST, SEE IF HE IS IN IT
+
+			if (TNC->PortRecord->PORTCONTROL.PERMITTEDCALLS)
+			{
+				UCHAR * ptr = TNC->PortRecord->PORTCONTROL.PERMITTEDCALLS;
+
+				while (TRUE)
+				{
+					if (memcmp(SESS->L4USER, ptr, 6) == 0)	// Ignore SSID
+						break;
+
+					ptr += 7;
+
+					if ((*ptr) == 0)							// Not in list
+					{
+						char Status[64];
+
+						TidyClose(TNC, 0);
+						sprintf(Status, "%d SCANSTART 15", TNC->Port);
+						Rig_Command(-1, Status);
+						Debugprintf("VARA Call from %s not in ValidCalls - rejected", Call);
+						return;
+					}
+				}
+			}
+
 
 			// See which application the connect is for
 
@@ -1756,6 +1819,12 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 				memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
 				AppName[12] = 0;
+
+				// if SendTandRtoRelay set and Appl is RMS change to RELAY
+
+				if (TNC->SendTandRtoRelay && memcmp(AppName, "RMS ", 4) == 0
+					&& (strstr(Call, "-T" ) || strstr(Call, "-R")))
+						strcpy(AppName, "RELAY       ");
 
 				// Make sure app is available
 
@@ -1871,10 +1940,8 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 			if (TNC->RestartAfterFailure)
 			{
-				if (TNC->PID)
+				if (TNC->ProgramPath)
 					KillTNC(TNC);
-
-				RestartTNC(TNC);
 			}
 
 			return;
@@ -1987,7 +2054,7 @@ VOID VARAProcessReceivedData(struct TNCINFO * TNC)
 		TNC->Alerted = FALSE;
 
 		if (TNC->PTTMode)
-			Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+			Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 		if (TNC->Streams[0].Attached)
 			TNC->Streams[0].ReportDISC = TRUE;
@@ -2154,11 +2221,12 @@ static VOID CloseComplete(struct TNCINFO * TNC, int Stream)
 
 	// Also reset mode in case incoming call has changed it
 
-	if (TNC->DefaultMode = 50)
+	if (TNC->DefaultMode == 50)
 		VARASendCommand(TNC, "BW2300\r", TRUE);
-
-	else if (TNC->DefaultMode = 53)
+	else if (TNC->DefaultMode == 53)
 		VARASendCommand(TNC, "BW500\r", TRUE);
+	else if (TNC->DefaultMode == 54)
+		VARASendCommand(TNC, "BW2750\r", TRUE);
 }
 
 
@@ -2217,7 +2285,7 @@ BOOL CALLBACK EnumVARAWindowsProc(HWND hwnd, LPARAM  lParam)
 
 	n = GetWindowText(hwnd, wtext, 127);
 
-	if (memcmp(wtext,"VARA HF", 7) == 0)
+	if (memcmp(wtext,"VARA", 4) == 0)
 	{
 		GetWindowThreadProcessId(hwnd, &ProcessId);
 
@@ -2225,9 +2293,18 @@ BOOL CALLBACK EnumVARAWindowsProc(HWND hwnd, LPARAM  lParam)
 		{
 			 // Our Process
 
+			char msg[512];
+			char ID[64] = "";
+			int i = 29;
+
+			memcpy(ID, TNC->PortRecord->PORTCONTROL.PORTDESCRIPTION, 30);
+
+			while (ID[i] == ' ')
+				ID[i--] = 0;
+
 			wtext[n] = 0;
-			sprintf (wtext, "%s- BPQ %s", wtext, TNC->PortRecord->PORTCONTROL.PORTDESCRIPTION);
-			SetWindowText(hwnd, wtext);
+			sprintf (msg, "BPQ %s - %s", ID, wtext);
+			SetWindowText(hwnd, msg);
 			return FALSE;
 		}
 	}
@@ -2250,13 +2327,17 @@ VOID VARAReleaseTNC(struct TNCINFO * TNC)
 	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 
 	//	Start Scanner
-				
-	sprintf(TXMsg, "%d SCANSTART 15", TNC->Port);
 
+	if (TNC->DefaultRadioCmd)
+	{
+		sprintf(TXMsg, "%d %s", TNC->Port, TNC->DefaultRadioCmd);
+		Rig_Command(-1, TXMsg);
+	}
+
+	sprintf(TXMsg, "%d SCANSTART 15", TNC->Port);
 	Rig_Command(-1, TXMsg);
 
 	ReleaseOtherPorts(TNC);
-
 }
 
 

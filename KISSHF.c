@@ -18,7 +18,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 */	
 
 //
-//	Interface to allow G8BPQ switch to use a KISS TNC for HF style use (ATTACH and single channel operation)
+//	Interface to allow G8BPQ switch to use a KISS over TCP TNC for HF style use (ATTACH and single channel operation)
 
 
 
@@ -81,7 +81,7 @@ extern int SemHeldByAPI;
 
 static RECT Rect;
 
-struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
+struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 static int ProcessLine(char * buf, int Port);
 
@@ -691,25 +691,14 @@ noFlip3:
 	
 		if (Param == 2)		// Check  Permission (Shouldn't happen)
 		{
-			Debugprintf("Scan Check Permission called on ARDOP");
+			Debugprintf("Scan Check Permission called on KISSHF");
 			return 1;		// OK to change
 		}
 
 		if (Param == 1)		// Request Permission
 		{
-			if (TNC->ARDOPCommsMode == 'T')		// TCP Mode
-			{
-				if (!TNC->CONNECTED)
-					return 0;					// No connection so no interlock
-			}
-			else
-			{
-				// Serial Modes
-
-				if (!TNC->HostMode)
-					return 0;					// No connection so no interlock
-			}
-			
+			if (!TNC->CONNECTED)
+				return 0;					// No connection so no interlock
 
 			if (TNC->ConnectPending == 0 && TNC->PTTState == 0)
 			{
@@ -1000,7 +989,7 @@ int ConnecttoKISS(int port)
 
 VOID KISSThread(void * portptr)
 {
-	// Opens sockets and looks for data on control and data sockets.
+	// Opens socket and looks for data on control and data sockets.
 	
 	int port = (int)(size_t)portptr;
 	char Msg[255];
@@ -1240,7 +1229,7 @@ Lost:
 				TNC->Alerted = FALSE;
 
 				if (TNC->PTTMode)
-					Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+					Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 				if (TNC->Streams[0].Attached)
 					TNC->Streams[0].ReportDISC = TRUE;
@@ -1363,6 +1352,12 @@ VOID KISSHFProcessReceivedPacket(struct TNCINFO * TNC)
 		ptr++;
 
 		MsgLen = ptr - TNC->ARDOPBuffer;
+
+		if (MsgLen > 360)
+		{
+			TNC->InputLen = 0;
+			return;
+		}
 
 		TNC->InputLen -= MsgLen;
 

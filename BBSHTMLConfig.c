@@ -1587,9 +1587,11 @@ VOID ProcessConfUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char 
 		GetCheckBox(input, "DefaultNoWinlink=", &DefaultNoWINLINK);
 		GetCheckBox(input, "DontNeedName=", &AllowAnon);
 		GetCheckBox(input, "DontNeedHomeBBS=", &DontNeedHomeBBS);
+		GetCheckBox(input, "DontCheckFromCall=", &DontCheckFromCall);
 		GetCheckBox(input, "UserCantKillT=", &UserCantKillT);
 		UserCantKillT = !UserCantKillT;	// Reverse Logic
 		GetCheckBox(input, "FWDtoMe=", &ForwardToMe);
+		GetCheckBox(input, "OnlyKnown=", &OnlyKnown);
 
 		GetParam(input, "POP3Port=", Temp);
 		POP3InPort = atoi(Temp);
@@ -1930,6 +1932,7 @@ VOID ProcessUserUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char 
 	struct UserInfo * USER = Session->User;
 	int SSID, Mask = 0;
 	char * ptr1, *ptr2;
+	int skipRMSExUser = 0;
 
 	input = strstr(MsgPtr, "\r\n\r\n");	// End of headers
 
@@ -2018,7 +2021,11 @@ VOID ProcessUserUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char 
 				// New BBS
 
 				if(SetupNewBBS(USER))
+				{
 					USER->flags |= F_BBS;
+					USER->flags &= ~F_Temp_B2_BBS;		// Clear RMS Express User
+					skipRMSExUser = 1;					// Dont read old value
+				}
 				else
 				{
 					// Failed - too many bbs's defined
@@ -2048,7 +2055,7 @@ VOID ProcessUserUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char 
 		if (strcmp(ptr1, "true") == 0) USER->flags |= F_PMS; else USER->flags &= ~F_PMS;
 
 		ptr1 = GetNextParam(&ptr2);		// RMS EX User
-		if (strcmp(ptr1, "true") == 0) USER->flags |= F_Temp_B2_BBS; else USER->flags &= ~F_Temp_B2_BBS;
+		if (strcmp(ptr1, "true") == 0 && !skipRMSExUser) USER->flags |= F_Temp_B2_BBS; else USER->flags &= ~F_Temp_B2_BBS;
 		ptr1 = GetNextParam(&ptr2);		// SYSOP
 		if (strcmp(ptr1, "true") == 0) USER->flags |= F_SYSOP; else USER->flags &= ~F_SYSOP;
 		ptr1 = GetNextParam(&ptr2);		// PollRMS
@@ -2083,6 +2090,9 @@ VOID ProcessUserUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char 
 		ptr1 = GetNextParam(&ptr2);		// NTS Message Pickup Station
 		if (strcmp(ptr1, "true") == 0) USER->flags |= F_NTSMPS; else USER->flags &= ~F_NTSMPS;
 		ptr1 = GetNextParam(&ptr2);		// APRS Mail For
+		if (strcmp(ptr1, "true") == 0) USER->flags |= F_RMSREDIRECT; else USER->flags &= ~F_RMSREDIRECT;
+		ptr1 = GetNextParam(&ptr2);		// Redirect to RMS
+
 		if (strcmp(ptr1, "true") == 0) USER->flags |= F_APRSMFOR; else USER->flags &= ~F_APRSMFOR;
 	
 		ptr1 = GetNextParam(&ptr2);		// APRS SSID
@@ -2259,7 +2269,7 @@ VOID ProcessMsgUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char *
 			// Need to take action if killing message
 
 			if (Msg->status == 'K')
-				FlagAsKilled(Msg);					// Clear forwarding bits
+				FlagAsKilled(Msg, FALSE);					// Clear forwarding bits
 		}
 
 		Msg->datechanged = time(NULL);
@@ -2430,8 +2440,10 @@ VOID SendConfigPage(char * Reply, int * ReplyLen, char * Key)
 		(DefaultNoWINLINK) ? CHKD  : UNC,
 		(AllowAnon) ? CHKD  : UNC, 
 		(DontNeedHomeBBS) ? CHKD  : UNC, 
+		(DontCheckFromCall) ? CHKD  : UNC, 
 		(UserCantKillT) ? UNC : CHKD,		// Reverse logic
 		(ForwardToMe) ? CHKD  : UNC,
+		(OnlyKnown) ? CHKD  : UNC,
 		POP3InPort, SMTPInPort, NNTPInPort,
 		(RemoteEmail) ? CHKD  : UNC,
 		AMPRDomain,
@@ -2779,6 +2791,7 @@ int SendUserDetails(struct HTTPConnectionInfo * Session, char * Reply, char * Ke
 		(flags & F_NOWINLINK)?CHKD:UNC,
 		(flags & F_NOBULLS)?UNC:CHKD,		// Inverted flag
 		(flags & F_NTSMPS)?CHKD:UNC,
+		(flags & F_RMSREDIRECT)?CHKD:UNC,
 		(flags & F_APRSMFOR)?CHKD:UNC, ASSID,
 
 		ConnectsIn, MsgsReceived, MsgsRejectedIn,

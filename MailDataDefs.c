@@ -179,8 +179,10 @@ BOOL SendBBStoSYSOPCall = FALSE;
 BOOL DontHoldNewUsers = FALSE;
 BOOL DefaultNoWINLINK = FALSE;
 BOOL ForwardToMe = FALSE;
+BOOL OnlyKnown = FALSE;
 
 BOOL DontNeedHomeBBS = FALSE;
+BOOL DontCheckFromCall = FALSE;
 
 // Send WP Params
 

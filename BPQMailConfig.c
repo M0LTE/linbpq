@@ -681,6 +681,7 @@ VOID WINAPI OnSelChanged(HWND hwndDlg)
 		CheckDlgButton(pHdr->hwndDisplay, IDC_NONAME, AllowAnon);
 		CheckDlgButton(pHdr->hwndDisplay, IDC_USERRKILLT, !UserCantKillT);		// Note negative logic
 		CheckDlgButton(pHdr->hwndDisplay, IDC_NOHOMEBBS, DontNeedHomeBBS);
+		CheckDlgButton(pHdr->hwndDisplay, IDC_DONTCHECKFROM, DontCheckFromCall);
 		CheckDlgButton(pHdr->hwndDisplay, IDC_DEFAULTNOWINLINK, DefaultNoWINLINK);
 
 		
@@ -692,6 +693,7 @@ VOID WINAPI OnSelChanged(HWND hwndDlg)
 		CheckDlgButton(pHdr->hwndDisplay, IDC_ENABLEUI, EnableUI);
 		SetDlgItemInt(pHdr->hwndDisplay, MAILFOR_MINS, MailForInterval, FALSE);
 		CheckDlgButton(pHdr->hwndDisplay, IDC_REFUSEBULLS, RefuseBulls);
+		CheckDlgButton(pHdr->hwndDisplay, IDC_KNOWNUSERS, OnlyKnown);
 		SetDlgItemInt(pHdr->hwndDisplay, IDC_POP3Port, POP3InPort, FALSE);
 		SetDlgItemInt(pHdr->hwndDisplay, IDC_NNTPPort, NNTPInPort, FALSE);
 		SetDlgItemInt(pHdr->hwndDisplay, IDC_SMTPPort, SMTPInPort, FALSE);
@@ -1208,6 +1210,7 @@ int Do_User_Sel_Changed(HWND hDlg)
 			CheckDlgButton(hDlg, IDC_SYSOP_IN_LM, (user->flags & F_SYSOP_IN_LM));
 			CheckDlgButton(hDlg, RMS_EXPRESS_USER, (user->flags & F_Temp_B2_BBS));
 			CheckDlgButton(hDlg, NO_WINLINKdotORG, (user->flags & F_NOWINLINK));
+			CheckDlgButton(hDlg, IDC_RMSREDIRECT, (user->flags & F_RMSREDIRECT));
 			
 			EnableWindow(GetDlgItem(hDlg, IDC_SYSOP_IN_LM), user->flags & F_SYSOP);
 
@@ -1430,7 +1433,11 @@ VOID Do_Save_User(HWND hDlg, BOOL ShowBox)
 			// New BBS
 
 			if(SetupNewBBS(user))
+			{
 				user->flags |= F_BBS;
+				user->flags &= ~F_Temp_B2_BBS;			// Clear RMS Express User
+				CheckDlgButton(hDlg, RMS_EXPRESS_USER, (user->flags & F_Temp_B2_BBS));
+			}
 			else
 			{
 				// Failed - too many bbs's defined
@@ -1480,6 +1487,9 @@ VOID Do_Save_User(HWND hDlg, BOOL ShowBox)
 	if (IsDlgButtonChecked(hDlg, IDC_NTSMPS))
 		user->flags |= F_NTSMPS; else user->flags &= ~F_NTSMPS;
 	
+	if (IsDlgButtonChecked(hDlg, IDC_RMSREDIRECT))
+		user->flags |= F_RMSREDIRECT; else user->flags &= ~F_RMSREDIRECT;
+
 	if (IsDlgButtonChecked(hDlg, IDC_POLLRMS))
 		user->flags |= F_POLLRMS; else user->flags &= ~F_POLLRMS;
 
@@ -1671,7 +1681,6 @@ VOID Do_Save_Msg(HWND hDlg)
 	GetDlgItemText(hDlg, 6005, Msg->title, 61);
 	GetDlgItemText(hDlg, EMAILFROM, Msg->emailfrom, 41);
 
-
 	GetDlgItemText(hDlg, IDC_MSGTYPE, status, 2);
 	Msg->type = status[0];
 
@@ -1686,6 +1695,9 @@ VOID Do_Save_Msg(HWND hDlg)
 		if (user)
 		{
 			BBSNumber = user->BBSNumber;	
+
+//			if (BBSNumber == 31)
+//				n = n;
 
 			toforward = check_fwd_bit(Msg->fbbs, BBSNumber);
 			forwarded = check_fwd_bit(Msg->forw, BBSNumber);
@@ -1748,7 +1760,7 @@ VOID Do_Save_Msg(HWND hDlg)
 
 		Msg->status = status[0];
 		if (status[0] == 'K')
-			FlagAsKilled(Msg);					// Clear forwarding bits
+			FlagAsKilled(Msg, FALSE);					// Clear forwarding bits
 	}
 
 	sprintf(InfoBoxText, "Message Updated");
@@ -1773,12 +1785,14 @@ VOID SaveBBSConfig()
 	GetDlgItemText(hwndDisplay, IDC_BaseDir, BaseDirRaw, MAX_PATH -1);
 	EnableUI = IsDlgButtonChecked(hwndDisplay, IDC_ENABLEUI);
 	RefuseBulls = IsDlgButtonChecked(hwndDisplay, IDC_REFUSEBULLS);
+	OnlyKnown = IsDlgButtonChecked(hwndDisplay, IDC_KNOWNUSERS);
 	MailForInterval = GetDlgItemInt(hwndDisplay, MAILFOR_MINS, &OK1, FALSE);
 	SendSYStoSYSOPCall = IsDlgButtonChecked(hwndDisplay, IDC_SYSTOSYSOPCALL);
 	SendBBStoSYSOPCall = IsDlgButtonChecked(hwndDisplay, IDC_BBSTOSYSOPCALL);
 	DontHoldNewUsers = IsDlgButtonChecked(hwndDisplay, IDC_DONTHOLDNEW);
 	ForwardToMe = IsDlgButtonChecked(hwndDisplay, IDC_FORWARDTOBBS);
 	DontNeedHomeBBS = IsDlgButtonChecked(hwndDisplay, IDC_NOHOMEBBS);
+	DontCheckFromCall = IsDlgButtonChecked(hwndDisplay, IDC_DONTCHECKFROM);
 	AllowAnon = IsDlgButtonChecked(hwndDisplay, IDC_NONAME);
 	UserCantKillT = !IsDlgButtonChecked(hwndDisplay, IDC_USERRKILLT);	// Reverse logic
 	DefaultNoWINLINK = IsDlgButtonChecked(hwndDisplay, IDC_DEFAULTNOWINLINK);

@@ -1026,7 +1026,7 @@
 //	Disable null passwords and check Exclude flag in Webmail Signin
 //	Add basic Webmail logging 
 
-// 6.0.21.1
+// 6.0.21.1    December 2020
 
 //	Remove nulls from displayed messages.
 //	Fix Holding messages from SMTP and POP3 Interfaces
@@ -1054,6 +1054,25 @@
 //	Fix paging on List command and add new combinations of List options
 //	Fix NNTP list and LC command when bulls are killed
 
+//  6.0.22.1       ??????????
+
+//	Fix flagging messages with attachments as read.
+//	Fix possible corruption of WP database and subsequent crash on reloading.
+//	Fix format of Web Manage Messages display
+//	Include SETNEXTMESSAGENUMBER in SYSOP Help Message
+//	Fix occasional "Incoming Connect from SWITCH"
+//	Fix L> with numeric dests
+//	Improved diagnostic for MailTCP select() error.
+//	Clear "RMS Express User"  if user is changed to a BBS
+//	Fix saving Window positions on exit
+//	Fix parsing ReplyTemplate name in Webmail
+//	Handle multiple addressees for WebMail Forms messages to packet stations
+//	Add option to allow only known users to connect
+//	Add basic callsign validation to From address
+//	Add option to forward a user's messages to Winlink
+//	Move User and WP Config to main config file.
+//	Update message status whne reading a Forms Webmail message
+//	Speed up killing multiple messages
 
 #include "BPQMail.h"
 #define MAIL
@@ -1447,6 +1466,8 @@ void FreeSemaphore(struct SEM * Semaphore)
 
 char * CmdLine;
 
+extern int configSaved;
+
 int APIENTRY WinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPTSTR    lpCmdLine,
@@ -1566,9 +1587,12 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	}
 
 
-	SaveUserDatabase();
-	SaveMessageDatabase();
-	SaveBIDDatabase();
+//	SaveUserDatabase();
+//	SaveMessageDatabase();
+//	SaveBIDDatabase();
+
+	configSaved = 1;
+	SaveConfig(ConfigName);
 
 	if (cfgMinToTray)
 	{
@@ -3189,6 +3213,9 @@ BOOL Initialise()
 	if (strstr(CmdLine, "nohomebbs"))
 		DontNeedHomeBBS = TRUE;
 
+	if (strstr(CmdLine, "DontCheckFromCall"))
+		DontCheckFromCall = TRUE;
+
 	CheckMenuItem(hMenu,IDM_LOGBBS, (LogBBS) ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(hMenu,IDM_LOGTCP, (LogTCP) ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(hMenu,IDM_LOGCHAT, (LogCHAT) ? MF_CHECKED : MF_UNCHECKED);
@@ -3502,7 +3529,11 @@ char * strlop(char * buf, char delim)
 {
 	// Terminate buf at delim, and return rest of string
 
-	char * ptr = strchr(buf, delim);
+	char * ptr;
+
+	if (buf == NULL) return NULL;		// Protect
+
+	ptr = strchr(buf, delim);
 
 	if (ptr == NULL) return NULL;
 

@@ -62,10 +62,13 @@ char * GetChallengeResponse(char * Call, char *  ChallengeString);
 
 VOID __cdecl Debugprintf(const char * format, ...);
 VOID FromLOC(char * Locator, double * pLat, double * pLon);
+BOOL ToLOC(double Lat, double Lon , char * Locator);
+
+int GetPosnFromAPRS(char * Call, double * Lat, double * Lon);
 
 static RECT Rect;
 
-struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
+struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 #define WSA_ACCEPT WM_USER + 1
 #define WSA_DATA WM_USER + 2
@@ -101,10 +104,7 @@ VOID MoveWindows(struct TNCINFO * TNC)
 	ClientWidth = rcClient.right;
 
 	if (TNC->hMonitor)
-		if (RigConfigMsg[TNC->Port])
-			MoveWindow(TNC->hMonitor,2 , TNC->RigControlRow + 25, ClientWidth-4, ClientHeight - (TNC->RigControlRow + 25), TRUE);
-		else
-			MoveWindow(TNC->hMonitor,2 , TNC->RigControlRow + 3, ClientWidth-4, ClientHeight - (TNC->RigControlRow + 3), TRUE);
+		MoveWindow(TNC->hMonitor,2 , TNC->RigControlRow + 3, ClientWidth-4, ClientHeight - (TNC->RigControlRow + 3), TRUE);
 #endif
 }
 
@@ -125,7 +125,7 @@ LRESULT CALLBACK PacWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	char Key[80];
 	int retCode, disp;
 
-	for (i=1; i<33; i++)
+	for (i=0; i<41; i++)
 	{
 		TNC = TNCInfo[i];
 		if (TNC == NULL)
@@ -233,11 +233,13 @@ LRESULT CALLBACK PacWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		{
 		case WINMOR_KILL:
 
+			TNC->DontRestart = TRUE;
 			KillTNC(TNC);
 			break;
 
 		case WINMOR_RESTART:
 
+			TNC->DontRestart = FALSE;
 			KillTNC(TNC);
 			RestartTNC(TNC);
 			break;
@@ -352,21 +354,24 @@ BOOL CreatePactorWindow(struct TNCINFO * TNC, char * ClassName, char * WindowTit
 
 //	if (TNC->Hardware == H_WINMOR || TNC->Hardware == H_TELNET ||TNC->Hardware == H_ARDOP ||
 //			TNC->Hardware == H_V4 || TNC->Hardware == H_FLDIGI || TNC->Hardware == H_UIARQ || TNC->Hardware == H_VARA)
+	if (TNC->PortRecord)
 		sprintf(Title, "%s Status - Port %d %s", WindowTitle, TNC->Port, TNC->PortRecord->PORTCONTROL.PORTDESCRIPTION);
-	//if (TNC->Hardware == H_UZ7HO)
-	//	sprintf(Title, "Rigcontrol for UZ7HO Port %d", TNC->Port);
-	//else
-		if (TNC->Hardware == H_MPSK)
-			sprintf(Title, "Rigcontrol for MultiPSK Port %d", TNC->Port);
 	else
-		sprintf(Title, "%s Status - Port %d  %s", WindowTitle, TNC->Port, TNC->PortRecord->PORTCONTROL.PORTDESCRIPTION);
-
+		sprintf(Title, "Rigcontrol", WindowTitle);
+	
+	if (TNC->Hardware == H_MPSK)
+		sprintf(Title, "Rigcontrol for MultiPSK Port %d", TNC->Port);
 
 	TNC->hDlg = hDlg =  CreateMDIWindow(ClassName, Title, 0,
 		  0, 0, Width, Height, ClientWnd, hInstance, ++LP);
 	
 	//	CreateDialog(hInstance,ClassName,0,NULL);
 	
+	Rect.top = 100;
+	Rect.left = 20;
+	Rect.right = Width + 20;
+	Rect.bottom = Height + 100;
+
 
 	sprintf(Key, "SOFTWARE\\G8BPQ\\BPQ32\\PACTOR\\PORT%d", TNC->Port);
 	
@@ -552,13 +557,13 @@ struct WL2KMode WL2KModeList[] =
 	{53, "VARA 500"}
 };
 
-char WL2KModes [54][18] = {
+char WL2KModes [55][18] = {
 	"Packet 1200", "Packet 2400", "Packet 4800", "Packet 9600", "Packet 19200", "Packet 38400", "High Speed Packet", "", "", "", "",
 	"Pactor 1", "Pactor", "Pactor", "Pactor 2", "Pactor", "Pactor 3", "Pactor", "Pactor", "Pactor", "Pactor 4", // 11 - 20
 	"Winmor 500", "Winmor 1600", "", "", "", "", "", "", "",				// 21 - 29
 	"Robust Packet", "", "", "", "", "", "", "", "", "",					// 30 - 39
 	"ARDOP 200", "ARDOP 500", "ARDOP 1000", "ARDOP 2000", "ARDOP 2000 FM", "", "", "", "", "",	// 40 - 49
-	"VARA", "VARA FM", "VARA FM WIDE", "VARA 500"};
+	"VARA", "VARA FM", "VARA FM WIDE", "VARA 500", "VARA 2750"};
 
 
 VOID SendWL2KSessionRecordThread(void * param)
@@ -703,7 +708,7 @@ IdTag (random alphanumeric, 12 chars)
 	MessageLen += sprintf(&Message[MessageLen], "\"ClientGrid\":\"%s\",", ADIF->LOC);
 	MessageLen += sprintf(&Message[MessageLen], "\"Sid\":\"%s\",", ADIF->UserSID);
 	MessageLen += sprintf(&Message[MessageLen], "\"Mode\":\"%s\",", WL2KModes[ADIF->Mode]);
-	MessageLen += sprintf(&Message[MessageLen], "\"Frequency\":%d,", ADIF->Freq);
+	MessageLen += sprintf(&Message[MessageLen], "\"Frequency\":%lld,", ADIF->Freq);
 	MessageLen += sprintf(&Message[MessageLen], "\"Kilometers\":%d,", Dist);
 	MessageLen += sprintf(&Message[MessageLen], "\"Degrees\":%d,", intBearing);
 	MessageLen += sprintf(&Message[MessageLen], "\"LastCommand\":\"%s\",", ADIF->Termination);
@@ -761,6 +766,8 @@ VOID SendHTTPRequest(SOCKET sock, char * Request, char * Params, int Len, char *
 		//	for complete message
 
 		inptr += InputLen;
+
+		Buffer[inptr] = 0;
 		
 		ptr = strstr(Buffer, "\r\n\r\n");
 
@@ -808,7 +815,7 @@ VOID SendHTTPRequest(SOCKET sock, char * Request, char * Params, int Len, char *
 				if (ptr1)
 				{
 					// Just accept anything until I've sorted things with Lee
-				
+					Debugprintf("%s", ptr1);
 					Debugprintf("WL2K Database update ok");
 					return;
 				}
@@ -953,7 +960,7 @@ VOID SendHTTPReporttoWL2KThread(void * unused)
 				"\"Callsign\":\"%s\","
 				"\"BaseCallsign\":\"%s\","
 				"\"GridSquare\":\"%s\","
-				"\"Frequency\":%d,"
+				"\"Frequency\":%lld,"
 				"\"Mode\":%d,"
 				"\"Baud\":%d,"
 				"\"Power\":%d,"
@@ -1108,7 +1115,7 @@ struct WL2KInfo * DecodeWL2KReportLine(char *  buf)
 	p_cmd = strtok_s(NULL, " ,\t\n\r", &Context);
 	if (p_cmd == NULL) goto BadLine;
 
-	WL2KReport->Freq = atoi(p_cmd);
+	WL2KReport->Freq = strtoll(p_cmd, NULL, 10);
 
 	if (WL2KReport->Freq == 0)	// Invalid
 		goto BadLine;					
@@ -1189,6 +1196,8 @@ struct WL2KInfo * DecodeWL2KReportLine(char *  buf)
 		WL2KReport->mode = 20;
 	else if (_stricmp(param, "VARA") == 0)
 		WL2KReport->mode = 50;
+	else if (_stricmp(param, "VARA2300") == 0)
+		WL2KReport->mode = 50;
 	else if (_stricmp(param, "VARAFM") == 0)
 		WL2KReport->mode = 51;
 	else if (_stricmp(param, "VARAFM12") == 0)
@@ -1197,6 +1206,8 @@ struct WL2KInfo * DecodeWL2KReportLine(char *  buf)
 		WL2KReport->mode = 52;
 	else if (_stricmp(param, "VARA500") == 0)
 		WL2KReport->mode = 53;
+	else if (_stricmp(param, "VARA2750") == 0)
+		WL2KReport->mode = 54;
 	else
 		goto BadLine;
 	
@@ -1228,24 +1239,27 @@ BadLine:
 	return 0;
 }
 
-VOID UpdateMHSupport(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Direction, char * Loc, BOOL Report);
+VOID UpdateMHSupport(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Direction, char * Loc, BOOL Report, BOOL Digis);
 
-
+VOID UpdateMHwithDigis(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Direction)
+{
+	UpdateMHSupport(TNC, Call, Mode, Direction, NULL, TRUE, TRUE);
+}
 VOID UpdateMHEx(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Direction, char * LOC, BOOL Report)
 {
-	UpdateMHSupport(TNC, Call, Mode, Direction, LOC, Report);
+	UpdateMHSupport(TNC, Call, Mode, Direction, LOC, Report, FALSE);
 }
 
 VOID UpdateMH(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Direction)
 {
-	UpdateMHSupport(TNC, Call, Mode, Direction, NULL, TRUE);
+	UpdateMHSupport(TNC, Call, Mode, Direction, NULL, TRUE, FALSE);
 }
 
-VOID UpdateMHSupport(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Direction, char * Loc, BOOL Report)
+VOID UpdateMHSupport(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Direction, char * Loc, BOOL Report, BOOL Digis)
 {
 	PMHSTRUC MH = TNC->PortRecord->PORTCONTROL.PORTMHEARD;
 	PMHSTRUC MHBASE = MH;
-	UCHAR AXCall[8];
+	UCHAR AXCall[72] = "";
 	int i;
 	char * LOC, *  LOCEND;
 	char ReportMode[20];
@@ -1253,11 +1267,28 @@ VOID UpdateMHSupport(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Directi
 	double Freq;
 	char ReportFreq[350] = "";
 	int OldCount = 0;
+	char ReportCall[16];
+
 
 	if (MH == 0) return;
 
-	ConvToAX25(Call, AXCall);
-	AXCall[6] |= 1;					// Set End of address
+	if (Digis)
+	{
+		// Call is an ax.25 digi string not a text call
+
+		memcpy(AXCall, Call, 7 * 9);
+		ReportCall[ConvFromAX25(Call, ReportCall)] = 0;
+
+		// if this is a UI frame with a locator or APRS position
+		// we could derive a position from it
+
+	}
+	else
+	{
+		strcpy(ReportCall, Call);
+		ConvToAX25(Call, AXCall);
+		AXCall[6] |= 1;					// Set End of address
+	}
 
 	// Adjust freq to centre
 
@@ -1383,7 +1414,8 @@ DoMove:
 	if (i != 0)				// First
 		memmove(MHBASE + 1, MHBASE, i * sizeof(MHSTRUC));
 
-	memcpy (MHBASE->MHCALL, AXCall, 7);
+//	memcpy (MHBASE->MHCALL, Buffer->ORIGIN, 7 * 9);	
+	memcpy (MHBASE->MHCALL, AXCall, 7 * 9);	// Save Digis
 	MHBASE->MHDIGI = Mode;
 	MHBASE->MHTIME = time(NULL);
 	MHBASE->MHCOUNT = ++OldCount;
@@ -1416,7 +1448,19 @@ DoMove:
 	ReportMode[3] = Direction;
 	ReportMode[4] = 0;
 
- 	SendMH(TNC, Call, ReportFreq, LOC, ReportMode);
+	// If no position see if we have an APRS posn
+
+	if (LOC[0] == 0)
+	{
+		double Lat, Lon;
+
+		if (GetPosnFromAPRS(ReportCall, &Lat, &Lon) && Lat != 0.0)
+		{
+			ToLOC(Lat, Lon, LOC);
+		}
+	}
+
+ 	SendMH(TNC, ReportCall, ReportFreq, LOC, ReportMode);
 
 	return;
 }
@@ -1695,3 +1739,273 @@ BOOL UpdateWL2KSYSOPInfo(char * Call, char * SQL)
 
 }
 // http://server.winlink.org:8085/csv/reply/ChannelList?Modes=40,41,42,43,44&ServiceCodes=BPQTEST,PUBLIC
+
+// Process config lines that are common to a number of HF modes
+
+extern int nextDummyInterlock;
+
+int standardParams(struct TNCINFO * TNC, char * buf)
+{
+	if (_memicmp(buf, "WL2KREPORT", 10) == 0)
+		TNC->WL2K = DecodeWL2KReportLine(buf);
+	else if (_memicmp(buf, "SESSIONTIMELIMIT", 16) == 0)
+		TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit = atoi(&buf[16]) * 60;
+	else if (_memicmp(buf, "BUSYHOLD", 8) == 0)		// Hold Time for Busy Detect
+		TNC->BusyHold = atoi(&buf[8]);
+	else if (_memicmp(buf, "BUSYWAIT", 8) == 0)		// Wait time before failing connect if busy
+		TNC->BusyWait = atoi(&buf[8]);
+	else if (_memicmp(buf, "DEFAULTRADIOCOMMAND", 19) == 0)
+		TNC->DefaultRadioCmd = _strdup(&buf[20]);
+	else if (_memicmp(buf, "FREQUENCY", 9) == 0)
+		TNC->Frequency = _strdup(&buf[10]);
+	else if (_memicmp(buf, "SendTandRtoRelay", 16) == 0)
+		TNC->SendTandRtoRelay = atoi(&buf[17]);
+	else if (_memicmp(buf, "PTTONHEX=", 9) == 0)
+	{
+		// Hex String to use for PTT on for this port
+
+		char * ptr1 = &buf[9];
+		char * ptr2 = TNC->PTTOn;
+		int i, j, len;
+
+		TNC->PTTOnLen = len = strlen(ptr1) / 2;
+
+		if (len < 240)
+		{
+			while ((len--) > 0)
+			{
+				i = *(ptr1++);
+				i -= '0';
+				if (i > 9)
+					i -= 7;
+
+				j = i << 4;
+
+				i = *(ptr1++);
+				i -= '0';
+				if (i > 9)
+					i -= 7;
+
+				*(ptr2++) = j | i;
+			}
+		}
+	}
+	else if (_memicmp(buf, "PTTOFFHEX=", 10) == 0)
+	{
+		// Hex String to use for PTT off
+
+		char * ptr = &buf[10];
+		char * ptr2 = TNC->PTTOff;
+		int i, j, len;
+
+		TNC->PTTOffLen = len = strlen(ptr) / 2;
+
+		if (len < 240)
+		{
+			while ((len--) > 0)
+			{
+				i = *(ptr++);
+				i -= '0';
+				if (i > 9)
+					i -= 7;
+
+				j = i << 4;
+
+				i = *(ptr++);
+				i -= '0';
+				if (i > 9)
+					i -= 7;
+
+				*(ptr2++) = j | i;
+			}
+		}
+	}
+	else
+		return FALSE;
+
+	return TRUE;
+}
+
+extern SOCKET ReportSocket;
+extern char LOCATOR[80];
+extern char ReportDest[7];
+extern int NumberofPorts;
+extern struct RIGPORTINFO * PORTInfo[34];		// Records are Malloc'd
+
+time_t LastModeReportTime;
+time_t LastFreqReportTime;
+
+VOID SendReportMsg(char * buff, int txlen);
+
+void sendModeReport()
+{
+	// if TNC is connected send mode and frequencies to Node Map as a MODE record
+	// Are we better sending scan info as a separate record ??
+
+	// MODE Port, HWType, Interlock 
+
+	struct PORTCONTROL * PORT = PORTTABLE;
+
+	struct TNCINFO * TNC;
+	MESSAGE AXMSG;
+	PMESSAGE AXPTR = &AXMSG;
+	char Msg[300] = "MODE ";
+	int i, Len = 5;
+
+	if ((CurrentSecs - LastModeReportTime) < 900)	// Every 15 Mins
+		return;
+
+	LastModeReportTime = CurrentSecs;
+
+	for (i = 0; i < NUMBEROFPORTS; i++)
+	{	
+		if (PORT->PROTOCOL == 10)
+		{
+			PEXTPORTDATA PORTVEC = (PEXTPORTDATA)PORT;
+			TNC = TNCInfo[PORT->PORTNUMBER];
+			PORT = PORT->PORTPOINTER;
+
+			if (TNC == NULL)
+				continue;
+
+			if (TNC->CONNECTED == 0 && TNC->TNCOK == 0)
+				continue;
+
+			if (ReportSocket == 0 || LOCATOR[0] == 0)
+				continue;
+
+			if (TNC->Frequency)
+				Len += sprintf(&Msg[Len], "%d,%d,%d,%.6f/", TNC->Port, TNC->Hardware, TNC->Interlock, atof(TNC->Frequency));
+			else
+				Len += sprintf(&Msg[Len], "%d,%d,%d/", TNC->Port, TNC->Hardware, TNC->Interlock);
+
+			if (Len > 240)
+				break;
+		}
+		else
+			PORT = PORT->PORTPOINTER;
+	}
+
+	if (Len == 5)
+		return;			// Nothing to send
+	
+	// Block includes the Msg Header (7 bytes), Len Does not!
+
+	memcpy(AXPTR->DEST, ReportDest, 7);
+	memcpy(AXPTR->ORIGIN, MYCALL, 7);
+	AXPTR->DEST[6] &= 0x7e;			// Clear End of Call
+	AXPTR->DEST[6] |= 0x80;			// set Command Bit
+
+	AXPTR->ORIGIN[6] |= 1;			// Set End of Call
+	AXPTR->CTL = 3;		//UI
+	AXPTR->PID = 0xf0;
+	memcpy(AXPTR->L2DATA, Msg, Len);
+
+	SendReportMsg((char *)&AXMSG.DEST, Len + 16) ;
+}
+
+void sendFreqReport(char * From)
+{
+	// Send info from rig control or Port Frequency info to Node Map for Mode page.
+
+	MESSAGE AXMSG;
+	PMESSAGE AXPTR = &AXMSG;
+	char Msg[300] = "FREQ ";
+	int i, Len = 5, p;
+
+	struct RIGPORTINFO * RIGPORT;
+	struct RIGINFO * RIG;
+	struct TimeScan * Band;	
+	struct PORTCONTROL * PORT = PORTTABLE;
+	struct TNCINFO * TNC;
+
+	if ((CurrentSecs - LastFreqReportTime) < 7200)	// Every 2 Hours
+		return;
+
+	LastFreqReportTime = CurrentSecs;
+
+	for (p = 0; p < NumberofPorts; p++)
+	{
+		RIGPORT = PORTInfo[p];
+
+		for (i = 0; i < RIGPORT->ConfiguredRigs; i++)
+		{
+			int j = 1, k = 0;
+			
+			RIG = &RIGPORT->Rigs[i];
+
+			if (RIG->TimeBands)
+			{
+				Len += sprintf(&Msg[Len], "%d/",RIG->Interlock); 
+				while (RIG->TimeBands[j])
+				{
+					Band = RIG->TimeBands[j];
+					k = 0;
+
+					if (Band->Scanlist[0])
+					{
+						Len += sprintf(&Msg[Len], "%02d:%02d/", Band->Start / 3600, Band->Start % 3600); 
+					
+						while (Band->Scanlist[k])
+						{
+							Len += sprintf(&Msg[Len],"%.0f,", Band->Scanlist[k]->Freq + RIG->rxOffset);
+							k++;
+						}
+						Len += sprintf(&Msg[Len], "\\"); 
+					}
+					j++;
+				}
+				Len += sprintf(&Msg[Len], "|"); 
+			}
+		}
+	}
+
+	// Look for Port freq info
+
+	for (i = 0; i < NUMBEROFPORTS; i++)
+	{	
+		if (PORT->PROTOCOL == 10)
+		{
+			PEXTPORTDATA PORTVEC = (PEXTPORTDATA)PORT;
+			TNC = TNCInfo[PORT->PORTNUMBER];
+			PORT = PORT->PORTPOINTER;
+
+			if (TNC == NULL)
+				continue;
+
+			if (TNC->Frequency == NULL)
+				continue;
+
+			if (TNC->RIG->TimeBands && TNC->RIG->TimeBands[1]->Scanlist)
+				continue;					// Have freq info from Rigcontrol
+			
+			if (TNC->Interlock == 0)		// Replace with dummy
+				TNC->Interlock = nextDummyInterlock++;
+
+			// Use negative port no instead of interlock group
+
+			Len += sprintf(&Msg[Len], "%d/00:00/%.0f|", TNC->Interlock, atof(TNC->Frequency) * 1000000.0);
+		}
+		else
+			PORT = PORT->PORTPOINTER;
+	}
+
+	if (Len == 5)
+		return;			// Nothing to send
+
+	// Block includes the Msg Header (7 bytes), Len Does not!
+
+	memcpy(AXPTR->DEST, ReportDest, 7);
+	memcpy(AXPTR->ORIGIN, MYCALL, 7);
+	AXPTR->DEST[6] &= 0x7e;			// Clear End of Call
+	AXPTR->DEST[6] |= 0x80;			// set Command Bit
+
+	AXPTR->ORIGIN[6] |= 1;			// Set End of Call
+	AXPTR->CTL = 3;		//UI
+	AXPTR->PID = 0xf0;
+	memcpy(AXPTR->L2DATA, Msg, Len);
+
+	SendReportMsg((char *)&AXMSG.DEST, Len + 16) ;
+}
+
+

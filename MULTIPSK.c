@@ -56,7 +56,7 @@ extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 //int ResetExtDriver(int num);
 extern char * PortConfig[33];
 
-struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
+struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 static void ConnecttoMPSKThread(void * portptr);
 
@@ -591,7 +591,7 @@ static KillTNC(struct TNCINFO * TNC)
 	HANDLE hProc;
 
 	if (TNC->PTTMode)
-		Rig_PTT(TNC->RIG, FALSE);			// Make sure PTT is down
+		Rig_PTT(TNC, FALSE);			// Make sure PTT is down
 
 	if (TNC->PID == 0) return 0;
 
@@ -623,7 +623,7 @@ static RestartTNC(struct TNCINFO * TNC)
 	SInfo.cbReserved2=0; 
   	SInfo.lpReserved2=NULL; 
 
-	if (TNC->ProgramPath)
+	if (TNC->ProgramPath && TNC->DontRestart == 0)
 	{
 		strcpy(HomeDir, TNC->ProgramPath);
 		i = strlen(HomeDir);

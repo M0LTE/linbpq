@@ -104,8 +104,7 @@ extern char * PortConfig[33];
 
 static RECT Rect;
 
-struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
-extern char * RigConfigMsg[35];
+struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 VOID __cdecl Debugprintf(const char * format, ...);
 
@@ -122,6 +121,8 @@ int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
 int CheckMode(struct TNCINFO * TNC);
 VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len);
 void SCSTryToSendDATA(struct TNCINFO * TNC, int Stream);
+VOID UpdateMHwithDigis(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Direction);
+int standardParams(struct TNCINFO * TNC, char * buf);
 
 #define	FEND	0xC0	// KISS CONTROL CODES 
 #define	FESC	0xDB
@@ -279,14 +280,6 @@ ConfigLine:
 		else			
 		if (_memicmp(buf, "PACKETCHANNELS", 14) == 0)	// Packet Channels
 			TNC->PacketChannels = atoi(&buf[14]);
-		
-		else
-		if (_memicmp(buf, "BUSYHOLD", 8) == 0)		// Hold Time for Busy Detect
-			TNC->BusyHold = atoi(&buf[8]);
-
-		else
-		if (_memicmp(buf, "BUSYWAIT", 8) == 0)		// Wait time beofre failing connect if busy
-			TNC->BusyWait = atoi(&buf[8]);
 
 		else
 		if (_memicmp(buf, "SCANFORROBUSTPACKET", 19) == 0)
@@ -328,12 +321,6 @@ ConfigLine:
 		if (_memicmp(buf, "MAXLEVEL", 8) == 0)		// Maximum Pactor Level to use.
 			TNC->MaxLevel = atoi(&buf[8]);
 		else
-		if (_memicmp(buf, "WL2KREPORT", 10) == 0)
-			TNC->WL2K = DecodeWL2KReportLine(buf);
-		else
-		if (_memicmp(buf, "SESSIONTIMELIMIT", 16) == 0)
-			TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit = atoi(&buf[16]) * 60;
-		else
 		if (_memicmp(buf, "DATE", 4) == 0)
 		{
 			char Cmd[32];
@@ -360,7 +347,7 @@ ConfigLine:
 
 			strcat (TNC->InitScript, Cmd);
 		}
-		else
+		else if (standardParams(TNC, buf) == FALSE)
 			strcat (TNC->InitScript, buf);
 	}
 	
@@ -381,9 +368,9 @@ unsigned short int compute_crc(unsigned char *buf,int len);
 int Unstuff(UCHAR * MsgIn, UCHAR * MsgOut, int len);
 VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * rxbuff, int len);
 VOID ProcessTermModeResponse(struct TNCINFO * TNC);
-VOID ExitHost(struct TNCINFO * TNC);
-VOID DoTNCReinit(struct TNCINFO * TNC);
-VOID DoTermModeTimeout(struct TNCINFO * TNC);
+static VOID ExitHost(struct TNCINFO * TNC);
+static VOID DoTNCReinit(struct TNCINFO * TNC);
+static VOID DoTermModeTimeout(struct TNCINFO * TNC);
 static VOID DoMonitor(struct TNCINFO * TNC, UCHAR * Msg, int Len);
 int Switchmode(struct TNCINFO * TNC, int Mode);
 VOID SwitchToPactor(struct TNCINFO * TNC);
@@ -548,9 +535,7 @@ ok:
 		{
 			// Send Error Response
 
-			buffptr->Len = 36;
-			memcpy(buffptr->Data, "No Connection to PACTOR TNC\r", 36);
-
+			buffptr->Len = sprintf(buffptr->Data, "No Connection to PACTOR TNC\r");
 			C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
 			
 			return 0;
@@ -1581,6 +1566,9 @@ VOID SCSPoll(int Port)
 			TNC->InternalCmd = TRUE;
 			TNC->WantToChangeFreq = FALSE;
 
+			if (TNC->RIG->RIG_DEBUG)
+				Debugprintf("Scan Debug SCS Pactor Requesting permission from TNC");
+
 			return;
 		}
 
@@ -1598,6 +1586,9 @@ VOID SCSPoll(int Port)
 			TNC->InternalCmd = TRUE;
 			TNC->DontWantToChangeFreq = FALSE;
 			TNC->OKToChangeFreq = FALSE;
+
+			if (TNC->RIG->RIG_DEBUG)
+				Debugprintf("Scan Debug SCS Pactor Release Scan Lock sent to TNC");
 
 			return;
 		}
@@ -2282,7 +2273,7 @@ VOID DoTNCReinit(struct TNCINFO * TNC)
 	}
 }
 
-VOID DoTermModeTimeout(struct TNCINFO * TNC)
+static VOID DoTermModeTimeout(struct TNCINFO * TNC)
 {
 	UCHAR * Poll = TNC->TXBuffer;
 
@@ -2887,6 +2878,12 @@ VOID ProcessIncomingCall(struct TNCINFO * TNC, struct STREAMINFO * STREAM, int S
 			memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
 			AppName[12] = 0;
 
+			// if SendTandRtoRelay set and Appl is RMS change to RELAY
+
+			if (TNC->SendTandRtoRelay && memcmp(AppName, "RMS ", 4) == 0
+				&& (strstr(Call, "-T" ) || strstr(Call, "-R")))
+					strcpy(AppName, "RELAY       ");
+
 			// Make sure app is available
 
 			Debugprintf("Connect is to APPL %s", AppName);
@@ -2929,8 +2926,14 @@ VOID ProcessIncomingCall(struct TNCINFO * TNC, struct STREAMINFO * STREAM, int S
 	if (!PactorCall && TNC->UseAPPLCalls)
 		goto DontUseAPPLCmd;				// Don't use APPL= for Packet Calls
 
+	// if SendTandRtoRelay set and Appl is RMS change to RELAY
+
+	if (TNC->SendTandRtoRelay && strcmp(FreqAppl, "RMS") == 0
+		&& (strstr(Call, "-T" ) || strstr(Call, "-R")))
+			strcpy(FreqAppl, "RELAY");
+
 	Debugprintf("Pactor Call is %s Freq Specific Appl is %s Freq is %s",
-	DestCall, FreqAppl, TNC->RIG->Valchar);
+		DestCall, FreqAppl, TNC->RIG->Valchar);
 						
 	if (FreqAppl[0])			// Frequency specific APPL overrides TNC APPL
 	{
@@ -2947,12 +2950,25 @@ VOID ProcessIncomingCall(struct TNCINFO * TNC, struct STREAMINFO * STREAM, int S
 						
 	if (TNC->ApplCmd)	
 	{
+		char App[16];
+
 		buffptr = GetBuff();
 		if (buffptr == 0) return;			// No buffers, so ignore
 
-		Debugprintf("Using Default Appl %s", TNC->ApplCmd);
+		strcpy(App, TNC->ApplCmd);
 
-		buffptr->Len = sprintf(buffptr->Data, "%s\r", TNC->ApplCmd);
+		Debugprintf("Using Default Appl *%s*, connecting call is %s", App, Call);
+
+		// if SendTandRtoRelay set and Appl is RMS change to RELAY
+
+		if (TNC->SendTandRtoRelay && memcmp(App, "RMS", 3) == 0
+			&& (strstr(Call, "-T" ) || strstr(Call, "-R")))
+		{
+			strcpy(App, "RELAY");
+			Debugprintf("Radio Only Call - Connecting to RELAY");
+		}
+
+		buffptr->Len = sprintf(buffptr->Data, "%s\r", App);
 		C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
 		TNC->SwallowSignon = TRUE;
 		return;
@@ -3222,12 +3238,18 @@ VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen)
 						{
 							TNC->OKToChangeFreq = 1;
 							TNC->TimeScanLocked = 0;
+							if (TNC->RIG->RIG_DEBUG)
+								Debugprintf("Scan Debug SCS Pactor TNC gave permission");
 						}
 						else
 						{
 							TNC->OKToChangeFreq = -1;
 							if (TNC->SyncSupported == FALSE && TNC->UseAPPLCallsforPactor && TNC->TimeScanLocked == 0)	
 								TNC->TimeScanLocked = time(NULL);
+
+							if (TNC->RIG->RIG_DEBUG)
+								Debugprintf("Scan Debug SCS Pactor TNC refused permission");
+
 						}
 					}
 				}
@@ -3343,7 +3365,36 @@ VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen)
 							return;
 						}
 					}
-			
+
+					//	IF WE HAVE A PERMITTED CALLS LIST, SEE IF HE IS IN IT
+
+					if (TNC->PortRecord->PORTCONTROL.PERMITTEDCALLS)
+					{
+						UCHAR * ptr = TNC->PortRecord->PORTCONTROL.PERMITTEDCALLS;
+						UCHAR AXCALL[7];
+						
+						ConvToAX25(MHCall, AXCALL);			//Permitted calls are stored in ax.25 format
+
+						while (TRUE)
+						{
+							if (memcmp(AXCALL, ptr, 6) == 0)	// Ignore SSID
+								break;
+
+							ptr += 7;
+
+							if ((*ptr) == 0)							// Not in list
+							{
+								char Status[64];
+
+								TidyClose(TNC, 0);
+								sprintf(Status, "%d SCANSTART 15", TNC->Port);
+								Rig_Command(-1, Status);
+								Debugprintf("Pactor Call from %s not in ValidCalls - rejected", Call);
+								return;
+							}
+						}
+					}
+
 					// Check that we think we are in the right mode
 
 					if (Stream == 0 && TNC->Dragon == 0)	// Dragon runs both at the same time
@@ -3732,7 +3783,7 @@ static MESSAGE Monframe;		// I frames come in two parts.
 
 #define TIMESTAMP 352
 
-MESSAGE * AdjMsg = &Monframe;				// Adjusted for digis
+MESSAGE * AdjMsg = &Monframe;	// Adjusted for digis
 
 static VOID DoMonitor(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 {
@@ -3740,6 +3791,8 @@ static VOID DoMonitor(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 
 	UCHAR * ptr, * starptr;
 	char * context;
+	char * MHCall = Monframe.ORIGIN;
+
 
 	if (Msg[0] == 6)		// Second part of I or UI
 	{
@@ -3763,12 +3816,9 @@ static VOID DoMonitor(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 
 	ConvToAX25(&ptr[3], Monframe.ORIGIN);
 
-	UpdateMH(TNC, &ptr[3], '.', 0);
-
 	ptr = strstr(ptr, "to ");
 
 	ConvToAX25(&ptr[3], Monframe.DEST);
-
 
 	ptr = strstr(ptr, "via ");
 
@@ -3809,19 +3859,28 @@ DigiLoop:
 	ptr = strstr(Msg, "ctl ");
 
 	if (memcmp(&ptr[4], "SABM", 4) == 0)
+	{
 		AdjMsg->CTL = 0x2f;
+		UpdateMHwithDigis(TNC, MHCall, '.', 0);
+	}
 	else  
 	if (memcmp(&ptr[4], "DISC", 4) == 0)
 		AdjMsg->CTL = 0x43;
 	else 
 	if (memcmp(&ptr[4], "UA", 2) == 0)
+	{
 		AdjMsg->CTL = 0x63;
+		UpdateMHwithDigis(TNC, MHCall, '.', 0);
+	}
 	else  
 	if (memcmp(&ptr[4], "DM", 2) == 0)
 		AdjMsg->CTL = 0x0f;
 	else 
 	if (memcmp(&ptr[4], "UI", 2) == 0)
+	{
 		AdjMsg->CTL = 0x03;
+		UpdateMHwithDigis(TNC, MHCall, '.', 0);
+	}
 	else 
 	if (memcmp(&ptr[4], "RR", 2) == 0)
 		AdjMsg->CTL = 0x1 | (ptr[6] << 5);

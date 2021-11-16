@@ -69,7 +69,7 @@ VOID BuildXMLAttachment(struct HTTPConnectionInfo * Session, char * Keys[1000], 
 VOID SaveTemplateMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * Reply, int * RLen, char * Rest);
 VOID DownloadAttachments(struct HTTPConnectionInfo * Session, char * Reply, int * RLen, char * Rest);
 VOID getAttachmentList(struct HTTPConnectionInfo * Session, char * Reply, int * RLen, char * Rest);
-char * BuildB2Header(WebMailInfo * WebMail, struct MsgInfo * Msg);
+char * BuildB2Header(WebMailInfo * WebMail, struct MsgInfo * Msg, char ** ToCalls, int Calls);
 VOID FormatTime2(char * Time, time_t cTime);
 VOID ProcessSelectResponse(struct HTTPConnectionInfo * Session, char * URLParams);
 VOID ProcessAskResponse(struct HTTPConnectionInfo * Session, char * URLParams);
@@ -946,12 +946,12 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 	}
 
 	if (_stricmp(Msg->to, "RMS") == 0)
-		 sprintf(FullTo, "RMS:%s", Msg->via);
+		sprintf(FullTo, "RMS:%s", Msg->via);
 	else
-	if (Msg->to[0] == 0)
-		sprintf(FullTo, "smtp:%s", Msg->via);
-	else
-		strcpy(FullTo, Msg->to);
+		if (Msg->to[0] == 0)
+			sprintf(FullTo, "smtp:%s", Msg->via);
+		else
+			strcpy(FullTo, Msg->to);
 
 	// make sure title is UTF 8 encoded
 
@@ -981,7 +981,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 		if (Msg->B2Flags & B2Msg)
 		{
 			char * ptr1;
-	
+
 			// if message has attachments, display them if plain text
 
 			if (Msg->B2Flags & Attachments)
@@ -993,10 +993,10 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 				sprintf(DownLoad, "<td><a href=/WebMail/DL?%s&%d>Save Attachments</a></td>", Key, Msg->number);
 
 				WebMail->Files = 0;
-			
+
 				ptr1 = MsgBytes;
-	
-//				ptr += sprintf(ptr, "Message has Attachments\r\n\r\n");
+
+				//				ptr += sprintf(ptr, "Message has Attachments\r\n\r\n");
 
 				while(*ptr1 != 13)
 				{
@@ -1016,7 +1016,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 						WebMail->FileName[WebMail->Files++] = _strdup(&ptr3[1]);
 						*(ptr2 - 1) = ' ';		// put space back
 					}
-				
+
 					ptr1 = ptr2;
 					ptr1++;
 				}
@@ -1054,6 +1054,21 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 				{
 					int Len = DisplayWebForm(Session, Msg, WebMail->FileName[0], ptr1, Reply, MsgBytes, BodyLen + 32); // 32 for added "has attachments"
 					free(MsgBytes);
+
+					// Flag as read
+
+					if ((_stricmp(Msg->to, User->Call) == 0) || ((User->flags & F_SYSOP) && (_stricmp(Msg->to, "SYSOP") == 0)))
+					{
+						if ((Msg->status != 'K') && (Msg->status != 'H') && (Msg->status != 'F') && (Msg->status != 'D'))
+						{
+							if (Msg->status != 'Y')
+							{
+								Msg->status = 'Y';
+								Msg->datechanged=time(NULL);
+							}
+						}
+					}
+
 					return Len;
 				}
 
@@ -1072,7 +1087,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 					for (n = 0; n < NewLen; n++)
 					{
 						c = *p;
-						
+
 						if (c==0 || (c & 128))
 							BinCount++;
 
@@ -1091,30 +1106,43 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 						*(ptr1 + NewLen) = 0;
 						ptr += sprintf(ptr, "\rAttachment %s\r\r", WebMail->FileName[i]);
 						RemoveLF(ptr1, NewLen + 1);		// Removes LF after CR but not on its own
-				
+
 						ptr += sprintf(ptr, "%s\r\r", ptr1);
 
 						User->Total.MsgsSent[Index] ++;
 						User->Total.BytesForwardedOut[Index] += NewLen;
 					}
-				
+
 					ptr1 += WebMail->FileLen[i];
 					ptr1 +=2;				// Over separator
 				}
 
 				free(Save);
 
+				ptr += sprintf(ptr, "\r\r[End of Message #%d from %s]\r", Number, Msg->from);
+
 				RemoveLF(Message, (int)strlen(Message) + 1);		// Removes LF after CR but not on its own
 
+				if ((_stricmp(Msg->to, User->Call) == 0) || ((User->flags & F_SYSOP) && (_stricmp(Msg->to, "SYSOP") == 0)))
+				{
+					if ((Msg->status != 'K') && (Msg->status != 'H') && (Msg->status != 'F') && (Msg->status != 'D'))
+					{
+						if (Msg->status != 'Y')
+						{
+							Msg->status = 'Y';
+							Msg->datechanged=time(NULL);
+						}
+					}
+				}
 				return sprintf(Reply, WebMailMsgTemplate, BBSName, User->Call, Msg->number, Msg->number, Key, Msg->number, Key, DownLoad, Key, Key, Key, DisplayStyle, Message, DisplayStyle);
 			}
-			
-			// Remove B2 Headers (up to the File: Line)
-			
-	//		ptr1 = strstr(MsgBytes, "Body:");
 
-	//		if (ptr1)
-	//			MsgBytes = ptr1;
+			// Remove B2 Headers (up to the File: Line)
+
+			//		ptr1 = strstr(MsgBytes, "Body:");
+
+			//		if (ptr1)
+			//			MsgBytes = ptr1;
 		}
 
 		// Body  may have cr cr lf which causes double space
@@ -1132,56 +1160,56 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 		msgLen = RemoveLF(MsgBytes, msgLen);
 
 		User->Total.MsgsSent[Index] ++;
-//		User->Total.BytesForwardedOut[Index] += Length;
+		//		User->Total.BytesForwardedOut[Index] += Length;
 
 
 		// if body not UTF-8, convert it
 
-	if (WebIsUTF8(MsgBytes, msgLen) == FALSE)
-	{
-		// With Windows it is simple - convert using current codepage
-		// I think the only reliable way is to convert to unicode and back
+		if (WebIsUTF8(MsgBytes, msgLen) == FALSE)
+		{
+			// With Windows it is simple - convert using current codepage
+			// I think the only reliable way is to convert to unicode and back
 
-		size_t origlen = msgLen + 1;
+			size_t origlen = msgLen + 1;
 
-		UCHAR * BufferB = malloc(2 * origlen);
+			UCHAR * BufferB = malloc(2 * origlen);
 
 #ifdef WIN32
 
-		WCHAR * BufferW = malloc(2 * origlen);
-		int wlen;
-		int len = (int)origlen;
+			WCHAR * BufferW = malloc(2 * origlen);
+			int wlen;
+			int len = (int)origlen;
 
-		wlen = MultiByteToWideChar(CP_ACP, 0, MsgBytes, len, BufferW, (int)(origlen * 2)); 
-		len = WideCharToMultiByte(CP_UTF8, 0, BufferW, wlen, BufferB, (int)(origlen * 2), NULL, NULL); 
-		
-		free(Save);
-		Save = MsgBytes = BufferB;
-		free(BufferW);
-		msgLen = len - 1;		// exclude NULL
+			wlen = MultiByteToWideChar(CP_ACP, 0, MsgBytes, len, BufferW, (int)(origlen * 2)); 
+			len = WideCharToMultiByte(CP_UTF8, 0, BufferW, wlen, BufferB, (int)(origlen * 2), NULL, NULL); 
+
+			free(Save);
+			Save = MsgBytes = BufferB;
+			free(BufferW);
+			msgLen = len - 1;		// exclude NULL
 
 #else
-		int left = 2 * msgLen;
-		int len = msgLen;
-		UCHAR * BufferBP = BufferB;
-		iconv_t * icu = NULL;
+			int left = 2 * msgLen;
+			int len = msgLen;
+			UCHAR * BufferBP = BufferB;
+			iconv_t * icu = NULL;
 
-		if (icu == NULL)
-			icu = iconv_open("UTF-8", "CP1252");
+			if (icu == NULL)
+				icu = iconv_open("UTF-8", "CP1252");
 
-		iconv(icu, NULL, NULL, NULL, NULL);		// Reset State Machine
-		iconv(icu, &MsgBytes, &len, (char ** __restrict__)&BufferBP, &left);
-	
-		free(Save);
-		Save = MsgBytes = BufferB;
-		msgLen = strlen(MsgBytes);
+			iconv(icu, NULL, NULL, NULL, NULL);		// Reset State Machine
+			iconv(icu, &MsgBytes, &len, (char ** __restrict__)&BufferBP, &left);
+
+			free(Save);
+			Save = MsgBytes = BufferB;
+			msgLen = strlen(MsgBytes);
 
 #endif
 
-	}
+		}
 
 
-//		ptr += sprintf(ptr, "%s", MsgBytes);
+		//		ptr += sprintf(ptr, "%s", MsgBytes);
 
 		memcpy(ptr, MsgBytes, msgLen);
 		ptr += msgLen;
@@ -1211,6 +1239,10 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 	if (DisplayHTML && stristr(Message, "html>"))
 		DisplayStyle = "div";				// Use div so HTML and XML are interpreted
 
+
+
+
+
 	return sprintf(Reply, WebMailMsgTemplate, BBSName, User->Call, Msg->number, Msg->number, Key, Msg->number, Key, DownLoad, Key, Key, Key, DisplayStyle, Message, DisplayStyle);
 }
 
@@ -1229,7 +1261,7 @@ int KillWebMailMessage(char * Reply, char * Key, struct UserInfo * User, int Num
 
 	if (OkToKillMessage(User->flags & F_SYSOP, User->Call, Msg))
 	{
-		FlagAsKilled(Msg);
+		FlagAsKilled(Msg, TRUE);
 		sprintf(Message, "Message #%d Killed\r", Number);
 		goto returnit;
 	}
@@ -2218,6 +2250,7 @@ VOID SendTemplateSelectScreen(struct HTTPConnectionInfo * Session, char *Params,
 	return;
 }
 
+static char WinlinkAddr[] = "WINLINK.ORG";
 
 VOID SaveNewMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * Reply, int * RLen, char * Rest, int InputLen)
 {
@@ -2444,7 +2477,14 @@ VOID SaveNewMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * R
 			{
 				// Local User. If Home BBS is specified, use it
 
-				if (ToUser->HomeBBS[0])
+				if (ToUser->flags & F_RMSREDIRECT)
+				{
+					// sent to Winlink
+				
+					strcpy(Msg->via, WinlinkAddr);
+					sprintf(Prompt, "Redirecting to winlink.org\r");
+				}
+				else if (ToUser->HomeBBS[0])
 				{
 					strcpy(Msg->via, ToUser->HomeBBS);
 					sprintf(Prompt, "%s added from HomeBBS. Message Saved", Msg->via);
@@ -2509,7 +2549,7 @@ VOID SaveNewMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * R
 		{
 			// Send as B2
 
-			char * B2Header = BuildB2Header(WebMail, Msg);
+			char * B2Header = BuildB2Header(WebMail, Msg, NULL, 0);
 
 			hFile = fopen(MsgFile, "wb");
 
@@ -3330,7 +3370,7 @@ int DisplayWebForm(struct HTTPConnectionInfo * Session, struct MsgInfo * Msg, ch
 	return (int)strlen(SaveReply);
 }
 
-char * BuildB2Header(WebMailInfo * WebMail, struct MsgInfo * Msg)
+char * BuildB2Header(WebMailInfo * WebMail, struct MsgInfo * Msg, char ** ToCalls, int Calls)
 {
 	// Create B2 Header
 	
@@ -3357,10 +3397,22 @@ char * BuildB2Header(WebMailInfo * WebMail, struct MsgInfo * Msg)
 		"MID: %s\r\n"
 		"Date: %s\r\n"
 		"Type: %s\r\n"
-		"From: %s\r\n"
-		"To: %s\r\n",
-			Msg->bid, DateString, Type, Msg->from, WebMail->To);
+		"From: %s\r\n",
+			Msg->bid, DateString, Type, Msg->from);
 
+	if (ToCalls)
+	{
+		int i;
+
+		for (i = 0; i < Calls; i++)
+			NewMsg += sprintf(NewMsg, "To: %s\r\n",	ToCalls[i]);
+
+	}
+	else
+	{
+		NewMsg += sprintf(NewMsg, "To: %s\r\n",
+			WebMail->To);
+	}
 	if (WebMail->CC && WebMail->CC[0])
 		NewMsg += sprintf(NewMsg, "CC: %s\r\n", WebMail->CC);
 
@@ -3392,19 +3444,85 @@ char * BuildB2Header(WebMailInfo * WebMail, struct MsgInfo * Msg)
 	return SaveMsg;
 }
 
+VOID WriteOneRecipient(struct MsgInfo * Msg, WebMailInfo * WebMail, int MsgLen, char ** ToCalls, int Calls, char * BID)
+{
+	FILE * hFile;
+	char * via = NULL;
+	BIDRec * BIDRec;
+	char MsgFile[MAX_PATH];
+	size_t WriteLen=0;
+	char * B2Header;
+
+	if (strlen(WebMail->Subject) > 60)
+		WebMail->Subject[60] = 0;
+
+	strcpy(Msg->title, WebMail->Subject);
+
+	if (strlen(BID) == 0)
+		sprintf_s(BID, 32, "%d_%s", LatestMsg, BBSName);
+
+	strcpy(Msg->bid, BID);
+
+	Msg->datereceived = Msg->datechanged = Msg->datecreated = time(NULL);
+
+	BIDRec = AllocateBIDRecord();
+
+	strcpy(BIDRec->BID, Msg->bid);
+	BIDRec->mode = Msg->type;
+	BIDRec->u.msgno = LOWORD(Msg->number);
+	BIDRec->u.timestamp = LOWORD(time(NULL)/86400);
+
+	Msg->length = MsgLen;
+
+	sprintf_s(MsgFile, sizeof(MsgFile), "%s/m_%06d.mes", MailDir, Msg->number);
+	
+	// We write a B2 Header, Body and XML attachment if present
+
+	B2Header = BuildB2Header(WebMail, Msg, ToCalls, Calls);
+
+	hFile = fopen(MsgFile, "wb");
+	
+	if (hFile)
+	{
+		int i;
+		
+		WriteLen = fwrite(B2Header, 1, strlen(B2Header), hFile); 
+		WriteLen += fwrite(WebMail->Body, 1, Msg->length, hFile); 
+		WriteLen += fwrite("\r\n", 1, 2, hFile); 
+		if (WebMail->XML)
+		{
+			WriteLen += fwrite(WebMail->XML, 1, WebMail->XMLLen, hFile); 
+			WriteLen += fwrite("\r\n", 1, 2, hFile); 
+		}
+		// Do any attachments
+
+		for (i = 0; i < WebMail->Files; i++)
+		{
+			WriteLen += fwrite(WebMail->FileBody[i], 1, WebMail->FileLen[i], hFile); 
+			WriteLen += fwrite("\r\n", 1, 2, hFile); 
+		}
+		fclose(hFile);
+	}
+
+	free(B2Header);
+
+	Msg->length = (int)WriteLen;
+
+	MatchMessagetoBBSList(Msg, 0);
+
+	BuildNNTPList(Msg);				// Build NNTP Groups list
+}
+
 
 VOID SaveTemplateMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * Reply, int * RLen, char * Rest)
 {
 	int ReplyLen = 0;
 	struct MsgInfo * Msg;
-	char * ptr, *input;
+	char * ptr, *input, *context;
 	size_t MsgLen;
-	FILE * hFile;
 	char Type;
 	char * via = NULL;
 	char BID[32];
-	BIDRec * BIDRec;
-	char MsgFile[MAX_PATH];
 	size_t WriteLen=0;
 	char * Body = NULL;
 	char * To = NULL;
@@ -3418,8 +3536,13 @@ VOID SaveTemplateMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, cha
 	WebMailInfo * WebMail = Session->WebMail;
 	BOOL SendMsg = FALSE;
 	BOOL SendReply = FALSE;
-	char * B2Header;
-	char newAddr[256];
+
+	char * RMSTo[1000] = {NULL};		// Winlink addressees
+	char * PKTT0[1000] = {NULL};		// Packet addressees
+
+	__int32 Recipients = 0;
+	__int32 RMSMsgs = 0, BBSMsgs = 0;
+
 
 	input = strstr(MsgPtr, "\r\n\r\n");	// End of headers
 
@@ -3512,11 +3635,13 @@ VOID SaveTemplateMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, cha
 		return;
 	}
 
-	if (strlen(HDest) > 255)
-	{
+	// Multiple TO fields could be more than 255 bytes long
+
+//	if (strlen(HDest) > 255)
+//	{
 //		*RLen = sprintf(Reply, "%s", "<html><script>alert(\"To: Call too long!\");window.history.back();</script></html>");
-		return;
-	}
+//		return;
+//	}
 
 	if (strlen(BID))
 	{		
@@ -3543,182 +3668,195 @@ VOID SaveTemplateMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, cha
 		}
 	}
 
-	// If Type=Winlink specified send plain call as @winlink.org 
+	// We should be able to handle multiple recipients, with all Winlink addresses sent in one message and
+	// multiple copies for packet addressess. For Winlink we should use multiple To@ lines in B2 Header
 
-	if (strchr(HDest, '@') == 0 && WebMail->Winlink)
+	ptr = strtok_s(HDest, " ;", &context);
+
+	while (ptr && ptr[0])
 	{
-		sprintf(newAddr, "%s%s", HDest, "@winlink.org");
-		HDest = newAddr;
-	}
-
-	Msg = AllocateMsgRecord();
+		int Winlink = 0;
+		int AMPR = 0;
 		
-	// Set number here so they remain in sequence
-		
-	Msg->number = ++LatestMsg;
-	MsgnotoMsg[Msg->number] = Msg;
+		char * dest = zalloc(256);
+		char * via = NULL;
 
-	strcpy(Msg->from, Session->User->Call);
+		strcpy(dest, ptr);
 
-	if (_memicmp(HDest, "rms:", 4) == 0 || _memicmp(HDest, "rms/", 4) == 0)
-	{
-		Vptr=&HDest[4];
-		strcpy(Msg->to, "RMS");
-	}
-	else if (_memicmp(HDest, "smtp:", 5) == 0)
-	{
-		if (ISP_Gateway_Enabled)
+		// See if packet or Winlink
+
+		// If Type=Winlink specified send plain call as @winlink.org 
+
+		if (strchr(dest, '@') == 0 && WebMail->Winlink)
+			strcat(dest, "@winlink.org");
+
+		if (_memicmp(dest, "rms:", 4) == 0 || _memicmp(dest, "rms/", 4) == 0)
 		{
-			Vptr=&HDest[5];
-			Msg->to[0] = 0;
+			memcpy(dest, &dest[4], strlen(dest));
+			Winlink = 1;
+			RMSTo[RMSMsgs++] = dest;
+			ptr = strtok_s(NULL, " ;", &context);
+			continue;
 		}
-	}
-	else if (strchr(HDest, '@'))
-	{
-		strcpy(OrigTo, HDest);
 
-		Vptr = strlop(HDest, '@');
-
-		if (Vptr)
+		else if (_memicmp(dest, "smtp:", 5) == 0)
 		{
-			// If looks like a valid email address, treat as such
-
-			if (strlen(HDest) > 6 || !CheckifPacket(Vptr))
+			if (ISP_Gateway_Enabled)
 			{
-				// Assume Email address
-
-				Vptr = OrigTo;
-
-				if (FindRMS() || strchr(Vptr, '!')) // have RMS or source route
-					strcpy(Msg->to, "RMS");
-				else if (ISP_Gateway_Enabled)
-					Msg->to[0] = 0;
-				else if (isAMPRMsg(OrigTo))
-					strcpy(Msg->to, "RMS");		// Routing will redirect it
-				else
-				{		
-					*RLen = sprintf(Reply, "%s", "<html><script>alert(\"This system doesn't allow Sending to Internet Email\");window.close();</script></html>");
-					return;
-		
-				}
+				via = &dest[5];
+				dest[0] = 0;
 			}
-			else
-				strcpy(Msg->to, _strupr(HDest));
 		}
-	}
-
-	else
-	{	
-		if (strlen(HDest) > 6)
-			HDest[6] = 0;
-		
-		strcpy(Msg->to, _strupr(HDest));
-	}
-
-	if (SendBBStoSYSOPCall)
-		if (_stricmp(HDest, BBSName) == 0)
-			strcpy(Msg->to, SYSOPCall);
-
-	if (Vptr)
-	{
-		if (strlen(Vptr) > 40)
-			Vptr[40] = 0;
-
-		strcpy(Msg->via, _strupr(Vptr));
-	}
-	else
-	{
-		// No via. If not local user try to add BBS 
-	
-		struct UserInfo * ToUser = LookupCall(Msg->to);
-
-		if (ToUser)
+		else if (strchr(dest, '@'))
 		{
-			// Local User. If Home BBS is specified, use it
+			strcpy(OrigTo, dest);
 
-			if (ToUser->HomeBBS[0])
+			via = strlop(dest, '@');
+
+			if (via)
 			{
-				strcpy(Msg->via, ToUser->HomeBBS);
-				sprintf(Prompt, "%s added from HomeBBS. Message Saved", Msg->via);
+				// If looks like a valid email address, treat as such
+
+				if (strlen(via) > 6 || !CheckifPacket(via))
+				{
+					// Assume Email address. See if to send via RMS or SMTP
+
+					if (isAMPRMsg(OrigTo))
+					{
+						dest[strlen(dest)] = '@';		// Put back together
+						memmove(&dest[1], dest, strlen(dest));
+						dest[0] = 0;
+						via = &dest[1];
+						AMPR = 1;
+					}
+					else if (FindRMS() || strchr(via, '!')) // have RMS or source route
+					{
+						dest[strlen(dest)] = '@';		// Put back together
+						Winlink = 1;
+						RMSTo[RMSMsgs++] = dest;
+						ptr = strtok_s(NULL, " ;", &context);
+						continue;
+					}
+					else if (ISP_Gateway_Enabled)
+					{
+						dest[strlen(dest)] = '@';		// Put back together
+						memmove(dest, &dest[1], strlen(dest));
+						dest[0] = 0;
+					}
+					else
+					{		
+						*RLen = sprintf(Reply, "%s", "<html><script>alert(\"This system doesn't allow Sending to Internet Email\");window.close();</script></html>");
+						return;
+
+					}
+				}
 			}
 		}
 		else
 		{
-			// Not local user - Check WP
-			
-			WPRecP WP = LookupWP(Msg->to);
+			// No @
 
-			if (WP)
-			{
-				strcpy(Msg->via, WP->first_homebbs);
-				sprintf(Prompt, "%s added from WP", Msg->via);
-			}
+			if (strlen(dest) > 6)
+				dest[6] = 0;
 		}
-	}
 
-	if (strlen(WebMail->Subject) > 60)
-		WebMail->Subject[60] = 0;
+		// This isn't an RMS Message, so can queue now
 
-	strcpy(Msg->title, WebMail->Subject);
-	Msg->type = Type;
-	Msg->status = 'N';
-
-	if (strlen(BID) == 0)
-		sprintf_s(BID, sizeof(BID), "%d_%s", LatestMsg, BBSName);
-
-	strcpy(Msg->bid, BID);
-
-	Msg->datereceived = Msg->datechanged = Msg->datecreated = time(NULL);
-
-	BIDRec = AllocateBIDRecord();
-
-	strcpy(BIDRec->BID, Msg->bid);
-	BIDRec->mode = Msg->type;
-	BIDRec->u.msgno = LOWORD(Msg->number);
-	BIDRec->u.timestamp = LOWORD(time(NULL)/86400);
-
-	Msg->length = (int)MsgLen;
-
-	sprintf_s(MsgFile, sizeof(MsgFile), "%s/m_%06d.mes", MailDir, Msg->number);
-	
-	// We write a B2 Header, Body and XML attachment if present
-
-
-//	BuildFormMessage(Session, Msg);
-
-	B2Header = BuildB2Header(WebMail, Msg);
-
-	hFile = fopen(MsgFile, "wb");
-	
-	if (hFile)
-	{
-		int i;
+		Msg = AllocateMsgRecord();
 		
-		WriteLen = fwrite(B2Header, 1, strlen(B2Header), hFile); 
-		WriteLen += fwrite(WebMail->Body, 1, Msg->length, hFile); 
-		WriteLen += fwrite("\r\n", 1, 2, hFile); 
-		if (WebMail->XML)
-		{
-			WriteLen += fwrite(WebMail->XML, 1, WebMail->XMLLen, hFile); 
-			WriteLen += fwrite("\r\n", 1, 2, hFile); 
-		}
-		// Do any attachments
+		// Set number here so they remain in sequence
+		
+		Msg->number = ++LatestMsg;
+		MsgnotoMsg[Msg->number] = Msg;
 
-		for (i = 0; i < WebMail->Files; i++)
+		strcpy(Msg->title, WebMail->Subject);
+		Msg->type = Type;
+		Msg->status = 'N';
+
+
+		strcpy(Msg->from, Session->User->Call);
+
+		strcpy(Msg->to, _strupr(dest));
+		
+		if (SendBBStoSYSOPCall)
+			if (_stricmp(dest, BBSName) == 0)
+				strcpy(Msg->to, SYSOPCall);
+
+		if (via)
 		{
-			WriteLen += fwrite(WebMail->FileBody[i], 1, WebMail->FileLen[i], hFile); 
-			WriteLen += fwrite("\r\n", 1, 2, hFile); 
+			if (strlen(via) > 40)
+				via[40] = 0;
+
+			strcpy(Msg->via, _strupr(via));
 		}
-		fclose(hFile);
+		else
+		{
+			// No via. If not local user try to add BBS 
+
+			struct UserInfo * ToUser = LookupCall(Msg->to);
+
+			if (ToUser)
+			{
+				// Local User. If Home BBS is specified, use it
+
+				if (ToUser->flags & F_RMSREDIRECT)
+				{
+					// sent to Winlink
+				
+					strcpy(Msg->via, WinlinkAddr);
+					sprintf(Prompt, "Redirecting to winlink.org\r");
+				}
+				else if (ToUser->HomeBBS[0])
+				{
+					strcpy(Msg->via, ToUser->HomeBBS);
+					sprintf(Prompt, "%s added from HomeBBS. Message Saved", Msg->via);
+				}
+			}
+			else
+			{
+				// Not local user - Check WP
+
+				WPRecP WP = LookupWP(Msg->to);
+
+				if (WP)
+				{
+					strcpy(Msg->via, WP->first_homebbs);
+					sprintf(Prompt, "%s added from WP", Msg->via);
+				}
+			}
+		}		
+		WriteOneRecipient(Msg, WebMail, MsgLen, NULL, 0, BID);
+		ptr = strtok_s(NULL, " ;", &context);
+		free(dest);
+		BID[0] = 0;					// Can't use more than once
 	}
 
-	free(B2Header);
+	if (RMSMsgs)
+	{
+		// Write one message to all Winlink addresses
 
-	Msg->length = (int)WriteLen;
+		int i;
 
-	MatchMessagetoBBSList(Msg, 0);
+		Msg = AllocateMsgRecord();
+		
+		// Set number here so they remain in sequence
+		
+		Msg->number = ++LatestMsg;
+		MsgnotoMsg[Msg->number] = Msg;
 
-	BuildNNTPList(Msg);				// Build NNTP Groups list
+		strcpy(Msg->title, WebMail->Subject);
+		Msg->type = Type;
+		Msg->status = 'N';
+
+		strcpy(Msg->from, Session->User->Call);
+		strcpy(Msg->to, "RMS");
+
+		WriteOneRecipient(Msg, WebMail, MsgLen, RMSTo, RMSMsgs, BID);
+
+		for (i = 0; i < RMSMsgs; i++)
+			free(RMSTo[i]);
+
+	}
 
 	SaveMessageDatabase();
 	SaveBIDDatabase();
@@ -3881,7 +4019,14 @@ VOID BuildMessageFromHTMLInput(struct HTTPConnectionInfo * Session, char * Reply
 		{
 			// Local User. If Home BBS is specified, use it
 
-			if (ToUser->HomeBBS[0])
+			if (ToUser->flags & F_RMSREDIRECT)
+			{
+				// sent to Winlink
+				
+				strcpy(Msg->via, WinlinkAddr);
+				sprintf(Prompt, "Redirecting to winlink.org\r");
+			}
+			else if (ToUser->HomeBBS[0])
 			{
 				strcpy(Msg->via, ToUser->HomeBBS);
 				sprintf(Prompt, "%s added from HomeBBS", Msg->via);
@@ -5517,13 +5662,21 @@ BOOL ParsetxtTemplate(struct HTTPConnectionInfo * Session, struct HtmlFormDir * 
 		}
 		else if (_memicmp(ptr, "ReplyTemplate:",14) == 0)
 		{
+			char * end;
+
 			ReplyName = &ptr[14];
 	
 			while (*ReplyName == ' ')
 				ReplyName++;
 			
 			strlop(ReplyName, '\r');		// Terminate
-			strlop(ReplyName, ' ');			// Strip trailing spaces
+
+			// Filename may have embedded spaces, so have to scan from end, not use strlop
+
+			end = ReplyName + strlen(ReplyName) - 1;
+
+			while (*end == ' ')
+				*end-- = 0;
 
 			WebMail->ReplyHTMLName = _strdup(ReplyName);
 		}

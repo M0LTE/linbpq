@@ -12,6 +12,10 @@
 
 #include "asmstrucs.h"
 
+#ifndef WIN32
+__asm__(".symver fcntl,fcntl@GLIBC_2.4");
+#endif
+
 BOOL CheckExcludeList(UCHAR * Call);
 
 Dll int ConvFromAX25(unsigned char * incall,unsigned char * outcall);
@@ -24,7 +28,7 @@ int GetListeningPortsPID(int Port);
 
 void * InitializeExtDriver(PEXTPORTDATA PORTVEC);
 
-VOID PutLengthinBuffer(PDATAMESSAGE buff, int datalen);			// Neded for arm5 portability
+VOID PutLengthinBuffer(PDATAMESSAGE buff, USHORT datalen);			// Needed for arm5 portability
 int GetLengthfromBuffer(PDATAMESSAGE buff);	
 
 
@@ -350,7 +354,6 @@ extern int NUMBEROFCOMMANDS;
 
 extern char * ConfigBuffer;
 
-extern char * RigConfigMsg[];
 extern char * WL2KReportLine[];
 
 extern CMDX COMMANDS[];
@@ -389,6 +392,10 @@ extern struct SEM Semaphore;
 extern UCHAR AuthorisedProgram;			// Local Variable. Set if Program is on secure list
 
 extern int REALTIMETICKS;
+
+extern time_t CurrentSecs;
+extern time_t lastSlowSecs;
+
 
 // SNMP Variables
 

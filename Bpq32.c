@@ -930,7 +930,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Set default BBS and CHAT application number and number of streams on LinBPQ
 //	Support #include in bpq32.cfg processing
 
-// Version 6.0.21 ??
+// Version 6.0.21 14 December 2020
 
 //	Fix occasional missing newlines in some node command reponses
 //	More 64 bit fixes
@@ -981,6 +981,47 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	SNMP InOctets count corrected to include all frames and encoding of zero values fixed.
 //	Change IP Gateway to exclude handling bits of 44 Net sold to Amazon
 //	Fix crash in Web terminal when processing very long lines
+
+//  Version 6.0.22 ??
+
+//	Fix bug in KAM TNCEMULATOR
+//	Add WinRPR Driver (DED over TCP)
+//	Fix handling of VARA config commands FM1200 and FM9600
+//	Improve Web Termanal Line folding
+//	Add StartTNC to WinRPR driver
+//	Add support for VARA2750 Mode
+//	Add support for VARA connects via a VARA Digipeater
+//	Add digis to SCSTracker and WinRPR MHeard
+//	Separate RIGCONTROL config from PORT config and add RigControl window
+//	Fix crash when a Windows HID device doesn't have a product_string
+//	Changes to VARA TNC connection and restart process
+//	Trigger FALLBACKTORELAY if attempt to connect to all CMS servers fail.
+//	Fix saving part lines in adif log and Winlink Session reporting
+//	Add port specific CTEXT
+//	Add FRMR monitoring to UZ7HO driver
+//	Add audio input switching for IC7610
+//	Include Rigcontrol Support for IC-F8101E
+//	Process any response to KISS command 
+//	Fix NODE ADD command
+//	Add noUpdate flag to AXIP MAP
+//	Fix clearing NOFALLBACK flag in Telnet Server
+//	Allow connects to RMS Relay running on another host 
+//	Allow use of Power setting in Rigcontol scan lines for Kenwood radios
+//	Prevent problems caused by using "CMS" as a Node Alias
+//	Include standard APRS Station pages in code
+//	Fix VALIDCALLS processing in HF drivers
+//	Send Netrom Link reports to Node Map
+//	Add REALTELNET mode to Telnet Outward Connect
+//	Fix using S (Stay) parameter on Telnet connects when using CMDPORT and C HOST
+//	Add Default frequency to rigcontrol to set a freq/mode to return to after a connection
+//	Fix long (> 60 seconds) scan intervals
+//	Improved debugging of stuck semaphores
+//	Fix potential securiby bug in BPQ Web server
+//	Send Chat Updates to chatupdate.g8bpq.net port 81
+//	Add ReportRelayTraffic to Telnet config to send WL2K traffic reports for connections to RELAY
+//	Add experimental Mode reporting
+//	Add SendTandRtoRelay param to SCS Pactor, ARDOP and VARA drivers to divert calls to CMS for -T and -R to RELAY
+//	Add UPNP Support
 
 #define CKernel
 
@@ -1068,6 +1109,8 @@ void * SerialExtInit(EXTPORTDATA * PortEntry);
 void * ARDOPExtInit(EXTPORTDATA * PortEntry);
 void * VARAExtInit(EXTPORTDATA * PortEntry);
 void * KISSHFExtInit(EXTPORTDATA * PortEntry);
+void * WinRPRExtInit(EXTPORTDATA * PortEntry);
+void * HSMODEMExtInit(EXTPORTDATA * PortEntry);
 
 extern char * ConfigBuffer;	// Config Area
 VOID REMOVENODE(dest_list * DEST);
@@ -1171,7 +1214,7 @@ void SaveMH();
 #define C_Q_ADD(s, b) _C_Q_ADD(s, b, __FILE__, __LINE__);
 int _C_Q_ADD(VOID *PQ, VOID *PBUFF, char * File, int Line);
 
-VOID SetWindowTextSupport(UINT * Buffer);
+VOID SetWindowTextSupport();
 int WritetoConsoleSupport(char * buff);
 VOID PMClose();
 VOID MySetWindowText(HWND hWnd, char * Msg);
@@ -1384,6 +1427,15 @@ BOOL PartLine = FALSE;
 int pindex = 0;
 DWORD * WritetoConsoleQ;
 
+
+LARGE_INTEGER lpFrequency = {0};
+LARGE_INTEGER lastRunTime;
+LARGE_INTEGER currentTime; 
+
+int ticksPerMillisec;
+int interval;
+
+
 VOID CALLBACK SetupTermSessions(HWND hwnd, UINT  uMsg, UINT  idEvent,  DWORD  dwTime);
 
 
@@ -1409,6 +1461,7 @@ VOID ResolveUpdateThread();
 VOID OpenReportingSockets();
 DllExport VOID APIENTRY CloseAllPrograms();
 DllExport BOOL APIENTRY SaveReg(char * KeyIn, HANDLE hFile);
+int upnpClose();
 
 BOOL IPActive = FALSE;
 extern BOOL IPRequired;
@@ -1420,6 +1473,7 @@ BOOL APRSActive = FALSE;
 BOOL AGWActive = FALSE;
 
 extern int AGWPort;
+
 
 Tell_Sessions();
 
@@ -1578,7 +1632,7 @@ VOID MonitorThread(int x)
 			
 			// Write a minidump
 
-//			WriteMiniDump();
+			WriteMiniDump();
 			
 			Semaphore.Flag = 0;
 		}
@@ -1743,6 +1797,15 @@ VOID TimerProcX()
 
 	GetSemaphore(&Semaphore, 2);
 
+	// Get time since last run
+
+	QueryPerformanceCounter(&currentTime);
+
+	interval = (int)(currentTime.QuadPart - lastRunTime.QuadPart) / ticksPerMillisec;
+	lastRunTime.QuadPart = currentTime.QuadPart;
+
+	//Debugprintf("%d", interval);
+
 	// Process WINMORTraceQ
 
 	while (WINMORTraceQ)
@@ -1756,11 +1819,8 @@ VOID TimerProcX()
 		RelBuff(Buffer);
 	}
 
-	while (SetWindowTextQ)
-	{
-		UINT * Buffer = Q_REM(&SetWindowTextQ);
-		SetWindowTextSupport(Buffer);
-	}
+	if (SetWindowTextQ)
+		SetWindowTextSupport();
 
 	while (WritetoConsoleQ)
 	{
@@ -1806,6 +1866,8 @@ VOID TimerProcX()
 
 			GetWindowRect(FrameWnd, &FRect);
 
+			SaveWindowPos(40);		// Rigcontrol
+
 			for (i=0;i<NUMBEROFPORTS;i++)
 			{
 				if (PORTVEC->PORTCONTROL.PORTTYPE == 0x10)			// External
@@ -1829,6 +1891,7 @@ VOID TimerProcX()
 			CloseTNCEmulator();
 			if (AGWActive)	
 				AGWAPITerminate();
+
 			WSACleanup();
 
 			WL2KReports = NULL;
@@ -2350,6 +2413,12 @@ BOOL APIENTRY DllMain(HANDLE hInst, DWORD ul_reason_being_called, LPVOID lpReser
 
 		Our_PID = GetCurrentProcessId();
 
+		QueryPerformanceFrequency(&lpFrequency);
+
+		ticksPerMillisec = (int)lpFrequency.QuadPart / 1000;
+
+		lastRunTime.QuadPart = lpFrequency.QuadPart;
+
 		GetProcess(Our_PID, pgm);
 
 		if (_stricmp(pgm, "regsvr32.exe") == 0 || _stricmp(pgm, "bpqcontrol.exe") == 0)
@@ -2686,6 +2755,9 @@ SkipInit:
 			CloseTNCEmulator();
 			if (AGWActive)
 				AGWAPITerminate();
+
+			upnpClose();
+
 			WSACleanup();
 			WSAGetLastError();
 
@@ -2803,6 +2875,8 @@ DllExport int APIENTRY CloseBPQ32()
 		Rig_Close();
 		if (AGWActive)	
 			AGWAPITerminate();
+
+		upnpClose();
 
 		CloseTNCEmulator();
 		WSACleanup();
@@ -3590,8 +3664,13 @@ VOID * InitializeExtDriver(PEXTPORTDATA PORTVEC)
 		return SerialExtInit;
 
 	if (strstr(Value, "KISSHF"))
-
 		return KISSHFExtInit;
+
+	if (strstr(Value, "WINRPR"))
+		return WinRPRExtInit;
+
+	if (strstr(Value, "HSMODEM"))
+		return HSMODEMExtInit;
 
 	ExtDriver = LoadLibrary(Value);
 
@@ -5058,7 +5137,7 @@ int WritetoConsoleSupport(char * buff)
 
 	pindex=SendMessage(hWndCons, LB_ADDSTRING, 0, (LPARAM)(LPCTSTR) Temp);
 	return 0;
-}
+ }
 
 DllExport VOID APIENTRY  BPQOutputDebugString(char * String)
 {
@@ -6146,6 +6225,9 @@ VOID SaveBPQ32Windows()
 		PORTVEC=(PEXTPORTDATA)PORTVEC->PORTCONTROL.PORTPOINTER;		
 	}
 
+	SaveWindowPos(40);		// Rigcontrol
+
+
 	if (hIPResWnd)
 		SaveMDIWindowPos(hIPResWnd, "", "IPResSize", IPMinimized);
 
@@ -6257,7 +6339,8 @@ int GetListeningPortsPID(int Port)
 
 extern struct RIGINFO * DLLRIG;			// Rig record for dll PTT interface (currently only for UZ7HO);
 
-VOID Rig_PTT(struct RIGINFO * RIG, BOOL PTTState);
+VOID Rig_PTT(struct TNCINFO * TNC, BOOL PTTState);
+VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC);
 
 int WINAPI ext_PTT_info()
 {
@@ -6272,7 +6355,7 @@ int WINAPI ext_PTT_settings()
 int WINAPI ext_PTT_OFF(int Port)
 {
 	if (DLLRIG)
-		Rig_PTT(DLLRIG, 0);
+		Rig_PTTEx(DLLRIG, 0, 0);
 
 	return 0;
 }
@@ -6280,14 +6363,14 @@ int WINAPI ext_PTT_OFF(int Port)
 int WINAPI ext_PTT_ON(int Port)
 {
 	if (DLLRIG)
-		Rig_PTT(DLLRIG, 1);
+		Rig_PTTEx(DLLRIG, 1, 0);
 
 	return 0;
 }
 int WINAPI ext_PTT_close()
 {
 	if (DLLRIG)
-		Rig_PTT(DLLRIG, 0);
+		Rig_PTTEx(DLLRIG, 0, 0);
 
 	return 0;
 }

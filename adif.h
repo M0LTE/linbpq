@@ -7,7 +7,7 @@ typedef struct ADIF
 	int Mode;
 	char LOC[7];
 	char Band[8];			// ?Derive from freq?
-	int Freq;
+	long long Freq;
 
 	// Extra fields for Trimode comment fields
 
@@ -26,7 +26,8 @@ typedef struct ADIF
 	int FBBIndex;				// For saving proposals
 	int FBBLen[5];				// Proposed messages
 	BOOL GotFC;					// Flag for acking messages on first FC
-	char PartMessage[256];		// Some modes frame size too small for complete lines
+	char PartMessageRX[512];	// Some modes frame size too small for complete lines
+	char PartMessageTX[512];	// Some modes frame size too small for complete lines
 
 } ADIF;
 

@@ -69,7 +69,9 @@ struct PORTCONFIG
 	int RIGPORT;			// Linked port with RigControl 
 	unsigned int PERMITTEDAPPLS;	// Appls allowed on this port
 	int HavePermittedAppls;			// Indicated PERMITTEDAPPLS uses
-
+	int Hide;				// Don't show on Ports display or AGW Connect Menu
+	long long txOffset;		// Transverter tx offset 
+	long long rxOffset;		// Transverter rx offset ppa
 };
 
 struct ROUTECONFIG
@@ -163,5 +165,14 @@ struct CONFIGTABLE
 //#define C_INFOMSG 85000
 
 };
+
+struct UPNP 
+{
+	struct UPNP * Next;
+	char * Protocol;
+	char * LANport;
+	char * WANPort;
+};
+
 
 

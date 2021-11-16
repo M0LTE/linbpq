@@ -2,6 +2,7 @@
 // Common definitons for Pactor-like Modules
 
 #include "kernelresource.h"
+
 #include "rigcontrol.h"
 
 #define MAXBLOCK 4096
@@ -159,6 +160,7 @@ struct TCPINFO
 	HWND hCMSWnd;
 
 	int SecureTelnet;
+	int ReportRelayTraffic;			// Send WL2K Reports for Relay Traffic
 
 };
 
@@ -375,6 +377,8 @@ typedef struct TNCINFO
 #define H_VARA 14
 #define H_SERIAL 15
 #define H_KISSHF 16
+#define H_WINRPR 17
+#define H_HSMODEM 18
 
 
 	int Port;					// BPQ Port Number
@@ -458,6 +462,11 @@ typedef struct TNCINFO
 
 	int PTTMode;					// PTT Mode Flags
 	int PTTState;					// Current State
+
+	char PTTOn[60];					// Port override of RIGCONTROL config
+	char PTTOff[60];
+	int PTTOnLen;
+	int PTTOffLen;
 
 	int PID;						// Process ID for Software TNC
 	HWND hWnd;						// Main window handle for Software TNC
@@ -586,6 +595,7 @@ typedef struct TNCINFO
 	BOOL RobustDefault;				// Set if SCS Tracker default is Robust Packet mode
 	BOOL ForceRobust;				// Don't allow Normal Packet even if scan requests it.
 	char NormSpeed[8];				// Speed Param for Normal Packet on Tracker
+	char RobustSpeed[8];			// Speed Param for Robust Packet on Tracker
 	BOOL RPBEACON;					// Send Beacon after each session 
 
 	int TimeInRX;					// Time waiting for ISS before sending
@@ -619,6 +629,9 @@ typedef struct TNCINFO
 	int DefaultMode;
 	int CurrentMode;				// Used on HAL
 
+	char * DefaultRadioCmd;			// RADIO command to send at end of session
+	char * Frequency;
+	// For Mode Map if no Rigcontrol
 	// Mode Equates
 
 	#define Clover 'C'
@@ -718,6 +731,11 @@ typedef struct TNCINFO
 	MESSAGE * Monframe;				// Used by DED Host for receiving Packet Monitor Frame
 									// split over 2 packets
 
+	struct HSMODEMINFO * HSModemInfo;
+
+	int DontRestart;				// Don't automatically restart failed TNC
+	int SendTandRtoRelay;			// Send T and R suffix messages to RELAY instead of CMS
+
 } *PTNCINFO;
 
 VOID * zalloc(int len);
@@ -763,7 +781,8 @@ int Rig_Command(int Session, char * Command);
 
 BOOL Rig_Poll();
 
-VOID Rig_PTT(struct RIGINFO * RIG, BOOL PTTState);
+VOID Rig_PTT(struct TNCINFO * TNC, BOOL PTTState);
+VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC);
 
 struct RIGINFO * Rig_GETPTTREC(int Port);
 	
