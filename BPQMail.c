@@ -1041,6 +1041,10 @@
 //	Don't backup config file if reading it fails
 //	Include Port and Freq on Connected log record
 //	Make sure welcome mesages don't end in >
+//  Allow flagging unread T messages as Delivered
+//  Replace \ with # in forward script so commands starting with # can be sent
+//  Fix forwarding NTS on TO field
+
 
 #include "BPQMail.h"
 #define MAIL

@@ -22,6 +22,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 int APIENTRY ChangeSessionIdletime(int Stream, int idletime);
 struct MsgInfo * GetMsgFromNumber(int msgno);
 BOOL ForwardMessagetoFile(struct MsgInfo * Msg, FILE * Handle);
+struct UserInfo * FindBBS(char * Name);
+int ListMessagestoForward(CIRCUIT * conn, struct UserInfo * user);
 
 static char seps[] = " \t\r";
 
@@ -675,3 +677,20 @@ FDisplay:
 
 	return;
 }
+
+void DoHousekeepingCmd(CIRCUIT * conn, struct UserInfo * user, char * Arg1, char * Context)
+{
+	if (conn->sysop == 0)
+	{
+		nodeprintf(conn, "DOHOUSEKEEPING command needs SYSOP status\r");
+		SendPrompt(conn, user);
+		return;
+	}
+
+	DoHouseKeeping(FALSE);
+			
+	nodeprintf(conn, "Ok\r", Arg1);
+	SendPrompt(conn, user);
+}
+
+

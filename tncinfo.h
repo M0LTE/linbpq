@@ -374,6 +374,7 @@ typedef struct TNCINFO
 #define H_ARDOP 13
 #define H_VARA 14
 #define H_SERIAL 15
+#define H_KISSHF 16
 
 
 	int Port;					// BPQ Port Number
@@ -443,7 +444,7 @@ typedef struct TNCINFO
 
 	BOOL CONNECTING;			// TCP Session Flags
 	BOOL CONNECTED;
-	BOOL Alerted;				// COnnect Failed Prompt sent
+	BOOL Alerted;				// Connect Failed Prompt sent
 	BOOL DATACONNECTING;
 	BOOL DATACONNECTED;
 

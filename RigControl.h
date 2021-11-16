@@ -101,9 +101,11 @@ struct RIGINFO
 	#define PTTCM108	8
 	#define PTTHAMLIB	16
 
-	int PTTTimer;				// PTT Timer watchdog
+	int PTTTimer;				// PTT Timer watchdog (limits PTT ON to PTT OFF time
 
 	#define PTTLimit 200
+
+	int repeatPTTOFFTimer;		// On ICOM radios send a second PTT OFF command after 30 secs
 
 	struct RIGPORTINFO * PORT;		// For PTT Routines
 
@@ -137,6 +139,7 @@ struct RIGINFO
 
 	char PTTCATPort[4][10];
 	HANDLE PTTCATHandles[4];
+	int RealMux[4];		// BPQ Virtual or Real
 
 	int TSMenu;			// Menu number for ACC?USB switching on TS590S/SG
 	BOOL RIG_DEBUG;

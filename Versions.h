@@ -10,14 +10,14 @@
 
 #endif
 
-#define KVers 6,0,20,41
-#define KVerstring "6.0.20.41\0"
+#define KVers 6,0,20,74
+#define KVerstring "6.0.20.74\0"
 
 #ifdef CKernel
 
 #define Vers KVers
 #define Verstring KVerstring
-#define Datestring "August 2020"
+#define Datestring "December 2020"
 #define VerComments "G8BPQ Packet Switch (C Version)" KVerstring
 #define VerCopyright "Copyright © 2001-2020 John Wiseman G8BPQ\0"
 #define VerDesc "BPQ32 Switch\0"
@@ -115,10 +115,10 @@
 
 #ifdef CHAT
  
-#define Vers 1,0,11,1
-#define Verstring "1.0.11.1\0"
+#define Vers 1,0,11,3
+#define Verstring "1.0.11.3\0"
 #define VerComments "Chat server for G8BPQ Packet Switch\0"
-#define VerCopyright "Copyright © 2009-2019 John Wiseman G8BPQ\0"
+#define VerCopyright "Copyright © 2009-2020 John Wiseman G8BPQ\0"
 #define VerDesc "Chat server for G8BPQ's 32 Bit Switch\0"
 #define VerProduct "BPQChat"
 

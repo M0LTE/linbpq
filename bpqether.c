@@ -145,6 +145,9 @@ static size_t ExtProc(int fn, int port, PMESSAGE buff)
 
 	//	char dcall[10],scall[10];
 
+	if (PCAP ==NULL)
+		return 0;
+
 	if (PCAP->adhandle == 0)
 	{
 		// No handle. 

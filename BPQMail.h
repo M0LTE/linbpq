@@ -342,7 +342,17 @@ struct TempUserInfo
 	char LastListCommand[80];
 	char LastListParams[80];
 	int LinesSent;
+	char SendFullFrom;
+	char ListType;
+	char ListDirn;
+	char ListStatus;
+	char ListSelector;				// < > @ etc
+
+	int ListRangeStart;
+	int ListRangeEnd;
 	int LLCount;					// Number still to send in List Last N
+	int UpdateLatest;		// if set, save last listed as latest
+	
 
 };
 
@@ -554,17 +564,17 @@ struct OldMsgInfo
 
 struct MsgInfo
 {
-	char	type ;
-	char	status ;
-	int		number ;
-	int		length ;
+	char	type;
+	char	status;
+	int		number;
+	int		length;
 	int		xdatereceived;
-	char	bbsfrom[7] ;			// ? BBS we got it from ?
-	char	via[41] ;
-	char	from[7] ;
-	char	to[7] ;
-	char	bid[13] ;
-	char	title[61] ;
+	char	bbsfrom[7];			// ? BBS we got it from ?
+	char	via[41];
+	char	from[7];
+	char	to[7];
+	char	bid[13];
+	char	title[61];
 	int		nntpnum;			// Number within topic (ie Bull TO Addr) - used for nntp
 
 	UCHAR	B2Flags;
@@ -1055,7 +1065,7 @@ VOID SendPrompt(ConnectionInfo * conn, struct UserInfo * user);
 int QueueMsg(	ConnectionInfo * conn, char * msg, int len);
 VOID SendUnbuffered(int stream, char * msg, int len);
 //int GetFileList(char * Dir);
-BOOL ListMessage(struct MsgInfo * Msg, ConnectionInfo * conn, BOOL SendFullFrom);
+BOOL ListMessage(struct MsgInfo * Msg, ConnectionInfo * conn, struct TempUserInfo * Temp);
 void DoDeliveredCommand(CIRCUIT * conn, struct UserInfo * user, char * Cmd, char * Arg1, char * Context);
 void DoKillCommand(ConnectionInfo * conn, struct UserInfo * user, char * Cmd, char * Arg1, char * Context);
 void DoListCommand(ConnectionInfo * conn, struct UserInfo * user, char * Cmd, char * Arg1, BOOL Resuming);
@@ -1509,10 +1519,10 @@ extern BOOL OverrideUnsent;
 extern BOOL SendNonDeliveryMsgs;
 extern BOOL GenerateTrafficReport;
 
-extern int PR;
-extern int PUR;
-extern int PF;
-extern int PNF;
+extern double PR;
+extern double PUR;
+extern double PF;
+extern double PNF;
 extern int BF;
 extern int BNF;
 extern int NTSD;

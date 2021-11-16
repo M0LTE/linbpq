@@ -2006,6 +2006,7 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 {
 	PMSGWITHLEN buffptr;
 	MESSAGE Monframe;
+	struct HDDRWITHDIGIS MonDigis;
 
  	struct AGWINFO * AGW = TNC->AGWInfo;
 	struct AGWHEADER * RXHeader = &AGW->RXHeader;
@@ -2357,6 +2358,7 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 	case 'K':				// raw data	
 
 		memset(&Monframe, 0, sizeof(Monframe));
+		memset(&MonDigis, 0, sizeof(MonDigis));
 
 		Monframe.PORT = BPQPort[RXHeader->Port][TNC->Port];
 
@@ -2370,11 +2372,11 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 		if (TNC == 0)
 			return;
 		
-		Monframe.LENGTH = RXHeader->DataLength + 6;
+		Monframe.LENGTH = RXHeader->DataLength + (MSGHDDRLEN - 1);
 
 		memcpy(&Monframe.DEST[0], &Message[1], RXHeader->DataLength);
 
-		// Check address - may have Single bit correction activated and non-sx.25 filter off
+		// Check address - may have Single bit correction activated and non-x.25 filter off
 
 		ptr = &Monframe.ORIGIN[0];
 		n = 6;
@@ -2424,9 +2426,63 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 
 		MHCall[ConvFromAX25(&Monframe.ORIGIN[0], MHCall)] = 0;
 
-		UpdateMHEx(TNC, MHCall, ' ', 0, NULL, FALSE);
-		BPQTRACE((MESSAGE *)&Monframe, TRUE);
+		// I think we need to check if UI and if so report to nodemap
 
+		// should skip digis and report last digi but for now keep it simple
+
+		// if there are digis process them
+
+		if (Monframe.ORIGIN[6]  & 1)		// No digis
+		{
+			if (Monframe.CTL == 3)
+				UpdateMHEx(TNC, MHCall, ' ', 0, NULL, TRUE);
+			else
+				UpdateMHEx(TNC, MHCall, ' ', 0, NULL, FALSE);
+		
+			BPQTRACE((MESSAGE *)&Monframe, TRUE);
+		}
+		else
+		{
+			UCHAR * ptr1 = Monframe.DEST;
+			UCHAR * ptr2 = MonDigis.DEST;
+			int Rest = Monframe.LENGTH - (MSGHDDRLEN - 1);
+
+			MonDigis.PORT = Monframe.PORT;
+			MonDigis.LENGTH = Monframe.LENGTH;
+			MonDigis.Timestamp = Monframe.Timestamp;
+
+
+			while ((ptr1[6] & 1) == 0)		// till end of address
+			{
+				memcpy(ptr2, ptr1, 7);
+				ptr2 += 7;
+				ptr1 += 7;
+				Rest -= 7;
+			}
+
+			memcpy(ptr2, ptr1, 7);			// Copy Last
+			ptr2 += 7;
+			ptr1 += 7;
+			Rest -= 7;
+
+			// Now copy CTL PID and Data
+
+			memcpy(ptr2, ptr1, Rest);
+
+			BPQTRACE((MESSAGE *)&MonDigis, TRUE);
+
+			if (TNC->PortRecord->PORTCONTROL.PORTMHEARD)
+				MHPROC((struct PORTCONTROL *)TNC->PortRecord, (MESSAGE *)&MonDigis);
+
+//			if (ptr1[0] == 3)
+//				UpdateMHEx(TNC, MHCall, ' ', 0, NULL, TRUE);
+//			else
+//				UpdateMHEx(TNC, MHCall, ' ', 0, NULL, FALSE);
+
+
+
+		}
+		
 		return;
 
 	case 'I':
@@ -2809,22 +2865,29 @@ DigiLoop:
 	{
 		AdjMsg->CTL = 0x03;
 
-		if (RXHeader->DataKind != 'T' && strstr(Msg, "To BEACON "))
+		if (RXHeader->DataKind != 'T')
 		{
-			// Update MH with Received Beacons
+			// only report RX
 
-			char * ptr1 = strchr(Msg, ']');
-
-			if (ptr1)
+			if (strstr(Msg, "To BEACON "))
 			{
-				ptr1 += 2;						// Skip ] and cr
-				if (memcmp(ptr1, "QRA ", 4) == 0)
-				{
-					char Call[10], Loc[10] = "";
-					sscanf(&ptr1[4], "%s %s", &Call[0], &Loc[0]);
+				// Update MH with Received Beacons
 
-					UpdateMHEx(TNC, MHCall, ' ', 0, Loc, TRUE);
+				char * ptr1 = strchr(Msg, ']');
+
+				if (ptr1)
+				{
+					ptr1 += 2;						// Skip ] and cr
+					if (memcmp(ptr1, "QRA ", 4) == 0)
+					{
+						char Call[10], Loc[10] = "";
+						sscanf(&ptr1[4], "%s %s", &Call[0], &Loc[0]);
+
+						UpdateMHEx(TNC, MHCall, ' ', 0, Loc, TRUE);
+					}
 				}
+				else
+					UpdateMH(TNC, MHCall, ' ', 0);
 			}
 		}
 	}

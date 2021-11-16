@@ -102,6 +102,9 @@ VOID L2SENDINVALIDCTRL(struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * AD
 UCHAR * SETUPADDRESSES(struct _LINKTABLE * LINK, PMESSAGE Msg);
 VOID ProcessXIDCommand(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER, UCHAR CTL, UCHAR MSGFLAG);
 int CountBits(unsigned long in);
+void AttachKISSHF(struct PORTCONTROL * PORT, MESSAGE * Buffer);
+void DetachKISSHF(struct PORTCONTROL * PORT);
+void KISSHFConnected(struct PORTCONTROL * PORT, struct _LINKTABLE * LINK);
 
 extern int REALTIMETICKS;
 
@@ -380,7 +383,7 @@ TRYBBS:
 			//	THE RATHER ODD UK LICENCING RULES!
 			//  For backward compatibility only apply to appl 1
 
-			if (PORT->BBSBANNED == 0 || APPLMASK != 1)
+			if ((PORT->PERMITTEDAPPLS & APPLMASK) != 0)
 			{
 				ALIASMSG = 0;
 				
@@ -455,23 +458,60 @@ VOID MHPROC(struct PORTCONTROL * PORT, MESSAGE * Buffer)
 	int OldCount = 0;
 	char Freq[16] = "";
 	char DIGI = '*';
+	double ReportFreq = 0;
 
 	// if port has Rigcontrol associated with it, get frequency
 
-	if (PORT->RIGPort)
-	{
-		struct TNCINFO * TNC = TNCInfo[PORT->RIGPort];
+	struct TNCINFO * TNC = PORT->TNC;
 
-		if (TNC && TNC->RIG)
+	if (TNC && TNC->RIG && TNC->RIG->Valchar[0])
+	{
+		if (TNC->Hardware == H_UZ7HO)	
 		{
-			strcpy(Freq, TNC->RIG->Valchar);
-			Freq[11] = 0;
+			// See if we have Center Freq Info
+			if (TNC->AGWInfo->CenterFreq)
+			{
+				ReportFreq = atof(TNC->RIG->Valchar) + ((TNC->AGWInfo->CenterFreq * 1.0) / 1000000.0);
+			}
+#ifdef WIN32
+			else if (TNC->AGWInfo->hFreq)
+			{
+				char Centre[16];
+				double ModemFreq;
+
+				SendMessage(TNC->AGWInfo->hFreq, WM_GETTEXT, 15, (LPARAM)Centre);
+
+				ModemFreq = atof(Centre);
+
+				ReportFreq = atof(TNC->RIG->Valchar) + (ModemFreq / 1000000);
+			}
+#endif	
+			else
+				ReportFreq = atof(TNC->RIG->Valchar) + 0.0015;		// Assume 1500
+		}
+		else
+
+			// Not UZ7HO or Linux
+		
+			ReportFreq = atof(TNC->RIG->Valchar) + 0.0015;
+
+		_gcvt(ReportFreq, 9, Freq);
+	}
+	else
+	{
+		if (PORT->RIGPort)
+		{
+			struct TNCINFO * TNC = TNCInfo[PORT->RIGPort];
+
+			if (TNC && TNC->RIG)
+			{
+				strcpy(Freq, TNC->RIG->Valchar);
+				Freq[11] = 0;
+			}
 		}
 	}
-
-	
 //	if (Buffer->ORIGIN[6] & 1)
-		DIGI = 0;					// DOn't think we wnat to do this
+		DIGI = 0;					// DOn't think we want to do this
 	
 	// See if in list
 
@@ -737,8 +777,20 @@ VOID L2FORUS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buff
 		}
 	}
 
-	// OK to accept SABM or XID
+	// if KISSHF, check if attached. If so, reject. If not, attach.
 
+	if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+	{
+		struct TNCINFO * TNC = PORT->TNC;
+
+		if (TNC->PortRecord->ATTACHEDSESSIONS[0])
+		{
+			L2SENDDM(PORT, Buffer, ADJBUFFER);
+			return;
+		}
+	}
+
+	// OK to accept SABM or XID
 
 	if (CTLlessPF == XID)
 	{
@@ -969,8 +1021,11 @@ VOID L2LINKACTIVE(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 	{
 		InformPartner(LINK, NORMALCLOSE);		// SEND DISC TO OTHER END
 		CLEAROUTLINK(LINK);
-
 		L2SENDUA(PORT, Buffer, ADJBUFFER);
+
+		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+			DetachKISSHF(PORT);
+
 		return;
 	}
 
@@ -1096,6 +1151,9 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		//	Send CTEXT if connect to NODE/Port Alias, or NODE/Port Call, and FULL_CTEXT set
 		//	Dont sent to known NODEs, or appl connects 
 
+		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+			AttachKISSHF(PORT, Buffer);
+
 		L2SENDUA(PORT, Buffer, ADJBUFFER);
 		
 		if (NO_CTEXT == 1)
@@ -1190,6 +1248,9 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 		//	ACCEPT THE CONNECT, THEN INVOKE THE ALIAS
 
+		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+			AttachKISSHF(PORT, Buffer);
+
 		L2SENDUA(PORT, Buffer, ADJBUFFER);
 
 		Msg = GetBuff();
@@ -1219,6 +1280,9 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		L2SENDDM(PORT, Buffer, ADJBUFFER);
 		return;
 	}
+
+	if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+		AttachKISSHF(PORT, Buffer);
 
 	L2SENDUA(PORT, Buffer, ADJBUFFER);
 }
@@ -1646,7 +1710,10 @@ VOID L2_PROCESS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * B
 				LINK->VER1FLAG |= 1;
 
 			//	TELL PARTNER CONNECTION IS ESTABLISHED
-			
+
+			if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+				KISSHFConnected(PORT, LINK);
+
 			SENDCONNECTREPLY(LINK);
 			ReleaseBuffer(Buffer);
 			return;
@@ -1656,6 +1723,9 @@ VOID L2_PROCESS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * B
 		{
 			InformPartner(LINK, NORMALCLOSE);	// SEND DISC TO OTHER END
 			CLEAROUTLINK(LINK);
+				
+			if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+				DetachKISSHF(PORT);
 		}
 
 		//	UA, BUT NOT IN STATE 2 OR 4 - IGNORE
@@ -1679,6 +1749,9 @@ VOID L2_PROCESS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * B
 
 		InformPartner(LINK, LINKLOST);		// SEND DISC TO OTHER END
 		CLEAROUTLINK(LINK);
+	
+		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+			DetachKISSHF(PORT);
 
 		ReleaseBuffer(Buffer);
 		return;
@@ -2487,7 +2560,7 @@ VOID SDETX(struct _LINKTABLE * LINK)
 //	if (LINK->L2RESEQ_Q)
 //		return;
 	
-	if (LINK->LINKPORT->PORTNUMBER == 18)
+	if (LINK->LINKPORT->PORTNUMBER == 19)
 	{
 		int i = 0;
 	}
@@ -2888,6 +2961,10 @@ VOID L2TIMEOUT(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT)
 			//	RETRIED N2 TIMES - Give up
 
 			CONNECTFAILED(LINK);		// TELL LEVEL 4 IT FAILED
+					
+			if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+				DetachKISSHF(PORT);
+
 			CLEAROUTLINK(LINK);
 			return;
 		}

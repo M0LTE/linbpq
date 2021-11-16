@@ -949,7 +949,6 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				PutLengthinBuffer(buff, datalen);
 
 				ReleaseBuffer(buffptr);
-	
 				return (1);
 			}
 		}
@@ -1771,37 +1770,35 @@ VOID TelnetPoll(int Port)
 	int Msglen;
 	int Stream;
 
-	//	we now poll for incoming connections and data
+	//	we now poll for incoming connections 
 
+	struct timeval timeout;
+	int retval;
+	int n;
+	struct ConnectionInfo * sockptr;
+	SOCKET sock;
+	int Active = 0;
+	SOCKET maxsock;
+
+	fd_set readfd, writefd, exceptfd;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 0;				// poll
+
+	if (TCP->maxsock == 0)
+		goto nosocks;
+
+	memcpy(&readfd, &TCP->ListenSet, sizeof(fd_set));
+
+	retval = select((int)(TCP->maxsock) + 1, &readfd, NULL, NULL, &timeout);
+
+	if (retval == -1)
 	{
-		fd_set readfd, writefd, exceptfd;
-		struct timeval timeout;
-		int retval;
-		int n;
-		struct ConnectionInfo * sockptr;
-		SOCKET sock;
-		int Active = 0;
-		SOCKET maxsock;
+		retval = WSAGetLastError();
+		perror("listen select");
+	}
 
-		timeout.tv_sec = 0;
-		timeout.tv_usec = 0;				// poll
-
-		if (TCP->maxsock == 0)
-			goto nosocks;
-		
-		memcpy(&readfd, &TCP->ListenSet, sizeof(fd_set));
-
-		retval = select((int)(TCP->maxsock) + 1, &readfd, NULL, NULL, &timeout);
-
-		if (retval == -1)
-		{
-			retval = WSAGetLastError();
-			perror("listen select");
-		}
-
-		if (retval)
-		{
-		
+	if (retval)
+	{
 		n = 0;
 		while (TCP->FBBsock[n])
 		{
@@ -1818,7 +1815,7 @@ VOID TelnetPoll(int Port)
 			if (FD_ISSET(sock, &readfd))
 				Socket_Accept(TNC, sock, TCP->TCPPort);
 		}
-		
+
 		sock = TCP->TriModeSock;
 		if (sock)
 		{
@@ -1831,14 +1828,14 @@ VOID TelnetPoll(int Port)
 			if (FD_ISSET(sock, &readfd))
 				Socket_Accept(TNC, sock, TCP->TriModePort + 1);
 		}
-	
+
 		sock = TCP->Relaysock;
 		if (sock)
 		{
 			if (FD_ISSET(sock, &readfd))
 				Socket_Accept(TNC, sock, TCP->RelayPort);
 		}
-		
+
 		sock = TCP->HTTPsock;
 		if (sock)
 		{
@@ -1847,12 +1844,12 @@ VOID TelnetPoll(int Port)
 		}
 
 		n = 0;
-		
+
 		while (TCP->FBBsock6[n])
 		{
 			sock = TCP->FBBsock6[n];
 			if (FD_ISSET(sock, &readfd))
-			Socket_Accept(TNC, sock, TCP->FBBPort[n]);
+				Socket_Accept(TNC, sock, TCP->FBBPort[n]);
 			n++;
 		}
 
@@ -1862,138 +1859,137 @@ VOID TelnetPoll(int Port)
 			if (FD_ISSET(sock, &readfd))
 				Socket_Accept(TNC, sock, TCP->TCPPort);
 		}
-		
+
 		sock = TCP->Relaysock6;
 		if (sock)
 		{
 			if (FD_ISSET(sock, &readfd))
-			Socket_Accept(TNC, sock, TCP->RelayPort);
+				Socket_Accept(TNC, sock, TCP->RelayPort);
 		}
-		
+
 		sock = TCP->HTTPsock6;
 		if (sock)
 		{
 			if (FD_ISSET(sock, &readfd))
-			Socket_Accept(TNC, sock, TCP->HTTPPort);
+				Socket_Accept(TNC, sock, TCP->HTTPPort);
 		}
-		
-		}
+	}
 
-		// look for data on any active sockets
+	// look for data on any active sockets
 
-		maxsock = 0;
+	maxsock = 0;
 
-		FD_ZERO(&readfd);
-		FD_ZERO(&writefd);
-		FD_ZERO(&exceptfd);
+	FD_ZERO(&readfd);
+	FD_ZERO(&writefd);
+	FD_ZERO(&exceptfd);
 
-		for (n = 0; n <= TCP->MaxSessions; n++)
+	for (n = 0; n <= TCP->MaxSessions; n++)
+	{
+		sockptr = TNC->Streams[n].ConnectionInfo;
+
+		//	Should we use write event after a blocked write ????
+
+		if (sockptr->SocketActive)
 		{
-			sockptr = TNC->Streams[n].ConnectionInfo;
-		
-			//	Should we use write event after a blocked write ????
+//			if (sockptr->socket == 0)
+//			{
+//				Debugprintf("Active Session but zero socket");
+//				DataSocket_Disconnect(TNC, sockptr);
+//				return;
+//			}
 
-			if (sockptr->SocketActive)
+			if (TNC->Streams[n].Connecting)
 			{
-				if (sockptr->socket == 0)
-				{
-					Debugprintf("Active Session but zero socket");
-					DataSocket_Disconnect(TNC, sockptr);
-					return;
-				}
+				// look for complete or failed
 
-				if (TNC->Streams[n].Connecting)
-				{
-					// look for complete or failed
+				FD_SET(sockptr->socket, &writefd);
+				FD_SET(sockptr->socket, &exceptfd);
+			}
+			else
+			{
+				FD_SET(sockptr->socket, &readfd);
+				FD_SET(sockptr->socket, &exceptfd);
+			}
+			Active++;
+			if (sockptr->socket > maxsock)
+				maxsock = sockptr->socket;
 
-					FD_SET(sockptr->socket, &writefd);
-					FD_SET(sockptr->socket, &exceptfd);
-				}
-				else
-				{
-					FD_SET(sockptr->socket, &readfd);
-					FD_SET(sockptr->socket, &exceptfd);
-				}
-				Active++;
-				if (sockptr->socket > maxsock)
-					maxsock = sockptr->socket;
+			if (sockptr->TriModeDataSock)
+			{
+				FD_SET(sockptr->TriModeDataSock, &readfd);
+				FD_SET(sockptr->TriModeDataSock, &exceptfd);
 
-				if (sockptr->TriModeDataSock)
-				{
-					FD_SET(sockptr->TriModeDataSock, &readfd);
-					FD_SET(sockptr->TriModeDataSock, &exceptfd);
-			
-					if (sockptr->TriModeDataSock > maxsock)
-						maxsock = sockptr->TriModeDataSock;
-				}
+				if (sockptr->TriModeDataSock > maxsock)
+					maxsock = sockptr->TriModeDataSock;
 			}
 		}
+	}
 
-		if (Active)
+	if (Active)
+	{
+		retval = select((int)maxsock + 1, &readfd, &writefd, &exceptfd, &timeout);
+
+		if (retval == -1)
+		{				
+			perror("data select");
+			Debugprintf("Telnet Select Error %d Active %d", WSAGetLastError(), Active);
+
+			for (n = 0; n <= TCP->MaxSessions; n++)
+			{
+				sockptr = TNC->Streams[n].ConnectionInfo;
+				if (sockptr->SocketActive)
+					Debugprintf("Active Session %d socket %d", n, sockptr->socket);
+			}
+		}
+		else
 		{
-			retval = select((int)maxsock + 1, &readfd, &writefd, &exceptfd, &timeout);
-
-			if (retval == -1)
-			{				
-				perror("data select");
-				Debugprintf("Telnet Select Error %d Active %d", WSAGetLastError(), Active);
+			if (retval)
+			{
+				// see who has data
 
 				for (n = 0; n <= TCP->MaxSessions; n++)
 				{
 					sockptr = TNC->Streams[n].ConnectionInfo;
+
 					if (sockptr->SocketActive)
-						Debugprintf("Active Session %d socket %d", n, sockptr->socket);
-				}
-			}
-			else
-			{
-				if (retval)
-				{
-					// see who has data
-
-					for (n = 0; n <= TCP->MaxSessions; n++)
 					{
-						sockptr = TNC->Streams[n].ConnectionInfo;
-		
-						if (sockptr->SocketActive)
+						sock = sockptr->socket;
+
+						if (sockptr->TriModeDataSock)
 						{
-							sock = sockptr->socket;
-
-							if (sockptr->TriModeDataSock)
+							if (FD_ISSET(sockptr->TriModeDataSock, &readfd))
 							{
-								if (FD_ISSET(sockptr->TriModeDataSock, &readfd))
-								{
-									ProcessTriModeDataMessage(TNC, sockptr, sockptr->TriModeDataSock, &TNC->Streams[n]);
-								}
+								ProcessTriModeDataMessage(TNC, sockptr, sockptr->TriModeDataSock, &TNC->Streams[n]);
 							}
-
-							if (FD_ISSET(sock, &readfd))
-							{
-								if (sockptr->RelayMode)
-									DataSocket_ReadRelay(TNC, sockptr, sock, &TNC->Streams[n]);
-								else if (sockptr->HTTPMode)
-									DataSocket_ReadHTTP(TNC, sockptr, sock, n);
-								else if (sockptr->FBBMode)
-									DataSocket_ReadFBB(TNC, sockptr, sock, n);
-								else
-									DataSocket_Read(TNC, sockptr, sock, &TNC->Streams[n]);
-							}
-
-							if (FD_ISSET(sock, &exceptfd))
-							{
-								Debugprintf("exceptfd set");
-								Telnet_Connected(TNC, sockptr, sock, 1);
-							}
-
-							if (FD_ISSET(sock, &writefd))
-								Telnet_Connected(TNC, sockptr, sock, 0);
-
 						}
+
+						if (FD_ISSET(sock, &readfd))
+						{
+							if (sockptr->RelayMode)
+								DataSocket_ReadRelay(TNC, sockptr, sock, &TNC->Streams[n]);
+							else if (sockptr->HTTPMode)
+								DataSocket_ReadHTTP(TNC, sockptr, sock, n);
+							else if (sockptr->FBBMode)
+								DataSocket_ReadFBB(TNC, sockptr, sock, n);
+							else
+								DataSocket_Read(TNC, sockptr, sock, &TNC->Streams[n]);
+						}
+
+						if (FD_ISSET(sock, &exceptfd))
+						{
+							Debugprintf("exceptfd set");
+							Telnet_Connected(TNC, sockptr, sock, 1);
+						}
+
+						if (FD_ISSET(sock, &writefd))
+							Telnet_Connected(TNC, sockptr, sock, 0);
+
 					}
 				}
 			}
 		}
 	}
+
 
 nosocks:
 
@@ -2319,7 +2315,7 @@ nosocks:
 
 					if (_stricmp(Host, "HOST") == 0)
 					{
-						Port = atoi(P3);
+						Port = atoi(P2);
 
 						if (Port > 33 || TCP->CMDPort[Port] == 0)
 						{
@@ -2333,16 +2329,22 @@ nosocks:
 						sockptr->CMSSession = FALSE;
 						sockptr->FBBMode = FALSE;
 
-						if (P4[0] == 'K' || P5[0] == 'K')
+						if (P3[0] == 'K' || P4[0] == 'K' || P5[0] == 'K')
 						{
 							sockptr->Keepalive = TRUE;
 							sockptr->LastSendTime = REALTIMETICKS;
 						}
 
-						if (_stricmp(P4, "NOCALL") == 0 || _stricmp(P4, "NOCALL") == 0)
+						if (_stricmp(P3, "NOCALL") == 0 || _stricmp(P4, "NOCALL") == 0 || _stricmp(P5, "NOCALL") == 0)
 							sockptr->NoCallsign = TRUE;
 
-						TCPConnect(TNC, TCP, STREAM, "127.0.0.1", TCP->CMDPort[Port], FALSE);
+						if (_stricmp(P3, "TRANS") == 0 || _stricmp(P4, "TRANS") == 0 || _stricmp(P5, "TRANS") == 0)
+						{
+							sockptr->FBBMode = TRUE;
+							sockptr->NeedLF = TRUE;
+						}
+
+						TCPConnect(TNC, TCP, STREAM, "127.0.0.1", TCP->CMDPort[Port], sockptr->FBBMode);
 						ReleaseBuffer(buffptr);
 						return;
 					}
@@ -3725,7 +3727,13 @@ int DataSocket_ReadRelay(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, 
 
 		if (*MsgPtr == '.')
 			MsgPtr++;
-        
+
+		if (strlen(MsgPtr) == 0)
+		{
+			DataSocket_Disconnect(TNC, sockptr);       // Silently disconnect - should only be use dfor automatic systems
+			return 0;
+		}
+
         if (LogEnabled)
 		{
 			unsigned char work[4];
@@ -3760,7 +3768,13 @@ int DataSocket_ReadRelay(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, 
 	case 1:
 		   
 		*(LFPtr)=0;				 // remove cr
-            
+
+		if (strlen(MsgPtr) == 0)
+		{
+			DataSocket_Disconnect(TNC, sockptr);       // Silently disconnect - should only be used for automatic systems
+			return 0;
+		}
+       
         if (LogEnabled)
 		{
 			unsigned char work[4];
@@ -4523,7 +4537,8 @@ int DataSocket_Disconnect(struct TNCINFO * TNC,  struct ConnectionInfo * sockptr
 
 	if (sockptr->SocketActive)
 	{
-		closesocket(sockptr->socket);
+		if (sockptr->socket)
+			closesocket(sockptr->socket);
 
 		n = sockptr->Number;
 #ifndef LINBPQ

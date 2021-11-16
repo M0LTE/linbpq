@@ -115,7 +115,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="c:\windows\SysWOW64\Myxcopy /Y  c:\DevProgs\BPQ32\bpq32.dll c:\windows\SysWOW64\bpq32.dll &amp;&amp; &quot;C:\Program Files\7-Zip\7z.exe&quot; a  C:\DevProgs\BPQ32\bpq32.zip C:\DevProgs\BPQ32\bpq32.dll &amp;&amp; del C:\DevProgs\BPQ32\bpq32.dll "
+				CommandLine="c:\windows\System32\Myxcopy /Y  c:\DevProgs\BPQ32\bpq32.dll c:\windows\SysWOW64\bpq32.dll &amp;&amp; &quot;C:\Program Files\7-Zip\7z.exe&quot; a  C:\DevProgs\BPQ32\bpq32.zip C:\DevProgs\BPQ32\bpq32.dll &amp;&amp; del C:\DevProgs\BPQ32\bpq32.dll "
 			/>
 		</Configuration>
 		<Configuration
@@ -178,7 +178,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions=" /section:_BPQDATA,srw"
-				AdditionalDependencies="WS2_32.Lib winmm.lib DbgHelp.lib comctl32.lib setupapi.lib ..\lib\libconfig.lib"
+				AdditionalDependencies="WS2_32.Lib winmm.lib DbgHelp.lib comctl32.lib Iphlpapi.lib setupapi.lib ..\lib\libconfig.lib"
 				OutputFile="C:\DevProgs\BPQ32\bpq32.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile="..\CommonSource\bpq32.def"
@@ -218,7 +218,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="c:\windows\SysWOW64\Myxcopy /Y  c:\DevProgs\BPQ32\bpq32.dll c:\windows\SysWOW64\bpq32.dll &amp;&amp; &quot;C:\Program Files\7-Zip\7z.exe&quot; a  C:\DevProgs\BPQ32\bpq32.zip C:\DevProgs\BPQ32\bpq32.dll &amp;&amp; del C:\DevProgs\BPQ32\bpq32.dll "
+				CommandLine="c:\windows\System32\Myxcopy /Y  c:\DevProgs\BPQ32\bpq32.dll c:\windows\SysWOW64\bpq32.dll &amp;&amp; &quot;C:\Program Files\7-Zip\7z.exe&quot; a  C:\DevProgs\BPQ32\bpq32.zip C:\DevProgs\BPQ32\bpq32.dll &amp;&amp; del C:\DevProgs\BPQ32\bpq32.dll "
 			/>
 		</Configuration>
 	</Configurations>
@@ -356,6 +356,10 @@
 			</File>
 			<File
 				RelativePath="..\CommonSource\kiss.c"
+				>
+			</File>
+			<File
+				RelativePath=".\KISSHF.c"
 				>
 			</File>
 			<File

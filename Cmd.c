@@ -108,6 +108,7 @@ char RESTARTOK[] = "Restarting\r";
 char RESTARTFAILED[] = "Restart failed\r";
 
 UCHAR ARDOP[7] = {'A'+'A','R'+'R','D'+'D','O'+'O','P'+'P',' '+' '};		// ARDOP IN AX25
+UCHAR VARA[7] = {'V'+'V','A'+'A','R'+'R','A'+'A',' '+' ',' '+' '};		// VARA IN AX25
 
 int STATSTIME = 0;
 int MAXBUFFS = 0;
@@ -131,7 +132,7 @@ VOID RESET2();
 int APPL1 = 0;
 int PASSCMD = 0;
 
-#pragma pack (1)
+#pragma pack(1)
 
 struct _EXTPORTDATA DP;			// Only way I can think of to get offets to port data into cmd table
 
@@ -1987,10 +1988,14 @@ TRANSPORTENTRY * SetupNewSession(TRANSPORTENTRY * Session, char * Bufferptr)
 		NewSess++;
 	}
 
-	Bufferptr = Cmdprintf(Session, Bufferptr, "Sorry - System Tables Full\r");
-	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
-	return NULL;
+	if (Bufferptr)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Sorry - System Tables Full\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 	}
+	
+	return NULL;
+}
 
 
 VOID DoNetromConnect(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIST * Dest, BOOL Spy)
@@ -2071,6 +2076,7 @@ VOID CMDC00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 	char TextCall[10];
 	int TextCallLen;
 	char PortString[10];
+	char cmdCopy[256];
 
 #ifdef EXCLUDEBITS
 
@@ -2094,6 +2100,8 @@ VOID CMDC00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 	CONNECTPORT = 0;			// NO PORT SPECIFIED
 
 	ptr = strtok_s(CmdTail, " ", &Context);
+
+	strcpy(cmdCopy, Context);	// Save in case Telnet Connect
 
 	if (ptr == 0)
 	{
@@ -2211,7 +2219,7 @@ NoPort:
 					else
 					{	
 						
-						// Copy Appl Command to COImmand Buffer
+						// Copy Appl Command to Command Buffer
 
 						memcpy(COMMANDBUFFER, APPL->APPLCMD, 12);
 						COMMANDBUFFER[12] = 13;
@@ -2282,10 +2290,11 @@ Downlink:
 		struct _EXTPORTDATA * EXTPORT = (struct _EXTPORTDATA *)PORT;
 		int count;
 
-		// 	if Via PACTOR or WINMOR, convert to attach and call = Digi's are in AX25STRING (+7)
+		// 	if Via PACTOR ARDOP WINMOR or VARA, convert to attach and call = Digi's are in AX25STRING (+7)
 
 		if (memcmp(&axcalls[7], &WINMOR[0], 6) == 0 ||
 			memcmp(&axcalls[7], &ARDOP[0], 6) == 0 ||
+			memcmp(&axcalls[7], &VARA[0], 6) == 0 ||
 			memcmp(&axcalls[7], &PACTORCALL[0], 6) == 0)
 		{
 			char newcmd[80];
@@ -2407,23 +2416,33 @@ noFlip:
 				Buffer->PORT = count;
 				Buffer->PID = 0xf0;
 
-				TextCall[TextCallLen] = 0;
+				// if on Telnet Port convert use original cmd tail
 
-				len = sprintf(Callstring,"C %s", TextCall);
-
-				if (axcalls[7])
+				if (memcmp(EXTPORT->PORT_DLL_NAME, "TELNET", 6) == 0)
 				{
-					int digi = 7;
+					NewSess->Secure_Session = Session->Secure_Session;
+					len = sprintf(Callstring,"C %s", cmdCopy);
+				}
+				else
+				{
+					TextCall[TextCallLen] = 0;
 
-					// we have digis
+					len = sprintf(Callstring,"C %s", TextCall);
 
-					len += sprintf(&Callstring[len], " via");
-
-					while (axcalls[digi])
+					if (axcalls[7])
 					{
-						TextCall[ConvFromAX25(&axcalls[digi], TextCall)] = 0;
-						len += sprintf(&Callstring[len], " %s", TextCall);
-						digi += 7;
+						int digi = 7;
+
+						// we have digis
+
+						len += sprintf(&Callstring[len], " via");
+
+						while (axcalls[digi])
+						{
+							TextCall[ConvFromAX25(&axcalls[digi], TextCall)] = 0;
+							len += sprintf(&Callstring[len], " %s", TextCall);
+							digi += 7;
+						}
 					}
 				}
 				Callstring[len++] = 13;
@@ -2599,7 +2618,7 @@ BOOL DecodeCallString(char * Calls, BOOL * Stay, BOOL * Spy, UCHAR * AXCalls)
 
 	while (ptr && n--)
 	{
-		// NEXT FIELD = COULD BE CALLSIGN, VIA, OR S (FOR SAVE)
+		// NEXT FIELD = COULD BE CALLSIGN, VIA, OR S (FOR STAY)
 
 		if (strcmp(ptr, "S") == 0)
 			*Stay = TRUE;

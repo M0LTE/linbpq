@@ -5502,11 +5502,12 @@ VOID SendKISSData(struct TNCDATA * conn, UCHAR * txbuffer, int Len)
 
 static int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len)
 {
-	int i,txptr=0;
+	int i, txptr = 0;
 	UCHAR c;
 
-	outbuff[0]=FEND;
-	txptr=1;
+	outbuff[0] = FEND;
+	outbuff[1] = 0;
+	txptr = 2;
 
 	for (i=0;i<len;i++)
 	{

@@ -956,7 +956,29 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix TNCPORT reconnect on Linux
 //	Add SecureTelnet option to limit telnet outward connect to sysop mode sessions or Application Aliases
 //	Add option to suppress sending call to application in Telnet HOST API
-//	Add FT991A support to RigCOntrol
+//	Add FT991A support to RigControl
+//	Use background.jpg for Edit Config page
+//	Send OK response to SCS Pactor commands starting with #
+//	Resend ICOM PTT OFF command after 30 seconds
+//	Add WXCall to APRS config
+//	Fixes for AEAPactor
+//	Allow PTTMUX to use real or com0com com ports
+//	Fix monitoring with AGW Emulator
+//	Derive approx position from packets on APRS ports with a valid 6 char location
+//	Fix corruption of APRS message lists if the station table fills up.
+//	Don't accept empty username or password on Relay sessions.
+//	Fix occasional empty Nodes broadcasts
+//	Add Digis to UZ7HO Port MH list
+//	Add PERMITTEDAPPLS port param
+//	Fix WK2K Session Record Reporting for Airmail and some Pactor Modes.
+//	Fix handling AX/IP (proto 93) frames
+//	Fix possible corruption sending APRS messages
+//	Allow Telnet connected to be made using Connect command as well as Attach then Connect
+//	Fix Cancel Sysop Signin
+//	Save axip resolver info and restore on restart
+//	Add Transparent mode to Telnet Server HOST API 
+//	Fix Tracker driver if WL2KREPRRT is in main config section
+
 
 #define CKernel
 
@@ -1043,6 +1065,7 @@ void * UIARQExtInit(EXTPORTDATA * PortEntry);
 void * SerialExtInit(EXTPORTDATA * PortEntry);
 void * ARDOPExtInit(EXTPORTDATA * PortEntry);
 void * VARAExtInit(EXTPORTDATA * PortEntry);
+void * KISSHFExtInit(EXTPORTDATA * PortEntry);
 
 extern char * ConfigBuffer;	// Config Area
 VOID REMOVENODE(dest_list * DEST);
@@ -3563,6 +3586,10 @@ VOID * InitializeExtDriver(PEXTPORTDATA PORTVEC)
 	
 	if (strstr(Value, "SERIAL"))
 		return SerialExtInit;
+
+	if (strstr(Value, "KISSHF"))
+
+		return KISSHFExtInit;
 
 	ExtDriver = LoadLibrary(Value);
 

@@ -1430,6 +1430,8 @@ VOID SaveHousekeeping(struct HTTPConnectionInfo * Session, char * MsgPtr, char *
 
 		GetParam(input, "MTTime=", Temp);
 		MaintTime = atoi(Temp);
+		GetParam(input, "MTInt=", Temp);
+		MaintInterval = atoi(Temp);
 		GetParam(input, "MAXMSG=", Temp);
 		MaxMsgno = atoi(Temp);
 		GetParam(input, "BIDLife=", Temp);
@@ -1448,13 +1450,13 @@ VOID SaveHousekeeping(struct HTTPConnectionInfo * Session, char * MsgPtr, char *
 		GetCheckBox(input, "OvUnsent=", &OverrideUnsent);
 
 		GetParam(input, "PR=", Temp);
-		PR = atoi(Temp);
+		PR = atof(Temp);
 		GetParam(input, "PUR=", Temp);
-		PUR = atoi(Temp);
+		PUR = atof(Temp);
 		GetParam(input, "PF=", Temp);
-		PF = atoi(Temp);
+		PF = atof(Temp);
 		GetParam(input, "PUF=", Temp);
-		PNF = atoi(Temp);
+		PNF = atof(Temp);
 		GetParam(input, "BF=", Temp);
 		BF = atoi(Temp);
 		GetParam(input, "BUF=", Temp);
@@ -2487,7 +2489,7 @@ VOID SendHouseKeeping(char * Reply, int * ReplyLen, char * Key)
 
 		*ReplyLen = sprintf(Reply, HousekeepingTemplate, 
 			 BBSName, Key, Key, Key, Key, Key, Key, Key, Key, Key,
-			MaintTime, MaxMsgno, BidLifetime, LogAge, UserLifetime,
+			MaintTime, MaintInterval, MaxMsgno, BidLifetime, LogAge, UserLifetime,
 			(DeletetoRecycleBin) ? CHKD  : UNC,
 			(SendNonDeliveryMsgs) ? CHKD  : UNC,
 			(SuppressMaintEmail) ? CHKD  : UNC,

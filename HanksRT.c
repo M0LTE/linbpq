@@ -103,7 +103,7 @@ static int AutoColours[20] = {0, 4, 9, 11, 13, 16, 17, 42, 45, 50, 61, 64, 66, 7
 
 extern struct SEM OutputSEM;
 
-BOOL NeedINFO = TRUE;		// Send INFO Msg after 10 Secs
+int NeedINFO = 1;		// Send INFO Msg after 10 Secs
 
 
 //#undef free
@@ -3124,19 +3124,24 @@ VOID ChatTimer()
 
 	if (NeedINFO)
 	{
-		//	Send INFO to Chatmap
+		NeedINFO--;
 
-		char Msg[500];
-		int len;
-
-		NeedINFO = FALSE;
-
-		if (Position[0]) 
+		if (NeedINFO == 0)
 		{
-			len = sprintf(Msg, "INFO %s|%s|%d|\r", Position, PopupText, PopupMode);
+			//	Send INFO to Chatmap
 
-			if (len < 256)
-				Send_MON_Datagram(Msg, len);
+			char Msg[500];
+			int len;
+
+			NeedINFO = 360;						// Send Every Hour
+
+			if (Position[0]) 
+			{
+				len = sprintf(Msg, "INFO %s|%s|%d|\r", Position, PopupText, PopupMode);
+
+				if (len < 256)
+					Send_MON_Datagram(Msg, len);
+			}
 		}
 	}
 }
@@ -3832,7 +3837,7 @@ BOOL ChatInit()
 
 		NumberofChatStreams++;
 
-		SetAppl(conn->BPQStream, 3, ChatApplMask);
+		SetAppl(conn->BPQStream, 2, ChatApplMask);
 		Disconnect(conn->BPQStream);
 	}
 

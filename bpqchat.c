@@ -45,6 +45,11 @@
 // January 2019 1.0.10.2
 //	Fix errors in chat config file names and locations
 
+// 1.0.11.2
+//	Send INFO to Map every hour
+
+// 1.0.11.3
+//	Remove CMD_TO_APPL flag from Applflags
 
 
 #include "BPQChat.h"
@@ -1292,7 +1297,7 @@ Retry:
 
 		BPQSetHandle(conn->BPQStream, hWnd);
 
-		SetAppl(conn->BPQStream, 3, ChatApplMask);
+		SetAppl(conn->BPQStream, 2, ChatApplMask);
 		Disconnect(conn->BPQStream);
 	}
 

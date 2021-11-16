@@ -86,14 +86,16 @@ TODo	?Multiple Adapters
 #include "IPCode.h"
 
 #ifdef WIN32
+#include <io.h>
+#define read _read
+#define write _write
+#define close _close
 #include <iphlpapi.h>
 // Link with Iphlpapi.lib
 #pragma comment(lib, "IPHLPAPI.lib")
 #endif
 
-//#ifdef WIN32
 #include "pcap.h"
-//#endif
 
 int pcap_sendpacket(pcap_t *p, u_char *buf, int size);
 
@@ -534,7 +536,8 @@ Dll BOOL APIENTRY Init_IP()
 //#ifdef WIN32
 
 	if (Adapter[0])
-		GetPCAP();
+		if (GetPCAP() == FALSE)
+			return FALSE;
 
 	// on Windows create a NAT entry for IPADDR.
 	// on linux enable the TAP device (on Linux you can't use pcap to talk to 

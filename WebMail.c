@@ -1014,7 +1014,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 
 						WebMail->FileLen[WebMail->Files] = atoi(&ptr1[6]);
 						WebMail->FileName[WebMail->Files++] = _strdup(&ptr3[1]);
-						*(ptr2 - 1) = ' ';		// put sapce back
+						*(ptr2 - 1) = ' ';		// put space back
 					}
 				
 					ptr1 = ptr2;

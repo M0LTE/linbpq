@@ -3476,7 +3476,7 @@ int main(int argc, char *argv[])
 
 			XLookupString(&event.xkey, text, 255, &key, 0);
 
-			printf("Key %c Hex %x Code %d %x\n", text[0], text[0], key, key);
+//			printf("Key %c Hex %x Code %d %x\n", text[0], text[0], key, key);
 
 			switch(key)
 			{

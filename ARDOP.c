@@ -3097,7 +3097,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		{
 			TRANSPORTENTRY * SESS;
 			
-			// Incomming Connect
+			// Incoming Connect
 
 			TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit;		// Reset Limit
 

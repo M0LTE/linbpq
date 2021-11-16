@@ -98,6 +98,43 @@ BOOL ADIFLogEnabled = FALSE;
 
 char ADIFLogName[80] = "ADIF.adi";
 
+static char * stristr (char *ch1, char *ch2)
+{
+	char	*chN1, *chN2;
+	char	*chNdx;
+	char	*chRet = NULL;
+
+	chN1 = _strdup(ch1);
+	chN2 = _strdup(ch2);
+
+	if (chN1 && chN2)
+	{
+		chNdx = chN1;
+		while (*chNdx)
+		{
+			*chNdx = (char) tolower(*chNdx);
+			chNdx ++;
+		}
+		chNdx = chN2;
+
+		while (*chNdx)
+		{
+			*chNdx = (char) tolower(*chNdx);
+			chNdx ++;
+		}
+
+		chNdx = strstr(chN1, chN2);
+
+		if (chNdx)
+			chRet = ch1 + (chNdx - chN1);
+	}
+
+	free (chN1);
+	free (chN2);
+	return chRet;
+}
+
+
 VOID CountMessages(ADIF * ADIF)
 {
 	while (ADIF->FBBIndex)
@@ -192,7 +229,7 @@ BOOL UpdateADIFRecord(ADIF * ADIF, char * Msg, char Dirn)
 			return TRUE;
 		}
 
-		if (ADIF->LOC[0] == 0 && Msg[0] == ';' && strstr(Msg, "DE "))
+		if (ADIF->LOC[0] == 0 && Msg[0] == ';' && stristr(Msg, "DE "))
 		{
 			// Look for ; GM8BPQ-10 DE G8BPQ (IO92KX)
 

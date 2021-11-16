@@ -51,6 +51,10 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define _CRT_SECURE_NO_DEPRECATE
 
+#include "compatbits.h"
+#include <string.h>
+#include "md5.h"
+
 #ifndef WIN32
 
 #define APIENTRY
@@ -59,11 +63,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #else
 #include <windows.h>
-#define DllExport	__declspec( dllexport )
 #endif
 
-#include <string.h>
-#include "md5.h"
 
 
 /* Little-endian byte-swapping routines.  Note that these do not

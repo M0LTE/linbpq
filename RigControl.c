@@ -163,6 +163,8 @@ int NumberofPorts = 0;
 
 BOOL EndPTTCATThread = FALSE;
 
+int HAMLIBRunning = 1;
+
 struct RIGPORTINFO * PORTInfo[34] = {NULL};		// Records are Malloc'd
 
 struct RIGINFO * DLLRIG = NULL;			// Rig record for dll PTT interface (currently only for UZ7HO);
@@ -214,12 +216,15 @@ VOID Rig_PTT(struct RIGINFO * RIG, BOOL PTTState)
 		MySetWindowText(RIG->hPTT, "T");
 		RIG->WEB_PTT = 'T';
 		RIG->PTTTimer = PTTLimit;
+		RIG->repeatPTTOFFTimer = 0;				// Cancel repeated off command
 	}
 	else
 	{
 		MySetWindowText(RIG->hPTT, "");
 		RIG->WEB_PTT = ' ';
 		RIG->PTTTimer = 0;
+		if (PORT->PortType == ICOM)
+			RIG->repeatPTTOFFTimer = 300;			// set 30 second repeated off command
 	}
 
 	if (RIG->PTTMode & PTTCI_V)
@@ -1538,6 +1543,8 @@ DllExport BOOL APIENTRY Rig_Init()
 
 			RIG->WEB_PTT = ' ';
 			RIG->WEB_SCAN = ' ';
+
+
 		}
 	}
 
@@ -1563,7 +1570,7 @@ DllExport BOOL APIENTRY Rig_Init()
 		else if (PORT->PTC == 0 && _stricmp(PORT->IOBASE, "CM108") != 0)
 			OpenRigCOMMPort(PORT, PORT->IOBASE, PORT->SPEED);
 
-		if (PORT->PTTIOBASE[0])		// Using separare port for PTT?
+		if (PORT->PTTIOBASE[0])		// Using separate port for PTT?
 		{
 			if (PORT->PTTIOBASE[3] == '=')
 				PORT->hPTTDevice = OpenCOMPort(&PORT->PTTIOBASE[4], PORT->SPEED, FALSE, FALSE, FALSE, 0);
@@ -1685,6 +1692,7 @@ DllExport BOOL APIENTRY Rig_Init()
 					}
 				}
 			}
+			Rig_PTT(RIG, 0);				// Send initial PTT Off (Mainly to set input mux on soundcard rigs)
 		}
 	}
 
@@ -1704,6 +1712,8 @@ DllExport BOOL APIENTRY Rig_Close()
 	struct RIGPORTINFO * PORT;
 	struct TNCINFO * TNC;
 	int n, p;
+
+	HAMLIBRunning = 0;					// Close HAMLIB thread
 
 	for (p = 0; p < NumberofPorts; p++)
 	{
@@ -1812,6 +1822,7 @@ BOOL Rig_Poll()
 				}
 			}
 		}
+
 		if (PORT == NULL || (PORT->hDevice == 0 && PORT->PTC == 0 && PORT->remoteSock == 0))
 			continue;
 
@@ -1821,11 +1832,25 @@ BOOL Rig_Poll()
 		{
 			RIG = &PORT->Rigs[i];
 
+			// Active PTT command
+
 			if (RIG->PTTTimer)
 			{
 				RIG->PTTTimer--;
 				if (RIG->PTTTimer == 0)
 					Rig_PTT(RIG, FALSE);
+			}
+
+			// repeated off timer
+
+			if (RIG->repeatPTTOFFTimer)
+			{
+				RIG->repeatPTTOFFTimer--;
+				if (RIG->repeatPTTOFFTimer == 0)
+				{
+					Rig_PTT(RIG, FALSE);
+					RIG->repeatPTTOFFTimer = 0;			// Don't repeat repeat!
+				}
 			}
 		}
 
@@ -3825,6 +3850,9 @@ BOOL DecodeModePtr(char * Param, double * Dwell, double * Freq, char * Mode,
 	
 	ptr = strtok_s(Param, ",", &Context);
 
+	if (ptr == NULL)
+		return FALSE;
+
 	// "New" format - Dwell, Freq, Params.
 	
 	//	Each param is a 2 char pair, separated by commas
@@ -3841,6 +3869,10 @@ BOOL DecodeModePtr(char * Param, double * Dwell, double * Freq, char * Mode,
 	*Dwell = atof(ptr);
 	
 	ptr = strtok_s(NULL, ",", &Context);
+
+	if (ptr == NULL)
+		return FALSE;
+
 
 	// May be a frequency or a Memory Bank/Channel 
 
@@ -3861,7 +3893,7 @@ BOOL DecodeModePtr(char * Param, double * Dwell, double * Freq, char * Mode,
 
 	ptr = strtok_s(NULL, ",", &Context);
 
-	if (strlen(ptr) >  6)
+	if (ptr == NULL || strlen(ptr) >  8)
 		return FALSE;
 
 	// If channel, dont need mode
@@ -4440,6 +4472,9 @@ RigFound:
 			RIG->TSMenu = 69;
 	}
 
+	if (PORT->PortType == FT991A)
+		RIG->TSMenu = 72;			//Menu for Data/USB siwtching
+
 domux:	
 
 	RIG->PortNum = Port;
@@ -4686,10 +4721,18 @@ domux:
 		RIG->PollLen = 7;
 		strcpy(RIG->Poll, "FA;MD0;");
 
-		strcpy(RIG->PTTOn, "TX1;");
-		RIG->PTTOnLen = 4;
-		strcpy(RIG->PTTOff, "TX0;");
-		RIG->PTTOffLen = 4;
+		if (PTTControlsInputMUX)
+		{
+			RIG->PTTOnLen = sprintf(RIG->PTTOn, "EX0721;TX1;");    // Select USB before PTT
+			RIG->PTTOffLen = sprintf(RIG->PTTOff, "TX0;EX0720;");  // Select DATA after dropping PTT
+		}
+		else
+		{
+			strcpy(RIG->PTTOn, "TX1;");
+			RIG->PTTOnLen = 4;
+			strcpy(RIG->PTTOff, "TX0;");
+			RIG->PTTOffLen = 4;
+		}
 	}
 	else if	(PORT->PortType == NMEA)
 	{	
@@ -5524,15 +5567,19 @@ VOID PTTCATThread(struct RIGINFO *RIG)
 #define DTR 4
 	HANDLE Event;
 	HANDLE Handle[4];
+	DWORD EvtMask[4];
 	OVERLAPPED Overlapped[4];
 	char Port[32];
 	int PIndex = 0;
 	int HIndex = 0;
+	int rc;
 
 	EndPTTCATThread = FALSE;
 
 	while (PIndex < 4 && RIG->PTTCATPort[PIndex][0])
 	{
+		RIG->RealMux[HIndex] = 0;
+
 		sprintf(Port, "\\\\.\\pipe\\BPQCOM%s", RIG->PTTCATPort[PIndex]);
 
 		Handle[HIndex] = CreateFile(Port, GENERIC_READ | GENERIC_WRITE,
@@ -5541,8 +5588,27 @@ VOID PTTCATThread(struct RIGINFO *RIG)
 		if (Handle[HIndex] == (HANDLE) -1)
 		{
 			int Err = GetLastError();
+			Consoleprintf("PTTMUX port BPQCOM%s Open failed code %d", RIG->PTTCATPort[PIndex], Err);
 
-			Consoleprintf("PTTMUX port COM%s Open failed code %d", RIG->PTTCATPort[PIndex], Err);
+			// See if real com port
+
+			sprintf(Port, "\\\\.\\\\COM%s", RIG->PTTCATPort[PIndex]);
+
+			Handle[HIndex] = CreateFile(Port, GENERIC_READ | GENERIC_WRITE,
+				0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+
+			RIG->RealMux[HIndex] = 1;
+
+			if (Handle[HIndex] == (HANDLE) -1)
+			{
+				int Err = GetLastError();
+				Consoleprintf("PTTMUX port COM%s Open failed code %d", RIG->PTTCATPort[PIndex], Err);
+			}
+			else
+			{
+				rc = SetCommMask(Handle[HIndex], EV_CTS | EV_DSR);		// Request notifications
+				HIndex++;
+			}
 		}
 		else
 			HIndex++;
@@ -5558,12 +5624,24 @@ VOID PTTCATThread(struct RIGINFO *RIG)
 
 	for (i = 0; i < HIndex; i ++)
 	{
-		// Prime a read on each handle
-
 		memset(&Overlapped[i], 0, sizeof(OVERLAPPED));
 		Overlapped[i].hEvent = Event;
 
-		ReadFile(Handle[i], Block[i], 80, &Length, &Overlapped[i]);
+		if (RIG->RealMux[i])
+		{
+			// Request Interface change notifications
+
+			rc = WaitCommEvent(Handle[i], &EvtMask[i], &Overlapped[i]);
+			rc = GetLastError();
+ 
+		}
+		else
+		{
+
+			// Prime a read on each handle
+
+			ReadFile(Handle[i], Block[i], 80, &Length, &Overlapped[i]);
+		}
 	}
 		
 	while (EndPTTCATThread == FALSE)
@@ -5599,47 +5677,69 @@ WaitAgain:
 
 			if (ret)
 			{
-				ptr1 = Block[i];
-				ptr2 = Block[i];
-
-				while (Length > 0)
+				if (RIG->RealMux[i])
 				{
-					c = *(ptr1++);
-				
-					Length--;
+					// Request Interface change notifications
 
-					if (c == 0xff)
+					DWORD Mask;
+
+					GetCommModemStatus(Handle[i], &Mask);
+
+					if (Mask & MS_CTS_ON)
+						Rig_PTT(RIG, TRUE);
+					else
+						Rig_PTT(RIG, FALSE);
+
+					memset(&Overlapped[i], 0, sizeof(OVERLAPPED));
+					Overlapped[i].hEvent = Event;
+					WaitCommEvent(Handle[i], &EvtMask[i], &Overlapped[i]);
+
+				}
+				else
+				{
+
+					ptr1 = Block[i];
+					ptr2 = Block[i];
+
+					while (Length > 0)
 					{
 						c = *(ptr1++);
+
 						Length--;
-					
-						if (c == 0xff)			// ff ff means ff
+
+						if (c == 0xff)
 						{
+							c = *(ptr1++);
 							Length--;
-						}
-						else
-						{
-							// This is connection / RTS/DTR statua from other end
-							// Convert to CAT Command
 
-							if (c == CurrentState[i])
-								continue;
-
-							if (c & RTS)
-								Rig_PTT(RIG, TRUE);
+							if (c == 0xff)			// ff ff means ff
+							{
+								Length--;
+							}
 							else
-								Rig_PTT(RIG, FALSE);
+							{
+								// This is connection / RTS/DTR statua from other end
+								// Convert to CAT Command
 
-							CurrentState[i] = c;
-							continue;
+								if (c == CurrentState[i])
+									continue;
+
+								if (c & RTS)
+									Rig_PTT(RIG, TRUE);
+								else
+									Rig_PTT(RIG, FALSE);
+
+								CurrentState[i] = c;
+								continue;
+							}
 						}
 					}
-				}
-				
-				memset(&Overlapped[i], 0, sizeof(OVERLAPPED));
-				Overlapped[i].hEvent = Event;
 
-				ReadFile(Handle[i], Block[i], 80, &Length, &Overlapped[i]);
+					memset(&Overlapped[i], 0, sizeof(OVERLAPPED));
+					Overlapped[i].hEvent = Event;
+
+					ReadFile(Handle[i], Block[i], 80, &Length, &Overlapped[i]);
+				}
 			}
 		}
 	}
@@ -6230,7 +6330,7 @@ VOID HAMLIBThread(struct RIGPORTINFO * PORT)
 			if (FD_ISSET(PORT->remoteSock, &errorfs))
 			{
 Lost:	
-				sprintf(Msg, "HAMLIB Connection lost for Port %S\r\n", PORT->IOBASE);
+				sprintf(Msg, "HAMLIB Connection lost for Port %s\r\n", PORT->IOBASE);
 				WritetoConsole(Msg);
 
 				PORT->CONNECTED = FALSE;
@@ -6263,7 +6363,7 @@ void HAMLIBSlaveThread(struct RIGINFO * RIG)
 	int ret;
 	unsigned int maxsock;
 
-	while (1)
+	while (HAMLIBRunning)
 	{
 		struct HAMLIBSOCK * Entry = RIG->Sockets;
 		struct HAMLIBSOCK * Prev;
@@ -6276,7 +6376,7 @@ void HAMLIBSlaveThread(struct RIGINFO * RIG)
 	
 		maxsock = RIG->ListenSocket;
 
-		while (Entry)
+		while (Entry && HAMLIBRunning)
 		{
 			FD_SET(Entry->Sock, &readfs);
 			FD_SET(Entry->Sock, &errorfs);
