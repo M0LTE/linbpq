@@ -27,7 +27,7 @@ struct ScanEntry
 	char Antenna;
 //	char Supress;		// Dont report this one to WL2K
 	char ARDOPMode[6];
-	char VARAMode[6];
+	char VARAMode;
 	char * Cmd1;
 	int Cmd1Len;
 	char * Cmd2;
@@ -40,6 +40,17 @@ struct ScanEntry
 	int PollCmdLen;
 	char APPL[13];		// Autoconnect APPL for this Freq
 	char APPLCALL[10];	// Callsign for autoconnect application
+};
+
+struct HAMLIBSOCK 
+{
+	struct HAMLIBSOCK * Next;
+	SOCKET Sock;
+	union
+	{
+		struct sockaddr_in6 sin6;  
+		struct sockaddr_in sin;
+	};
 };
 
 struct RIGINFO
@@ -88,6 +99,7 @@ struct RIGINFO
 	#define PTTDTR		2
 	#define PTTCI_V		4
 	#define PTTCM108	8
+	#define PTTHAMLIB	16
 
 	int PTTTimer;				// PTT Timer watchdog
 
@@ -111,7 +123,9 @@ struct RIGINFO
 
 	double RigFreq;
 	char Valchar[15];			// Freq as char string
-	char CurrentBandWidth;
+	char CurrentBandWidth;		// bandwidth as character
+	int Passband;				// Filter bandwidth
+	char ModeString[16];
 
 	char PTTOn[60];
 	char PTTOff[60];
@@ -126,6 +140,12 @@ struct RIGINFO
 
 	int TSMenu;			// Menu number for ACC?USB switching on TS590S/SG
 	BOOL RIG_DEBUG;
+
+	int HAMLIBPORT;		// Port Number for HAMLIB (rigctld) Emulator
+	SOCKET ListenSocket;
+
+	struct HAMLIBSOCK * Sockets;
+
 };
 
 // PortType Equates
@@ -143,6 +163,8 @@ struct RIGINFO
 #define FT1000 11
 #define DUMMY 12
 #define FT990 13
+#define HAMLIB 14
+#define FT991A 15			// 991A is a varient of FT2000 but easier to have own type
 
 // Yease seem to have lots of variants of the same model
 
@@ -157,6 +179,7 @@ struct RIGPORTINFO
 	char IOBASE[80];
 	char PTTIOBASE[80];			// Port for Hardware PTT - may be same as control port.
 	int SPEED;
+	char * HIDDevice; 
 	struct RIGINFO Rigs[10];	// Rigs off a port
 	char * InitPtr;				// Next Command
 	int CmdSent;				// Last Command sent
@@ -187,6 +210,9 @@ struct RIGPORTINFO
 	char Line2[10];
 	char Line3[10];
 	char Line4[10];
+	int CONNECTED;					// for HAMLIB
+	int CONNECTING;
+	int Alerted;
 };
 
 

@@ -51,7 +51,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define _CRT_SECURE_NO_DEPRECATE
 
-#ifdef LINBPQ
+#ifndef WIN32
 
 #define APIENTRY
 #define DllExport
@@ -61,7 +61,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <windows.h>
 #define DllExport	__declspec( dllexport )
 #endif
-
 
 #include <string.h>
 #include "md5.h"

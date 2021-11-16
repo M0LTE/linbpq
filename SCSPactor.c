@@ -221,6 +221,9 @@ static void WriteLogLine(int Flags, char * Msg, int MsgLen)
 }
 
 
+static int DontAddPDUPLEX = 0;
+
+
 static int ProcessLine(char * buf, int Port)
 {
 	UCHAR * ptr,* p_cmd;
@@ -315,6 +318,9 @@ ConfigLine:
 		else
 		if (_memicmp(buf, "DEFAULT ROBUST", 14) == 0)
 			TNC->RobustDefault = TRUE;
+		else
+		if (_memicmp(buf, "DontAddPDUPLEX", 14) == 0)
+			DontAddPDUPLEX = TRUE;
 		else
 		if (_memicmp(buf, "FORCE ROBUST", 12) == 0)
 			TNC->ForceRobust = TNC->RobustDefault = TRUE;
@@ -812,6 +818,8 @@ void * SCSExtInit(EXTPORTDATA *  PortEntry)
 	//	The COM port number is in IOBASE
 	//
 
+	DontAddPDUPLEX = 0;
+
 	sprintf(msg,"SCS Pactor %s", PortEntry->PORTCONTROL.SerialPortName);
 	WritetoConsole(msg);
 
@@ -940,7 +948,10 @@ void * SCSExtInit(EXTPORTDATA *  PortEntry)
 	//  PDuplex must be set. The Node code relies on automatic IRS/ISS changeover
 	//	5 second duplex timer
 
-	strcat(TNC->InitScript, "STATUS 2\rPTCHN 31\rPDUPLEX 1\rPDTIMER 5\r");
+	strcat(TNC->InitScript, "STATUS 2\rPTCHN 31\rPDTIMER 5\r");
+
+	if (DontAddPDUPLEX == 0)
+		strcat(TNC->InitScript, "PDUPLEX 1\r");
 
 	sprintf(msg, "MYCALL %s\rPAC MYCALL %s\r", TNC->NodeCall, TNC->NodeCall);
 	strcat(TNC->InitScript, msg);

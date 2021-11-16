@@ -885,7 +885,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add SessionTimeLimit to HF sessions (ARDOP, SCSPactor, WINMOR, VARA)
 //	Add RADIO FREQ command to display current frequency
 
-// 6.0.20
+// 6.0.20 April 2020
 
 //	Trap and reject YAPP file transfer request.
 //	Fix possible overrun of TCP to Node Buffer
@@ -930,6 +930,33 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Set default BBS and CHAT application number and number of streams on LinBPQ
 //	Support #include in bpq32.cfg processing
 
+// Version 6.0.21 ??
+
+//	Fix occasional missing newlines in some node command reponses
+//	More 64 bit fixes
+//	Add option to stop setting PDUPLEX param in SCSPACTOR
+//	Try to fix buffer loss
+//	Remove extra space from APRS position reports
+//	Suppress VARA IAMALIVE messages
+//	Add display and control of QtSoundModem modems
+//	Only send "No CMS connection available" message if fallbacktorelay is set.
+//	Add HAMLIB backend and emulator support to RIGCONTROL
+//	Ensure all beacons are sent even with very short beacon intervals
+//	Add VARA500 WL2K Reporting Mode
+//  Fix problem with prpcessing frame collector
+//	Temporarily disable L2 and L4 collectors till I can find problem
+//	Fix possible problem with interactive RADIO commands not giving a response,
+//	Incease maximum length of NODE command responses to handle maximum length INFO message,
+//	Allow WL2KREPORT in CONFIG section of UZ7HO port config.
+//	Fix program error in processing hamlib frame
+//	Save RestartAfterFailure option for VARA
+//	Check callsign has a winlink account before sending WL2KREPORT messages
+//	Add Bandwidth control to VARA scanning
+//	Renable L2 collector
+//	Fix TNCPORT reconnect on Linux
+//	Add SecureTelnet option to limit telnet outward connect to sysop mode sessions or Application Aliases
+//	Add option to suppress sending call to application in Telnet HOST API
+//	Add FT991A support to RigCOntrol
 
 #define CKernel
 
@@ -971,7 +998,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //#define	RAWTX			  10  //IE KISS TYPE DATA
 #define	GETRAWFRAME		  11
 #define	UPDATESWITCH	  12
-#define	BPQALLOC		  13bpqether
+#define	BPQALLOC		  13
 //#define	SENDNETFRAME	  14
 #define	GETTIME			  15
 

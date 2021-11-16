@@ -130,6 +130,7 @@ UCHAR NODECALL[7] = {0x9C, 0x9E, 0x88, 0x8A, 0xA6, 0x40, 0xE0};		// 'NODES' IN A
 
 struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
 
+APPLCALLS * APPL;
 
 VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer)
 {
@@ -137,7 +138,6 @@ VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer)
 
 	MESSAGE * ADJBUFFER;
 	struct _LINKTABLE * LINK;
-	APPLCALLS * APPL;
 	UCHAR * ptr;
 	int n;
 	UCHAR CTL;
@@ -1199,10 +1199,10 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 			Msg->PID = 0xf0;
 				
-			memcpy(Msg->L2DATA, ALIASPTR, ALIASLEN);
-			Msg->L2DATA[ALIASLEN] = 13;
+			memcpy(Msg->L2DATA, APPL->APPLCMD, 12);
+			Msg->L2DATA[12] = 13;
 			
-			Msg->LENGTH = MSGHDDRLEN + ALIASLEN + 2;		// 2 for PID and CR
+			Msg->LENGTH = MSGHDDRLEN + 12 + 2;		// 2 for PID and CR
 
 			C_Q_ADD(&LINK->RX_Q, Msg);
 		}
@@ -2004,8 +2004,6 @@ VOID SDIFRM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 	NS = (CTL >> 1) & 7;		// ISOLATE RECEIVED N(S)
 	
-CheckNSLoop:
-
 	// IPOLL (sending an I(P) frame following timeout instead of RR(P))
 	// is a problem. We need to send REJ(F), but shouldn't add to collector.
 	// We also need to handle repeated I(P), so shouldn't set REJSENT in 
@@ -2027,13 +2025,19 @@ CheckNSLoop:
 		// is unlikely so say 2.5 secs ??
 
 		if (LINK->LAST_F_TIME + 25 > REALTIMETICKS)
+		{
+			ReleaseBuffer(Buffer);
 			return;
-
+		}
+	
 		SEND_RR_RESP(LINK, PFBIT);
 		LINK->LAST_F_TIME = REALTIMETICKS;
 
+		ReleaseBuffer(Buffer);
 		return;
 	}
+
+CheckNSLoop:
 
 	if (NS != LINK->LINKNR)		// EQUAL TO OUR N(R)?
 	{
@@ -2058,7 +2062,7 @@ CheckNSLoop:
 
 			goto CheckNSLoop;		// See if OK or we have another saved frame
 		}
-		
+	
 		//	BAD FRAME, SEND REJ (AFTER RESPTIME - OR WE MAY SEND LOTS!)
 
 		//	ALSO SAVE THE FRAME - NEXT TIME WE MAY GET A DIFFERENT SUBSET
@@ -2086,17 +2090,18 @@ CheckNSLoop:
 
 		if (LINK->RXFRAMES[NS])
 		{
-			// Already have a copy, so discard this one
+			// Already have a copy, so discard old and keep this
 			
-			Debugprintf ("Frame %d out of seq but already have copy - release", NS);
-			ReleaseBuffer(Buffer);
+			Debugprintf ("Frame %d out of seq but already have copy - release it", NS);
+			ReleaseBuffer(Q_REM(&LINK->RXFRAMES[NS]));
 		}
 		else
 		{
 			Debugprintf ("Frame %d out of seq - save", NS);
-			Buffer->CHAIN = 0;
-			LINK->RXFRAMES[NS] = Buffer;
 		}
+
+		Buffer->CHAIN = 0;
+		LINK->RXFRAMES[NS] = Buffer;
 		goto CheckPF;
 	}
 
@@ -2134,14 +2139,18 @@ CheckNSLoop:
 
 stayinREJ:
 
-	PROC_I_FRAME(LINK, PORT, Buffer);		// Passes on  or releases Buffer
+	PROC_I_FRAME(LINK, PORT, Buffer);		// Passes on or releases Buffer
 
 
 CheckPF:
 
 	if (LINK->Ver2point2 == 0)			// Unless using SREJ
+	{
 		if (LINK->L2FLAGS & REJSENT)
+		{
 			return;						// DONT SEND ANOTHER TILL REJ IS CANCELLED
+		}
+	}
 
 	if (CTL & PFBIT)
 	{
@@ -3227,7 +3236,6 @@ UINT RR_OR_RNR(struct _LINKTABLE * LINK)
 
 //	UP OR DOWN LINK - SEE IF SESSION IS BUSY
 
-
 	if (LINK->CIRCUITPOINTER == 0)
 		goto CHKBUFFS;				// NOT CONNECTED
 
@@ -3264,7 +3272,7 @@ CheckNSLoop2:
 
 			// NR has been updated.
 
-			// CLear REJ if we have no more saved
+			// Clear REJ if we have no more saved
 			
 			if (LINK->Ver2point2)			// Using SREJ?
 			{

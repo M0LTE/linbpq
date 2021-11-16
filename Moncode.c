@@ -197,7 +197,7 @@ KC6OAR*>ID:
 
 		Output += sprintf((char *)Output, " Port=%d\r", Port);
 
-		return strlen(buffer);
+		return (int)strlen(buffer);
 	}
 
 	n = 8;						// MAX DIGIS

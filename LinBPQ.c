@@ -739,7 +739,7 @@ int main(int argc, char * argv[])
 			strlop(BBSName, '-');
 			strlop(BBSName, ' ');
 			BBSApplNum = 1;
-			NumberofStreams = 10;
+			MaxStreams = 10;
 			SaveConfig(ConfigName);
 		}
 

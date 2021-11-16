@@ -154,8 +154,9 @@ BEGIN
                     WS_VSCROLL | WS_HSCROLL
 END
 
-102 DIALOG DISCARDABLE  0, 0, 385, 300
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+102 DIALOG DISCARDABLE  0, 0, 385, 301
+STYLE WS_POPUP | WS_CAPTION | WS_VSCROLL | WS_HSCROLL | WS_SYSMENU | 
+    WS_THICKFRAME
 CAPTION "Configuration"
 FONT 8, "System"
 BEGIN
@@ -172,7 +173,7 @@ BEGIN
     LTEXT           "The eMail Server Params configure the NNTP, SMTP and POP3 Servers, which allow  normal Internet email and News clients to get messages from, and post mesages to the BBS. If you don't want to use this, set them to zero.. ",
                     IDC_STATIC,8,52,357,27
     LTEXT           "Enable UI System activates FBB compatible UI broadcasting of Message Headers",
-                    IDC_STATIC,10,81,358,15
+                    IDC_STATIC,0,81,364,15
     LTEXT           "BBS Call",IDC_STATIC,7,105,37,12
     EDITTEXT        IDC_BBSCall,83,103,47,14,ES_UPPERCASE
     LTEXT           "SYSOP Call",IDC_STATIC,138,105,42,12
@@ -193,7 +194,7 @@ BEGIN
     LTEXT           "Send Mail For Beacons Every",IDC_STATIC,102,157,100,12
     EDITTEXT        MAILFOR_MINS,205,156,22,12,ES_UPPERCASE
     LTEXT           "Minutes",IDC_STATIC,232,157,30,12
-    PUSHBUTTON      "Config UI Ports and Digis",IDC_UICONFIG,267,155,91,13
+    PUSHBUTTON      "Config UI Ports and Digis",IDC_UICONFIG,273,155,91,13
     LTEXT           "eMail Server Params:",IDC_STATIC,7,206,135,10
     LTEXT           "NNTP Port",IDC_STATIC,7,222,39,12
     EDITTEXT        IDC_NNTPPort,47,220,29,14
@@ -203,7 +204,7 @@ BEGIN
     EDITTEXT        IDC_SMTPPort,210,220,29,14
     CONTROL         "Enable Remote Access",1009,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,249,219,91,14
-    PUSHBUTTON      "Save",IDC_BBSSAVE,159,257,50,14,BS_CENTER | BS_VCENTER
+    PUSHBUTTON      "Save",IDC_BBSSAVE,159,260,50,14,BS_CENTER | BS_VCENTER
     CONTROL         "Don't hold messages from new users",IDC_DONTHOLDNEW,
                     "Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,5,
                     189,134,12
@@ -249,7 +250,7 @@ END
 IDD_USEREDIT DIALOGEX 20, 20, 293, 281
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Edit User"
-FONT 8, "System"
+FONT 8, "System", 0, 0, 0x1
 BEGIN
     COMBOBOX        5000,7,7,57,88,CBS_SIMPLE | CBS_SORT | CBS_UPPERCASE | 
                     WS_VSCROLL | WS_TABSTOP
@@ -362,8 +363,9 @@ BEGIN
     LTEXT           "SMTP ""EHELO"" Domain",-1,10,198,80,8
 END
 
-IDD_FORWARDING DIALOG DISCARDABLE  20, 20, 457, 326
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_FORWARDING DIALOG DISCARDABLE  20, 20, 457, 327
+STYLE WS_POPUP | WS_CAPTION | WS_VSCROLL | WS_HSCROLL | WS_SYSMENU | 
+    WS_THICKFRAME
 CAPTION "Manage Forwarding"
 FONT 8, "System"
 BEGIN
@@ -1183,8 +1185,8 @@ BEGIN
 
     IDD_FORWARDING, DIALOG
     BEGIN
-        RIGHTMARGIN, 454
-        BOTTOMMARGIN, 324
+        RIGHTMARGIN, 444
+        BOTTOMMARGIN, 314
     END
 
     IDD_USERADDED_BOX, DIALOG

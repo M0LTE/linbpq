@@ -1340,7 +1340,6 @@ NOHA:
 			if ((strcmp(ATBBS, bbs->Call) == 0))			// @BBS = BBS		
 			{
 				Logprintf(LOG_BBS, conn, '?', "Routing Trace %s Matches implied AT %s", ATBBS, bbs->Call);
-
 		
 				CheckAndSend(Msg, conn, bbs);
 	
@@ -1503,7 +1502,9 @@ CheckWildCardedAT:
 
 	}
 
-	if (Count == 0)		
+	if (Count == 0)
+		goto CheckWildCardedAT;
+
 		Logprintf(LOG_BBS, conn, '?', "Routing Trace - No Match");
 
 	return Count;
@@ -1735,8 +1736,8 @@ int CheckBBSATListWildCarded(struct MsgInfo * Msg, struct BBSForwardingInfo * Fo
 	char ** Calls;
 	char * Call;
 	char * ptr;
-	size_t bestmatch = -1;
-	size_t MatchLen = 0;
+	int bestmatch = -1;				// must be signed!
+	int MatchLen = 0;
 
 	// Look for Matches on AT using Wildcarded Addresses. Only applied after all other checks fail. Intended mainly
 	// for setting a default route, but could have other uses

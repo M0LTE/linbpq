@@ -583,7 +583,7 @@ char * MsgPagetxt()
 		"function save(form)\r\n"
 		"{\r\n"
 		"	var msg\r\n"
-		"	msg = form.From.value + \"|\" + form.To.value+ \"|\" + form.BID.value+ \"|\" + form.VIA.value+ \"|\" + form.Title.value+ \"|\" + form.Type.value + \"|\" + form.Status.value +\"|\"\r\n"
+		"	msg = form.From.value + \"|\" + form.To.value+ \"|\" + form.BID.value+ \"|\" + form.EFROM.value + \"|\" + form.VIA.value+ \"|\" + form.Title.value+ \"|\" + form.Type.value + \"|\" + form.Status.value +\"|\"\r\n"
 		"	var fn = \"MsgSave?%s\";\r\n"
 		"	post(fn, msg);\r\n"
 		"}\r\n"

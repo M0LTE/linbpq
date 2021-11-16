@@ -436,6 +436,8 @@ static int ProcessLine(char * buf, int Port)
 						TNC->PTTMode = PTTDTR | PTTRTS;
 					else if (_stricmp(ptr, "CM108") == 0)
 						TNC->PTTMode = PTTCM108;
+					else if (_stricmp(ptr, "HAMLIB") == 0)
+						TNC->PTTMode = PTTHAMLIB;
 
 					ptr = strtok(NULL, " \t\n\r");
 				}
@@ -1317,7 +1319,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 		}
 
 
-		if (Scan->Bandwidth == 'N')		// Set Wide Mode
+		if (Scan->Bandwidth == 'N')		// Set Narrow Mode
 		{
 			if (TNC->WinmorCurrentMode != 500)
 			{

@@ -1810,6 +1810,8 @@ LRESULT CALLBACK MonWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	return DefMDIChildProc(hWnd, message, wParam, lParam); //Frame window calls DefFrameProc rather than DefWindowProc
 }
 
+struct ConsoleInfo * FontCinfo;
+
 
 LRESULT CALLBACK ChildWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -2055,6 +2057,12 @@ LRESULT CALLBACK ChildWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 			ToggleRestoreWindows();
 			break;
 
+		case ID_SETUP_FONT:
+
+			FontCinfo = Cinfo;
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_FONT), hWnd, FontConfigWndProc);
+			i =  GetLastError();
+			break;
 			
 		case BPQCLEAROUT:
 
@@ -4443,7 +4451,7 @@ void WriteMonitorLine(char * Msg, int MsgLen)
 	WriteFile(MonHandle ,Msg , MsgLen, &cnt, NULL);
 	WriteFile(MonHandle ,CRLF , 2, &cnt, NULL);
 }
-/*
+
 INT_PTR CALLBACK FontConfigWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 {
@@ -4518,21 +4526,21 @@ INT_PTR CALLBACK FontConfigWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 				RegCloseKey(hKey);
 			}
 
-			OutputData.CharWidth = FontWidth;
-			OutputData.FirstTime = FALSE; 
+			FontCinfo->CharWidth = FontWidth;
+			FontCinfo->FirstTime = FALSE; 
 
 			SetupRTFHddr();
 
 			Point.x = 0;
 			Point.y = 25000;					// Should be plenty for any font
 
-			SendMessage(hwndOutput, EM_SETSCROLLPOS, 0, (LPARAM) &Point);
-			OutputData.Scrolled = FALSE;
+			SendMessage(FontCinfo->hwndOutput, EM_SETSCROLLPOS, 0, (LPARAM) &Point);
+			FontCinfo->Scrolled = FALSE;
 
-			GetScrollRange(hwndOutput, SB_VERT, &Min, &Max);	// Get Actual Height
-			OutputData.RTFHeight = Max;
+			GetScrollRange(FontCinfo->hwndOutput, SB_VERT, &Min, &Max);	// Get Actual Height
+			FontCinfo->RTFHeight = Max;
 
-			DoRefresh(&OutputData);
+			DoRefresh(FontCinfo);
 			EndDialog(hDlg, LOWORD(wParam));
 
 		case IDCANCEL:
@@ -4547,7 +4555,6 @@ INT_PTR CALLBACK FontConfigWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 }
 
 
-*/
 struct ConsoleInfo * CreateChildWindow(int Stream, BOOL DuringInit)
 {
     WNDCLASS  wc;

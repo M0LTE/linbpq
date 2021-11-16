@@ -585,17 +585,15 @@ Dll BOOL APIENTRY Init_APRS()
 	int i;
 	char * DCall;
 
-#ifndef LINBPQ
+#ifdef WIN32
 	HKEY hKey=0;
 	int retCode, Vallen, Type; 
 #else
-#ifndef WIN32
 	int fd;
 	char RX_SOCK_PATH[] = "BPQAPRSrxsock";
 	char TX_SOCK_PATH[] = "BPQAPRStxsock";
 	char SharedName[256];
 	char * ptr1;
-#endif
 #endif
 	struct STATIONRECORD * Stn1, * Stn2;
 	struct APRSMESSAGE * Msg1, * Msg2;
@@ -652,7 +650,7 @@ Dll BOOL APIENTRY Init_APRS()
 				sizeof(struct APRSMESSAGE) * (MAXMESSAGES + 1) + 32;	// 32 for header
 
 
-#ifdef LINBPQ
+#ifndef WIN32
 
 	// Create a Shared Memory Object
 
@@ -726,6 +724,8 @@ Dll BOOL APIENTRY Init_APRS()
 
 #else
 
+#ifndef LINBPQ
+
 	retCode = RegOpenKeyEx (REGTREE,
                 "SOFTWARE\\G8BPQ\\BPQ32",    
                               0,
@@ -737,6 +737,8 @@ Dll BOOL APIENTRY Init_APRS()
 		Vallen = 4;
 		retCode = RegQueryValueEx(hKey, "IGateEnabled", 0, &Type, (UCHAR *)&IGateEnabled, &Vallen);
 	}
+
+#endif
 
 	// Create Memory Mapping for Station List
 
@@ -1866,6 +1868,9 @@ static int APRSProcessLine(char * buf)
 	{
 		p_value = strtok(NULL, ";\t\n\r");
 
+		if (p_value == NULL)
+			return TRUE;
+		
 		if (strlen(p_value) > 79)
 			p_value[80] = 0;
 
@@ -2412,7 +2417,7 @@ VOID SendBeacon(int toPort, char * BeaconText, BOOL SendStatus, BOOL SendSOGCOG)
 		if (SendSOGCOG | (COG != 0.0))
 			sprintf(SOGCOG, "%03.0f/%03.0f", COG, SOG);
 	
-		Len = sprintf(ISMsg, "%s>%s,TCPIP*:%c%s%c%s%c%s %s\r\n", APRSCall, APRSDest,
+		Len = sprintf(ISMsg, "%s>%s,TCPIP*:%c%s%c%s%c%s%s\r\n", APRSCall, APRSDest,
 			(APRSApplConnected) ? '=' : '!', LAT, SYMSET, LON, SYMBOL, SOGCOG, BeaconText);
 
 		ISSend(sock, ISMsg, Len, 0);
@@ -2456,10 +2461,10 @@ void SendBeaconThread(void * Param)
 	BeaconCounter = BeaconInterval * 60;
 	
 	if (ISPort && IGateEnabled)
-		Len = sprintf(Msg.L2DATA, "%c%s%c%s%c%s %s", (APRSApplConnected) ? '=' : '!',
+		Len = sprintf(Msg.L2DATA, "%c%s%c%s%c%s%s", (APRSApplConnected) ? '=' : '!',
 			LAT, SYMSET, LON, SYMBOL, SOGCOG, BeaconText);
 	else
-		Len = sprintf(Msg.L2DATA, "%c%s%c%s%c%s %s", (APRSApplConnected) ? '=' : '!',
+		Len = sprintf(Msg.L2DATA, "%c%s%c%s%c%s%s", (APRSApplConnected) ? '=' : '!',
 			LAT, SYMSET, LON, SYMBOL, SOGCOG, BeaconText);
 	
 	Msg.PID = 0xf0;
@@ -2509,10 +2514,10 @@ void SendBeaconThread(void * Param)
 			Debugprintf("Sending APRS Beacon to port %d", Port);
 
 			if (ISPort && IGateEnabled)
-		Len = sprintf(Msg.L2DATA, "%c%s%c%s%c%s %s", (APRSApplConnected) ? '=' : '!',
+		Len = sprintf(Msg.L2DATA, "%c%s%c%s%c%s%s", (APRSApplConnected) ? '=' : '!',
 			LAT, SYMSET, LON, SYMBOL, SOGCOG, BeaconText);
 			else
-		Len = sprintf(Msg.L2DATA, "%c%s%c%s%c%s %s", (APRSApplConnected) ? '=' : '!',
+		Len = sprintf(Msg.L2DATA, "%c%s%c%s%c%s%s", (APRSApplConnected) ? '=' : '!',
 			LAT, SYMSET, LON, SYMBOL, SOGCOG, BeaconText);
 			Msg.PID = 0xf0;
 			Msg.CTL = 3;
@@ -6340,6 +6345,20 @@ char * APRSLookupKey(struct APRSConnectionInfo * sockptr, char * Key, BOOL KM)
 
 		return _strdup(val);
 	}
+
+	if (strcmp(Key, "##LATLON##") == 0)
+	{
+		char val[80];
+		double Lat = sockptr->SelCall->Lat;
+		double Lon = sockptr->SelCall->Lon;
+		char NS='N', EW='E';
+
+		// 58.5, -6.2
+
+		sprintf(val,"%f, %f", Lat, Lon);
+		return _strdup(val);
+	}
+
 	if (strcmp(Key, "##STATUS_TEXT##") == 0)
 		return _strdup(stn->Status);
 	
@@ -7376,14 +7395,21 @@ VOID ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 		
 		sprintf(ack, ":%-9s:ack%s", Message->FromCall, Message->Seq);
 
-		STN = FindStationInMH(Message->ToCall);
-
-		if (STN)
-			SendAPRSMessage(ack, STN->Port);
+		if (memcmp(Message->FromCall, "SERVER   ", 9) == 0)
+		{
+			SendAPRSMessage(ack, 0);			// IS
+		}
 		else
 		{
-			SendAPRSMessage(ack, -1);			// All RF ports
-			SendAPRSMessage(ack, 0);			// IS
+			STN = FindStationInMH(Message->ToCall);
+
+			if (STN)
+				SendAPRSMessage(ack, STN->Port);
+			else
+			{
+				SendAPRSMessage(ack, -1);			// All RF ports
+				SendAPRSMessage(ack, 0);			// IS
+			}
 		}
 	}
 
@@ -7513,7 +7539,6 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 
 	APRSHEARDRECORD * MH = MHDATA;
 	int n = MAXHEARDENTRIES;
-	int len;
 	char * ptr;
 	char * Pattern, * context;
 	int Port = -1;

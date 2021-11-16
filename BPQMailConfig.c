@@ -76,39 +76,219 @@ INT_PTR CALLBACK UIDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 INT_PTR CALLBACK EditMsgTextDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 VOID SaveMAINTConfigFromDialog();
+VOID TidyWelcomeMsg(char ** pPrompt);
 
 // POP3 Password is encrypted by xor'ing it with an MD5 hash of the hostname and pop3 server name
 
 
+int ww, wh, w, h, hpos, vpos;
+int xmargin;
+int ymargin;
 
 INT_PTR CALLBACK ConfigWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	UNREFERENCED_PARAMETER(lParam);
+	RECT Rect;
+	SCROLLINFO Sinfo;
+
+	int ret;
+		
+	DLGHDR *pHdr = (DLGHDR *) GetWindowLong(hwndDlg, GWL_USERDATA);
+
 	switch (message)
 	{
 	case WM_INITDIALOG:
+
+		ShowScrollBar(hDlg, SB_BOTH, FALSE);		// Hide them till needed
 		OnTabbedDialogInit(hDlg);
+
+		// initialise scroll bars
+
+		xmargin = 6;
+		ymargin = 2 + GetSystemMetrics(SM_CYCAPTION);
+		hpos = vpos = 0;
+
 		return (INT_PTR)TRUE;
+		
+	case WM_SIZE:
+		
+		w = LOWORD(lParam);
+		h = HIWORD(lParam);
+
+		// If window is smaller than client area enable scroll bars
+
+		ret = GetWindowRect(hwndDisplay, &Rect);
+		ww = Rect.right - Rect.left;
+		wh = Rect.bottom - Rect.top;
+
+		if (ww <= w && (wh + ymargin) <= h)
+		{
+			ShowScrollBar(hDlg, SB_BOTH, FALSE);	// Hide them till needed
+			MoveWindow(hwndDisplay, xmargin, ymargin, ww, wh, TRUE);
+			hpos = vpos = 0;
+			return TRUE;
+		}
+
+		ShowScrollBar(hDlg, SB_BOTH, TRUE);	
+
+		Sinfo.cbSize = sizeof(SCROLLINFO);
+		Sinfo.fMask = SIF_ALL;
+		Sinfo.nMin = 0;
+		Sinfo.nMax = ww + xmargin;
+		Sinfo.nPage = w;
+		Sinfo.nPos = hpos;
+		SetScrollInfo(hDlg, SB_HORZ, &Sinfo, TRUE);
+
+		Sinfo.cbSize = sizeof(SCROLLINFO);
+		Sinfo.fMask = SIF_ALL;
+		Sinfo.nMin = 0;
+		Sinfo.nMax = wh + ymargin;
+		Sinfo.nPage = h;
+		Sinfo.nPos = hpos;
+		SetScrollInfo(hDlg, SB_VERT, &Sinfo, TRUE);
+
+		return TRUE;
+
+	case WM_HSCROLL:
+
+		switch (LOWORD(wParam))
+		{
+		case SB_PAGELEFT:
+
+			hpos -= 20;
+			if (hpos < 0)
+				hpos = 0;
+
+			goto UpdateHPos;
+
+		case SB_LINELEFT:
+
+			if (hpos)
+				hpos --;
+
+			goto UpdateHPos;
+
+		case SB_PAGERIGHT:
+
+			hpos += 20;
+			goto UpdateHPos;
+
+		case SB_LINERIGHT:
+
+			hpos++;
+			goto UpdateHPos;
+
+		case SB_THUMBPOSITION:
+
+			hpos = HIWORD(wParam);
+
+UpdateHPos:
+			// Need to update Scroll Bar
+
+			Sinfo.cbSize = sizeof(SCROLLINFO);
+			Sinfo.fMask = SIF_ALL;
+			Sinfo.nMin = 0;
+			Sinfo.nMax = ww + xmargin;
+			Sinfo.nPage = w;
+			Sinfo.nPos = hpos;
+			SetScrollInfo(hDlg, SB_HORZ, &Sinfo, TRUE);
+
+			// Move Client Window
+
+			MoveWindow(hwndDisplay, xmargin - hpos , ymargin - vpos , ww, wh, TRUE);
+			return TRUE;
+		}
+
+		return TRUE;
+
+		
+	case WM_VSCROLL:
+
+		switch (LOWORD(wParam))
+		{
+		case SB_PAGEUP:
+
+			vpos -= 20;
+			if (vpos < 0)
+				vpos = 0;
+
+			goto UpdateVPos;
+
+		case SB_LINEUP:
+
+			if (vpos)
+				vpos --;
+
+			goto UpdateVPos;
+
+		case SB_PAGEDOWN:
+
+			vpos += 20;
+			goto UpdateVPos;
+
+		case SB_LINEDOWN:
+
+			vpos++;
+			goto UpdateVPos;
+
+		case SB_THUMBPOSITION:
+
+			vpos = HIWORD(wParam);
+
+UpdateVPos:
+			// Need to update Scroll Bar
+
+			Sinfo.cbSize = sizeof(SCROLLINFO);
+			Sinfo.fMask = SIF_ALL;
+			Sinfo.nMin = 0;
+			Sinfo.nMax = wh + ymargin;
+			Sinfo.nPage = h;
+			Sinfo.nPos = vpos;
+			SetScrollInfo(hDlg, SB_VERT, &Sinfo, TRUE);
+
+			// Move Client Window
+
+			MoveWindow(hwndDisplay, xmargin - hpos , ymargin - vpos , ww, wh, TRUE);
+			return TRUE;
+		}
+
+		return TRUE;
+
 
 	case WM_NOTIFY:
 
-        switch (((LPNMHDR)lParam)->code)
-        {
+		switch (((LPNMHDR)lParam)->code)
+		{
 		case TCN_SELCHANGE:
-			 OnSelChanged(hDlg);
-				 return TRUE;
-         // More cases on WM_NOTIFY switch.
+
+			OnSelChanged(hDlg);
+
+			// Check if scroll now needed
+
+			ret = GetWindowRect(hwndDisplay, &Rect);
+			ww = Rect.right - Rect.left;
+			wh = Rect.bottom - Rect.top;
+
+			if (ww <= w && (wh + 27) <= h)
+			{
+				ShowScrollBar(hDlg, SB_BOTH, FALSE);	// Hide them till needed
+				return TRUE;
+			}
+
+			ShowScrollBar(hDlg, SB_BOTH, TRUE);	
+
+			return TRUE;
+			// More cases on WM_NOTIFY switch.
 		case NM_CHAR:
 			return TRUE;
-        }
+		}
 
-       break;
+		break;
 
 	case WM_CTLCOLORDLG:
 
-        return (LONG)bgBrush;
+		return (LONG)bgBrush;
 
-    case WM_CTLCOLORSTATIC:
+	case WM_CTLCOLORSTATIC:
     {
         HDC hdcStatic = (HDC)wParam;
 		SetTextColor(hdcStatic, RGB(0, 0, 0));
@@ -1462,6 +1642,8 @@ VOID Do_Save_Msg(HWND hDlg)
 	GetDlgItemText(hDlg, 6003, Msg->to, 7);
 	GetDlgItemText(hDlg, 6004, Msg->via, 41);
 	GetDlgItemText(hDlg, 6005, Msg->title, 61);
+	GetDlgItemText(hDlg, EMAILFROM, Msg->emailfrom, 41);
+
 
 	GetDlgItemText(hDlg, IDC_MSGTYPE, status, 2);
 	Msg->type = status[0];
@@ -1838,6 +2020,17 @@ VOID SaveWelcomeMsgs()
 	if (SignoffMsg[0])
 		if (SignoffMsg[strlen(SignoffMsg) - 1] != 13)
 			strcat(SignoffMsg, "\r");
+
+	TidyWelcomeMsg(&WelcomeMsg);
+	TidyWelcomeMsg(&NewWelcomeMsg);
+	TidyWelcomeMsg(&ExpertWelcomeMsg);
+
+		// redisplay, in case tidy has changed them
+
+	SetDlgItemText(hwndDisplay, IDM_USERMSG, WelcomeMsg);
+	SetDlgItemText(hwndDisplay, IDM_NEWUSERMSG, NewWelcomeMsg);
+	SetDlgItemText(hwndDisplay, IDM_EXPERTUSERMSG, ExpertWelcomeMsg);
+
 
 	SaveConfig(ConfigName);
 	GetConfig(ConfigName);
@@ -2968,11 +3161,15 @@ INT_PTR CALLBACK HRHelpProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 
 #include <htmlhelp.h>
 
+int scrolledx; scrolledy;
 
 INT_PTR CALLBACK FwdEditDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	int Command;
 	struct UserInfo * user;
+	RECT Rect;
+	SCROLLINFO Sinfo;
+	int deltax, deltay;
 
 	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
@@ -3014,7 +3211,150 @@ INT_PTR CALLBACK FwdEditDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 
 		CurrentBBS = NULL;
 
+		ww = 0;
+		wh = 0;
+
+		ShowScrollBar(hDlg, SB_BOTH, FALSE);		// Hide them till needed
+
+		xmargin = 6;
+		ymargin = 2 + GetSystemMetrics(SM_CYCAPTION);
+		scrolledx = scrolledy = 0;
+
+		GetWindowRect(hDlg, &Rect);
+		ww = Rect.right - Rect.left;
+		wh = Rect.bottom - Rect.top;
+
 		return (INT_PTR)TRUE;
+		
+	case WM_SIZE:
+		
+		w = LOWORD(lParam);
+		h = HIWORD(lParam);
+
+		// If window is smaller than client area enable scroll bars
+
+		if (w >= ww && (h + ymargin) >= wh)
+		{
+			ShowScrollBar(hDlg, SB_BOTH, FALSE);	// Hide them till needed
+//			MoveWindow(hwndDisplay, xmargin, ymargin, ww, wh, TRUE);
+			ScrollWindow(hDlg, scrolledx, scrolledy, 0, 0);
+			scrolledx = scrolledy = 0;
+			return TRUE;
+		}
+
+		ShowScrollBar(hDlg, SB_BOTH, TRUE);	
+
+		Sinfo.cbSize = sizeof(SCROLLINFO);
+		Sinfo.fMask = SIF_ALL;
+		Sinfo.nMin = 0;
+		Sinfo.nMax = ww + xmargin;
+		Sinfo.nPage = w;
+		Sinfo.nPos = hpos;
+		SetScrollInfo(hDlg, SB_HORZ, &Sinfo, TRUE);
+
+		Sinfo.cbSize = sizeof(SCROLLINFO);
+		Sinfo.fMask = SIF_ALL;
+		Sinfo.nMin = 0;
+		Sinfo.nMax = wh + ymargin;
+		Sinfo.nPage = h;
+		Sinfo.nPos = hpos;
+		SetScrollInfo(hDlg, SB_VERT, &Sinfo, TRUE);
+		
+		return TRUE;
+
+	case WM_HSCROLL:
+
+		switch (LOWORD(wParam))
+		{
+		case SB_PAGELEFT:
+
+			goto UpdateHPos;
+
+		case SB_LINELEFT:
+
+			goto UpdateHPos;
+
+		case SB_PAGERIGHT:
+
+			goto UpdateHPos;
+
+		case SB_LINERIGHT:
+
+			hpos++;
+			goto UpdateHPos;
+
+		case SB_THUMBPOSITION:
+
+			deltax = hpos - HIWORD(wParam);
+			
+			ScrollWindow(hDlg, deltax, 0, 0, 0);
+			scrolledx -= deltax;
+
+			hpos = hpos -= deltax;
+
+UpdateHPos:
+			// Need to update Scroll Bar
+
+			Sinfo.cbSize = sizeof(SCROLLINFO);
+			Sinfo.fMask = SIF_ALL;
+			Sinfo.nMin = 0;
+			Sinfo.nMax = ww + xmargin;
+			Sinfo.nPage = w;
+			Sinfo.nPos = hpos;
+			SetScrollInfo(hDlg, SB_HORZ, &Sinfo, TRUE);
+
+			// Move Client Window
+
+			return TRUE;
+		}
+
+		return TRUE;
+
+		
+	case WM_VSCROLL:
+
+		switch (LOWORD(wParam))
+		{
+		case SB_PAGEUP:
+
+			goto UpdateVPos;
+
+		case SB_LINEUP:
+
+			goto UpdateVPos;
+
+		case SB_PAGEDOWN:
+
+			goto UpdateVPos;
+
+		case SB_LINEDOWN:
+
+			goto UpdateVPos;
+
+		case SB_THUMBPOSITION:
+
+			deltay = vpos - HIWORD(wParam);
+			
+			ScrollWindow(hDlg,0,  deltay, 0, 0);
+			scrolledy -= deltay;
+
+			vpos = vpos -= deltay;
+
+UpdateVPos:
+			// Need to update Scroll Bar
+
+			Sinfo.cbSize = sizeof(SCROLLINFO);
+			Sinfo.fMask = SIF_ALL;
+			Sinfo.nMin = 0;
+			Sinfo.nMax = wh + ymargin;
+			Sinfo.nPage = h;
+			Sinfo.nPos = vpos;
+			SetScrollInfo(hDlg, SB_VERT, &Sinfo, TRUE);
+			return TRUE;
+		}
+
+		return TRUE;
+
 
 
 	case WM_CTLCOLORDLG:

@@ -533,6 +533,22 @@ VOID DoFwdCmd(CIRCUIT * conn, struct UserInfo * user, char * Arg1, char * Contex
 		struct UserInfo * xuser;
 		int Msgs;
 
+		if (Context && Context[0])
+		{
+			// a bbs name - list all messages queued to it
+
+			strlop(Context, '\r');
+
+			xuser = FindBBS(_strupr(Context));
+
+			if (xuser)
+			{
+				ListMessagestoForward(conn, xuser);
+				SendPrompt(conn, user);
+				return;
+			}
+		}
+
 		for (xuser = BBSChain; xuser; xuser = xuser->BBSNext)
 		{
 			Msgs = CountMessagestoForward(xuser);

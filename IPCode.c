@@ -1163,6 +1163,8 @@ BOOL Send_ETH(VOID * Block, DWORD len, BOOL SendtoTAP)
 {
 	// On Windows we don't use TAP so everything goes to pcap
 
+	if (len < 60) len = 60;
+
 #ifndef WIN32
 	if (SendtoTAP)
 	{
@@ -1177,8 +1179,6 @@ BOOL Send_ETH(VOID * Block, DWORD len, BOOL SendtoTAP)
 
 	if (adhandle)
 	{
-//		if (len < 60) len = 60;
-
 		// Send down the packet 
 
 		pcap_sendpacketx(adhandle,	// Adapter
@@ -1575,7 +1575,7 @@ AlreadyThere:
 //			Debugprintf("Forus ARP Reply for %08x Targ %08x HNAT %08x\n",
 //				arpptr->SENDIPADDR, arpptr->TARGETIPADDR, HostNATAddr);
 
-			Send_ETH(arpptr,42, FromTAP);
+			Send_ETH(arpptr,60, FromTAP);
 
 			return;
 		}

@@ -2,7 +2,7 @@
 // Common definitons for Pactor-like Modules
 
 #include "kernelresource.h"
-#include "RigControl.h"
+#include "rigcontrol.h"
 
 #define MAXBLOCK 4096
 
@@ -158,6 +158,8 @@ struct TCPINFO
 	HMENU hDisMenu;					// Disconnect Menu Handle
 	HWND hCMSWnd;
 
+	int SecureTelnet;
+
 };
 
 
@@ -246,8 +248,12 @@ typedef struct AGWINFO
 
 #endif
 
+	int isQTSM;					// Flag to Identify QtSM
+
 	int CenterFreq;
 	int Modem;					// Modem number in list 
+	char ModemName[20];	
+	unsigned char Version[4];
 
 } *PAGWINFO;
 

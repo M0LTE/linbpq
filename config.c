@@ -509,6 +509,7 @@ BOOL ProcessConfig()
 
 	paramok[6]=1;          /* dont need BUFFERS */
 	paramok[8]=1;          /* dont need TRANSDELAY */
+	paramok[13]=1;			// NodeAlias 
 	paramok[17]=1;          /* dont need TNCPORTS */
 	paramok[20]=1;         // Or ROUTES
 

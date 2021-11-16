@@ -630,7 +630,7 @@ VOID Renumber_Messages()
 
 		NewNumber[Msg->number] = ++i;		// Save so we can update users' last listed count
 
-		// New will always be >= old unless somethnig hasgon horribly wrong,
+		// New will always be >= old unless something has gone horribly wrong,
 		// so can rename in place without risk of losing a message
 
 		if (Msg->number < i)
