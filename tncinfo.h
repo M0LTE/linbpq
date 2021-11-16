@@ -3,7 +3,7 @@
 
 #include "kernelresource.h"
 
-#include "rigcontrol.h"
+#include "RigControl.h"
 
 #define MAXBLOCK 4096
 
