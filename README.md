@@ -33,8 +33,8 @@ chmod +x linbpq
 sudo setcap "CAP_NET_ADMIN=ep CAP_NET_RAW=ep CAP_NET_BIND_SERVICE=ep" linbpq
 cp chatconfig.cfg.sample chatconfig.cfg
 cp linmail.cfg.sample linmail.cfg
-cp bpq32.cfg.sample bpq32.cfg
+cp linbpq.cfg.sample linbpq.cfg
 ```
 
-edit linbpq.cfg, chatconfig.cfg and  to suit
+edit linbpq.cfg, chatconfig.cfg and linmail.cfg to suit
 run with `./linbpq`
