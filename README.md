@@ -60,5 +60,6 @@ or
 
 ```
 chmod +x install.sh
-sudo -s ./install.sh
+sudo ln -s ~/linbpq /usr/src/
+sudo /usr/src/linbpq/install.sh
 ```
