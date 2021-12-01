@@ -1,0 +1,10 @@
+[Unit]
+Description=linbpq
+
+[Service]
+WorkingDirectory=/usr/local/bin/linbpq
+ExecStart=/usr/local/bin/linbpq/linbpq
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

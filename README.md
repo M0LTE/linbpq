@@ -38,3 +38,20 @@ cp bpq32.cfg.sample bpq32.cfg
 
 edit linbpq.cfg, chatconfig.cfg and linmail.cfg to suit
 run with `./linbpq`
+
+# Startup
+Here's how I'm trying out handling startup at boot:
+```
+sudo ln -s ~/linbpq /usr/local/bin/linbpq
+sudo ln -s /usr/local/bin/linbpq/linbpq.service /etc/systemd/system/linbpq.service
+sudo systemctl daemon-reload
+sudo systemctl enable linbpq.service
+sudo systemctl start linbpq.service
+```
+
+or
+
+```
+chmod +x install.sh
+sudo ./install.sh
+```
