@@ -23,11 +23,13 @@ sudo apt install git build-essential libminiupnpc-dev libconfig-dev libpcap-dev
 
 ## Fetch
 ```
+cd ~
 git clone https://github.com/M0LTE/linbpq.git
 ```
 
 ## Build
 ```
+cd linbpq
 make
 ```
 ... yep, that's it
@@ -41,7 +43,7 @@ cp linmail.cfg.sample linmail.cfg
 cp bpq32.cfg.sample bpq32.cfg
 ```
 
-edit linbpq.cfg, chatconfig.cfg and linmail.cfg to suit
+edit bpq32.cfg, chatconfig.cfg and linmail.cfg to suit
 run with `./linbpq`
 
 # Startup
