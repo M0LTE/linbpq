@@ -8,3 +8,7 @@ output.map
 chatconfig.cfg.bak
 logLatest_BBS.txt
 logs
+BPQNODES.dat
+chatconfig.cfg.bak.*
+linmail.cfg.bak
+linmail.cfg.bak.*
