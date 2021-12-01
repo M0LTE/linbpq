@@ -43,7 +43,7 @@ cp linmail.cfg.sample linmail.cfg
 cp bpq32.cfg.sample bpq32.cfg
 ```
 
-edit linbpq.cfg, chatconfig.cfg and linmail.cfg to suit
+edit bpq32.cfg, chatconfig.cfg and linmail.cfg to suit
 run with `./linbpq`
 
 # Startup
