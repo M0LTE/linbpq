@@ -1,3 +1,7 @@
 linmail.cfg
 bpq32.cfg
 chatconfig.cfg
+*.o
+*.d
+linbpq
+output.map
