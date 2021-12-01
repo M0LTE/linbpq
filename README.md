@@ -18,7 +18,12 @@ Raspberry Pi 3B
 ## Dependencies
 
 ```
-sudo apt install libminiupnpc-dev libconfig-dev libpcap-dev
+sudo apt install git build-essential libminiupnpc-dev libconfig-dev libpcap-dev
+```
+
+## Fetch
+```
+git clone https://github.com/M0LTE/linbpq.git
 ```
 
 ## Build
