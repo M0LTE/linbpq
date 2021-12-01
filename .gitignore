@@ -5,3 +5,6 @@ chatconfig.cfg
 *.d
 linbpq
 output.map
+chatconfig.cfg.bak
+logLatest_BBS.txt
+logs
