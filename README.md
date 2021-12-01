@@ -60,5 +60,5 @@ or
 
 ```
 chmod +x install.sh
-sudo ./install.sh
+sudo -s ./install.sh
 ```
