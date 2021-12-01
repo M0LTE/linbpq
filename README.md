@@ -23,11 +23,13 @@ sudo apt install git build-essential libminiupnpc-dev libconfig-dev libpcap-dev
 
 ## Fetch
 ```
+cd ~
 git clone https://github.com/M0LTE/linbpq.git
 ```
 
 ## Build
 ```
+cd linbpq
 make
 ```
 ... yep, that's it
