@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A1B2C3D4-E5F6-7890-1234-567890ABCDEF}</ProjectGuid>
+    <Keyword>MakeFileProj</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <NMakeBuildCommandLine>wsl make</NMakeBuildCommandLine>
+    <NMakeCleanCommandLine>wsl make clean</NMakeCleanCommandLine>
+    <NMakeReBuildCommandLine>wsl make clean &amp;&amp; wsl make</NMakeReBuildCommandLine>
+    <NMakeOutput>linbpq</NMakeOutput>
+    <NMakeIncludeSearchPath>$(ProjectDir)</NMakeIncludeSearchPath>
+    <NMakePreprocessorDefinitions>LINBPQ;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <!-- Source Files from makefile -->
+  <ItemGroup>
+    <ClCompile Include="APRSCode.c" />
+    <ClCompile Include="APRSIconData.c" />
+    <ClCompile Include="APRSStdPages.c" />
+    <ClCompile Include="ARDOP.c" />
+    <ClCompile Include="AEAPactor.c" />
+    <ClCompile Include="AGWAPI.c" />
+    <ClCompile Include="AGWMoncode.c" />
+    <ClCompile Include="AISCommon.c" />
+    <ClCompile Include="Alloc.c" />
+    <ClCompile Include="BBSHTMLConfig.c" />
+    <ClCompile Include="BBSUtilities.c" />
+    <ClCompile Include="BPQINP3.c" />
+    <ClCompile Include="BPQNRR.c" />
+    <ClCompile Include="BPQtoAGW.c" />
+    <ClCompile Include="ChatHTMLConfig.c" />
+    <ClCompile Include="CMSAuth.c" />
+    <ClCompile Include="Cmd.c" />
+    <ClCompile Include="CommonCode.c" />
+    <ClCompile Include="DRATS.c" />
+    <ClCompile Include="Events.c" />
+    <ClCompile Include="FBBRoutines.c" />
+    <ClCompile Include="FLDigi.c" />
+    <ClCompile Include="FreeDATA.c" />
+    <ClCompile Include="HALDriver.c" />
+    <ClCompile Include="HFCommon.c" />
+    <ClCompile Include="HSMODEM.c" />
+    <ClCompile Include="HTMLCommonCode.c" />
+    <ClCompile Include="HTTPcode.c" />
+    <ClCompile Include="HanksRT.c" />
+    <ClCompile Include="Housekeeping.c" />
+    <ClCompile Include="IPCode.c" />
+    <ClCompile Include="KAMPactor.c" />
+    <ClCompile Include="KISSHF.c" />
+    <ClCompile Include="L2Code.c" />
+    <ClCompile Include="L3Code.c" />
+    <ClCompile Include="L4Code.c" />
+    <ClCompile Include="LinBPQ.c" />
+    <ClCompile Include="LzFind.c" />
+    <ClCompile Include="LzmaDec.c" />
+    <ClCompile Include="LzmaEnc.c" />
+    <ClCompile Include="LzmaLib.c" />
+    <ClCompile Include="MULTIPSK.c" />
+    <ClCompile Include="MBLRoutines.c" />
+    <ClCompile Include="MailCommands.c" />
+    <ClCompile Include="MailDataDefs.c" />
+    <ClCompile Include="MailRouting.c" />
+    <ClCompile Include="MailTCP.c" />
+    <ClCompile Include="Moncode.c" />
+    <ClCompile Include="Multicast.c" />
+    <ClCompile Include="NETROMTCP.c" />
+    <ClCompile Include="NNTPRoutines.c" />
+    <ClCompile Include="RHP.c" />
+    <ClCompile Include="RigControl.c" />
+    <ClCompile Include="SCSPactor.c" />
+    <ClCompile Include="SCSTracker.c" />
+    <ClCompile Include="SCSTrackeMulti.c" />
+    <ClCompile Include="SerialPort.c" />
+    <ClCompile Include="TNCCode.c" />
+    <ClCompile Include="TNCEmulators.c" />
+    <ClCompile Include="TelnetV6.c" />
+    <ClCompile Include="UIRoutines.c" />
+    <ClCompile Include="UZ7HODrv.c" />
+    <ClCompile Include="VARA.c" />
+    <ClCompile Include="WINMOR.c" />
+    <ClCompile Include="WPRoutines.c" />
+    <ClCompile Include="WebMail.c" />
+    <ClCompile Include="WinRPR.c" />
+    <ClCompile Include="adif.c" />
+    <ClCompile Include="base64.c" />
+    <ClCompile Include="bpqaxip.c" />
+    <ClCompile Include="bpqhdlc.c" />
+    <ClCompile Include="cMain.c" />
+    <ClCompile Include="compatbits.c" />
+    <ClCompile Include="config.c" />
+    <ClCompile Include="datadefs.c" />
+    <ClCompile Include="kiss.c" />
+    <ClCompile Include="linether.c" />
+    <ClCompile Include="lzhuf32.c" />
+    <ClCompile Include="mailapi.c" />
+    <ClCompile Include="md5.c" />
+    <ClCompile Include="mqtt.c" />
+    <ClCompile Include="nodeapi.c" />
+    <ClCompile Include="png.c" />
+    <ClCompile Include="pngerror.c" />
+    <ClCompile Include="pngget.c" />
+    <ClCompile Include="pngmem.c" />
+    <ClCompile Include="pngread.c" />
+    <ClCompile Include="pngrio.c" />
+    <ClCompile Include="pngrtran.c" />
+    <ClCompile Include="pngrutil.c" />
+    <ClCompile Include="pngset.c" />
+    <ClCompile Include="pngtrans.c" />
+    <ClCompile Include="pngwio.c" />
+    <ClCompile Include="pngwrite.c" />
+    <ClCompile Include="pngwtran.c" />
+    <ClCompile Include="pngwutil.c" />
+    <ClCompile Include="upnp.c" />
+    <ClCompile Include="utf8Routines.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

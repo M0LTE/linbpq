@@ -1,0 +1,40 @@
+/.vs
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Dependency files
+*.d
+
+# Linker output
+*.map
+output.map
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+linbpq.bin
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Core dumps
+core
+
+# Editor backup files
+*~
+*.swp
+*.swo
+.DS_Store
+*.user
+*.log
