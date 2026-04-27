@@ -184,12 +184,18 @@ coverage further:
 
 Still deferred:
 
-- **Connection commands** (`CONNECT` / `C` / `NC` / `ATTACH`): the
-  downlink form (`C <port> <call>`) is now exercised by Phase 6's
-  two-instance topology test (`test_downlink_connect_to_peer`).
-  ATTACH (Pactor / VARA / Telnet stream attach) and the L4-uplink
-  form of CONNECT (`C <call>` via NODES) still require additional
-  setup.
+- **Connection commands**: the downlink form is fully covered now —
+  `C <port> <call>`, `CONNECT <port> <call>`, and `NC <port> <call>`
+  all exercised on Phase 6's two-instance topology, plus
+  `BYE`-from-peer drops the cross-link and returns to the local node
+  prompt.  Still deferred: `ATTACH` (Pactor / VARA / Telnet stream
+  attach — needs an externally-set-up stream) and the **L4-uplink
+  form of CONNECT** (`C <call>` with no port, route via NODES).
+  Empirically, `SENDNODES` between two AX/IP-UDP-linked instances
+  doesn't seem to actually propagate the NODES table within a
+  reasonable test window — needs deeper investigation, likely an
+  issue around AX/IP carrying NETROM frames or NODES-broadcast
+  prerequisites we haven't met.
 - **`APRS`, `WL2KSYSOP`, `RHP`, `QTSM`, `RADIO`, `UZ7HO`**: each needs
   its own subsystem configured.
 - **`NAT`, `AXRESOLVER`, `AXMHEARD`**: BPQ IP-gateway feature.

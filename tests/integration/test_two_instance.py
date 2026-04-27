@@ -143,3 +143,55 @@ def test_downlink_connect_to_peer(two_instances):
     assert b"Ports" in peer_response, (
         f"PORTS via remote session didn't return list: {peer_response!r}"
     )
+
+
+def test_connect_long_form_to_peer(two_instances):
+    """Full-word ``CONNECT 2 N0BBB`` is accepted alongside the short ``C``."""
+    a, _ = two_instances
+    with TelnetClient("127.0.0.1", a.telnet_port, timeout=15) as client:
+        client.login("test", "test")
+        client.write_line("CONNECT 2 N0BBB")
+        response = client.read_until(b"Connected to N0BBB", timeout=10)
+    assert b"Connected to N0BBB" in response
+
+
+def test_nc_alias_to_peer(two_instances):
+    """``NC 2 N0BBB`` — alternative entry point for CONNECT — reaches B."""
+    a, _ = two_instances
+    with TelnetClient("127.0.0.1", a.telnet_port, timeout=15) as client:
+        client.login("test", "test")
+        client.write_line("NC 2 N0BBB")
+        response = client.read_until(b"Connected to N0BBB", timeout=10)
+    assert b"Connected to N0BBB" in response
+
+
+def test_bye_from_peer_returns_to_local_node(two_instances):
+    """After connecting to B, ``BYE`` drops the cross-link and returns
+    the user to A's node prompt — verified by running a command and
+    seeing A's prompt token, not B's."""
+    a, _ = two_instances
+    with TelnetClient("127.0.0.1", a.telnet_port, timeout=15) as client:
+        client.login("test", "test")
+        client.write_line("C 2 N0BBB")
+        client.read_until(b"Connected to N0BBB", timeout=10)
+
+        # Run a command on B to confirm we're cross-linked.
+        client.write_line("INFO")
+        peer_data = client.read_idle(idle_timeout=1.5, max_total=4.0)
+        assert b"BBB:N0BBB}" in peer_data, (
+            f"expected B's prompt before BYE, got {peer_data!r}"
+        )
+
+        # BYE the remote session.
+        client.write_line("BYE")
+        client.read_until(b"Disconnected", timeout=10)
+
+        # Now run a command and assert it lands at A's prompt, not B's.
+        client.write_line("PORTS")
+        local_data = client.read_idle(idle_timeout=1.5, max_total=4.0)
+    assert b"AAA:N0AAA}" in local_data, (
+        f"after BYE expected A's prompt; got {local_data!r}"
+    )
+    assert b"BBB:N0BBB}" not in local_data, (
+        f"still seeing B's prompt after BYE: {local_data!r}"
+    )
