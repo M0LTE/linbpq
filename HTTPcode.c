@@ -67,6 +67,7 @@ unsigned char * Compressit(unsigned char * In, int Len, int * OutLen);
 char * stristr (char *ch1, char *ch2);
 int GetAPRSIcon(unsigned char * _REPLYBUFFER, char * NodeURL);
 char * GetStandardPage(char * FN, int * Len);
+char * GetTemplateFromFile(int Version, char * FN);
 BOOL SHA1PasswordHash(char * String, char * Hash);
 char * byte_base64_encode(char *str, int len);
 int APIProcessHTTPMessage(char * response, char * Method, char * URL, char * request,	BOOL LOCAL, BOOL COOKIE);
@@ -286,23 +287,12 @@ static char NodeSignon[] = "<html><head><title>BPQ32 Node SYSOP Access</title></
 "<p align=center><input type=submit class='btn' value=Submit /><input type=submit class='btn' value=Cancel name=Cancel /></form>";
 
 
-static char MailSignon[] = "<html><head><title>BPQ32 Mail Server Access</title></head><body background=\"/background.jpg\">"
-"<h3 align=center>BPQ32 Mail Server %s Access</h3>"
-"<h3 align=center>Please enter Callsign and Password to access the BBS</h3>"
-"<form method=post action=/Mail/Signon?Mail>"
-"<table align=center  bgcolor=white>"
-"<tr><td>User</td><td><input type=text name=user tabindex=1 size=20 maxlength=50 /></td></tr>" 
-"<tr><td>Password</td><td><input type=password name=password tabindex=2 size=20 maxlength=50 /></td></tr></table>"  
-"<p align=center><input type=submit class='btn' value=Submit /><input type=submit class='btn' value=Cancel name=Cancel /></form>";
-
-static char ChatSignon[] = "<html><head><title>BPQ32 Chat Server Access</title></head><body background=\"/background.jpg\">"
-"<h3 align=center>BPQ32 Chat Server %s Access</h3>"
-"<h3 align=center>Please enter Callsign and Password to access the Chat Server</h3>"
-"<form method=post action=/Chat/Signon?Chat>"
-"<table align=center  bgcolor=white>"
-"<tr><td>User</td><td><input type=text name=user tabindex=1 size=20 maxlength=50 /></td></tr>" 
-"<tr><td>Password</td><td><input type=password name=password tabindex=2 size=20 maxlength=50 /></td></tr></table>"  
-"<p align=center><input type=submit class='btn' value=Submit /><input type=submit class='btn' value=Cancel name=Cancel /></form>";
+// MailSignon and ChatSignon HTML now live in HTML/MailSignon.txt
+// and HTML/ChatSignon.txt.  Loaded once on first use, cached for
+// the lifetime of the process.  These statics shadow the externs
+// in BBSHTMLConfig.c / ChatHTMLConfig.c so the cache is per-file.
+static char * MailSignon = NULL;
+static char * ChatSignon = NULL;
 
 
 static char MailLostSession[] = "<html><body>"
@@ -1995,6 +1985,8 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 
 				}
 
+				if (!MailSignon)
+					MailSignon = GetTemplateFromFile(1, "MailSignon.txt");
 				ReplyLen = sprintf(Reply, MailSignon, Mycall, Mycall);
 
 				RLen = ReplyLen;
@@ -2116,6 +2108,8 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 
 				}
 
+				if (!ChatSignon)
+					ChatSignon = GetTemplateFromFile(1, "ChatSignon.txt");
 				ReplyLen = sprintf(Reply, ChatSignon, Mycall, Mycall);
 
 				RLen = ReplyLen;
@@ -4569,6 +4563,8 @@ int ProcessMailSignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char * R
 		}
 	}	
 
+	if (!MailSignon)
+		MailSignon = GetTemplateFromFile(1, "MailSignon.txt");
 	ReplyLen = sprintf(Reply, MailSignon, Mycall, Mycall);
 	ReplyLen += sprintf(&Reply[ReplyLen], "%s", PassError);
 
@@ -4627,6 +4623,8 @@ int ProcessChatSignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char * R
 		}
 	}	
 
+	if (!ChatSignon)
+		ChatSignon = GetTemplateFromFile(1, "ChatSignon.txt");
 	ReplyLen = sprintf(Reply, ChatSignon, Mycall, Mycall);
 	ReplyLen += sprintf(&Reply[ReplyLen], "%s", PassError);
 

@@ -134,35 +134,14 @@ static char BusyError[] = "<p align=center>Sorry, No sessions available - please
 
 extern char WebMailSignon[];
 
-char MailSignon[] = "<html><head><title>BPQ32 Mail Server Access</title></head><body background=\"/background.jpg\">"
-	"<h3 align=center>BPQ32 Mail Server %s Access</h3>"
-	"<h3 align=center>Please enter Callsign and Password to access the BBS</h3>"
-	"<form method=post action=/Mail/Signon?Mail>"
-	"<table align=center  bgcolor=white>"
-	"<tr><td>User</td><td><input type=text name=user tabindex=1 size=20 maxlength=50 /></td></tr>" 
-	"<tr><td>Password</td><td><input type=password name=password tabindex=2 size=20 maxlength=50 /></td></tr></table>"  
-	"<p align=center><input type=submit class='btn' value=Submit /><input type=submit class='btn' value=Cancel name=Cancel /></form>";
-
-
-char MailPage[] = "<html><head><title>%s's BBS Web Server</title>"
-	"<style type=\"text/css\">"
-	"input.btn:active {background:black;color:white;} "
-	"submit.btn:active {background:black;color:white;} "
-	"</style>"
-	"</head>"
-	"<body background=\"/background.jpg\"><h3 align=center>BPQ32 BBS %s</h3><P>"
-	"<P align=center><table border=1 cellpadding=2 bgcolor=white><tr>"
-	"<td><a href=/Mail/Status?%s>Status</a></td>"
-	"<td><a href=/Mail/Conf?%s>Configuration</a></td>"
-	"<td><a href=/Mail/Users?%s>Users</a></td>"
-	"<td><a href=/Mail/Msgs?%s>Messages</a></td>"
-	"<td><a href=/Mail/FWD?%s>Forwarding</a></td>"
-	"<td><a href=/Mail/Wel?%s>Welcome Msgs & Prompts</a></td>"
-	"<td><a href=/Mail/HK?%s>Housekeeping</a></td>"
-	"<td><a href=/Mail/WP?%s>WP Update</a></td>"
-	"<td><a href=/Webmail>WebMail</a></td>"
-	"<td><a href=/>Node Menu</a></td>"
-	"</tr></table>";
+// HTML for MailSignon and MailPage now lives in HTML/MailSignon.txt
+// and HTML/MailPage.txt.  Loaded once on first use, cached for the
+// lifetime of the process.  See HTMLCommonCode.c::GetTemplateFromFile.
+//
+// HTTPcode.c also references MailSignon — its own static-scoped
+// declaration there has been replaced with the same lazy-load.
+char * MailSignon = NULL;
+char * MailPage = NULL;
 
 char RefreshMainPage[] = "<html><head>"
 	"<meta http-equiv=refresh content=10>"
@@ -401,6 +380,8 @@ static int compare(const void *arg1, const void *arg2)
 
 int SendHeader(char * Reply, char * Key)
 {
+	if (!MailPage)
+		MailPage = GetTemplateFromFile(1, "MailPage.txt");
 	return sprintf(Reply, MailPage, BBSName, BBSName, Key, Key, Key, Key, Key, Key, Key, Key);
 }
 
@@ -1051,6 +1032,8 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 	}
 
 
+	if (!MailSignon)
+		MailSignon = GetTemplateFromFile(1, "MailSignon.txt");
 	ReplyLen = sprintf(Reply, MailSignon, BBSName, BBSName);
 	*RLen = ReplyLen;
 
