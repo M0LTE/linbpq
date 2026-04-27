@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from helpers.linbpq_instance import LinbpqInstance
+from helpers.linbpq_instance import LinbpqInstance, MAIL_CONFIG
 
 
 @pytest.fixture
@@ -18,6 +18,25 @@ def linbpq(tmp_path: Path):
     post-mortem of failures.
     """
     instance = LinbpqInstance(tmp_path)
+    instance.start()
+    try:
+        yield instance
+    finally:
+        instance.stop()
+
+
+@pytest.fixture
+def linbpq_mail(tmp_path: Path):
+    """A linbpq with the BBS / mail subsystem enabled.
+
+    Adds the ``mail`` command-line argument (which loads BPQMail) and
+    uses ``MAIL_CONFIG`` so the BBS application alias is registered.
+    """
+    instance = LinbpqInstance(
+        tmp_path,
+        config_template=MAIL_CONFIG,
+        extra_args=("mail",),
+    )
     instance.start()
     try:
         yield instance

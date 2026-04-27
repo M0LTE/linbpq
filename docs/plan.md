@@ -143,9 +143,9 @@ Phase 1 once the harness produces useful output.
 |     1 | `tests/integration/` skeleton + Docker test image + `linbpq_instance` pytest fixture + one telnet smoke test             | done   |
 |     2 | Breadth-first interface coverage — telnet, HTTP, AGW, NET/ROM-TCP, FBB-TCP, JSON API; KISS-TCP and AX/IP-UDP deferred  | done\* |
 |     3 | Telnet node-command coverage driven by `docs/node-commands.md` (every command, sysop gating, state-changing round-trips) | done\* |
-|     4 | BBS + Chat lifecycle — send / read / list / kill mail, chat connect / topic / broadcast                                  | todo   |
+|     4 | BBS + Chat lifecycle — send / read / list / kill mail, chat connect / topic / broadcast                                  | started |
 |     5 | Persistence round-trip — boot, mutate, shut down, reboot, verify state restored                                          | started |
-|     6 | Two-instance scenarios via AX/IP UDP — NET/ROM discovery, cross-instance connect, message forwarding                     | todo   |
+|     6 | Two-instance scenarios via AX/IP UDP — NET/ROM discovery, cross-instance connect, message forwarding                     | started |
 |     7 | Configuration matrix — minimal / full / edge configs, parse-or-reject assertions                                         | started |
 |     8 | PTY-based modem simulators for KISS HF, ARDOP, VARA, KAM, etc.                                                           | todo   |
 
@@ -184,8 +184,12 @@ coverage further:
 
 Still deferred:
 
-- **Connection commands** (`CONNECT` / `C` / `NC` / `ATTACH`): need a
-  reachable target node, wait for Phase 6's two-instance topology.
+- **Connection commands** (`CONNECT` / `C` / `NC` / `ATTACH`): the
+  downlink form (`C <port> <call>`) is now exercised by Phase 6's
+  two-instance topology test (`test_downlink_connect_to_peer`).
+  ATTACH (Pactor / VARA / Telnet stream attach) and the L4-uplink
+  form of CONNECT (`C <call>` via NODES) still require additional
+  setup.
 - **`APRS`, `WL2KSYSOP`, `RHP`, `QTSM`, `RADIO`, `UZ7HO`**: each needs
   its own subsystem configured.
 - **`NAT`, `AXRESOLVER`, `AXMHEARD`**: BPQ IP-gateway feature.

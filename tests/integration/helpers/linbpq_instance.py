@@ -54,6 +54,85 @@ ENDPORT
 MINIMAL_CONFIG = DEFAULT_CONFIG
 
 
+# Two-instance config used for AX/IP-over-UDP topology tests.  The
+# template substitutions add the *peer*'s callsign and UDP port so the
+# instance can MAP it.  $node_call / $node_alias / $bbs_call are
+# parametrised so the two instances have distinct identities.
+PEER_CONFIG = Template(
+    """\
+SIMPLE=1
+NODECALL=$node_call
+NODEALIAS=$node_alias
+LOCATOR=NONE
+NODESINTERVAL=1
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ NETROMPORT=$netrom_port
+ FBBPORT=$fbb_port
+ APIPORT=$api_port
+ MAXSESSIONS=10
+ USER=test,test,$node_call,,SYSOP
+ENDPORT
+
+PORT
+ ID=AXIP
+ DRIVER=BPQAXIP
+ CONFIG
+ UDP $axip_port
+ MAP $peer_call 127.0.0.1 UDP $peer_axip_port
+ENDPORT
+
+ROUTES:
+CALL=$peer_call QUALITY=200 PORT=2
+***
+"""
+)
+
+
+# Like DEFAULT_CONFIG but with the BBS application registered so the
+# telnet "BBS" alias enters BPQMail.  Used together with
+# ``LinbpqInstance(..., extra_args=("mail",))`` to start linbpq with
+# its mail subsystem.
+MAIL_CONFIG = Template(
+    """\
+SIMPLE=1
+NODECALL=N0CALL
+NODEALIAS=TEST
+LOCATOR=IO91WJ
+AGWPORT=$agw_port
+APPLICATIONS=BBS
+BBSCALL=N0BBS
+BBSALIAS=BBS
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ NETROMPORT=$netrom_port
+ FBBPORT=$fbb_port
+ APIPORT=$api_port
+ MAXSESSIONS=10
+ USER=test,test,N0CALL,,SYSOP
+ USER=user,user,N0USER,,
+ENDPORT
+
+PORT
+ ID=AXIP
+ DRIVER=BPQAXIP
+ CONFIG
+ UDP $axip_port
+ENDPORT
+"""
+)
+
+
 def pick_free_port() -> int:
     """Bind to a kernel-assigned port on loopback, then close — return the port."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -67,10 +146,16 @@ class LinbpqInstance:
     Caller is responsible for start() / stop(); the pytest fixture wraps that.
     """
 
-    def __init__(self, work_dir: Path, config_template: Template = DEFAULT_CONFIG):
+    def __init__(
+        self,
+        work_dir: Path,
+        config_template: Template = DEFAULT_CONFIG,
+        extra_args: tuple[str, ...] = (),
+    ):
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(parents=True, exist_ok=True)
         self.config_template = config_template
+        self.extra_args = tuple(extra_args)
         self.telnet_port = pick_free_port()
         self.http_port = pick_free_port()
         self.netrom_port = pick_free_port()
@@ -101,7 +186,7 @@ class LinbpqInstance:
 
         log_fh = self.stdout_path.open("wb")
         self.proc = subprocess.Popen(
-            [LINBPQ_BIN],
+            [LINBPQ_BIN, *self.extra_args],
             cwd=self.work_dir,
             stdout=log_fh,
             stderr=subprocess.STDOUT,
