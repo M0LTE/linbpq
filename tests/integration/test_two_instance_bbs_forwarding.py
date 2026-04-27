@@ -158,17 +158,18 @@ def two_mail_instances_for_forwarding(tmp_path: Path):
     # for ``N0AAA-1`` with the F_BBS flag — otherwise B treats the
     # inbound as a regular user, no FBB SID exchange happens, and
     # nothing forwards.  Symmetric on the A side.
-    # ConnectScript dials B's NODE call (N0BBB) on port 2 (AXIP) —
-    # this is the connect form that ``test_two_instance.py`` already
-    # proves works.  Once at B's node prompt, the second line ``BBS``
-    # enters B's BBS application; the BBS app announces its SID
-    # and the FBB exchange begins.
+    # ConnectScript dials B's BBS application call directly (port 2 =
+    # AXIP, target = N0BBB-1 = B's BBSCALL).  PEER_MAIL_CONFIG sets
+    # ``APPL1CALL=$bbs_call`` so the BBS application's AX.25 binary
+    # form is populated (cMain.c:1327-1330) — without that override,
+    # L2 SABM dispatch (L2Code.c:451 + 463) silently skips the BBS
+    # app slot because its APPLCALL[0] stays zero.
     _write_linmail(
         a_dir,
         bbs_call="N0AAA-1",
         sysop_call="N0AAA",
         partner_call="N0BBB-1",
-        connect_script=["C 2 N0BBB", "BBS"],
+        connect_script=["C 2 N0BBB-1"],
         fwd_interval=2,
     )
     _write_linmail(
