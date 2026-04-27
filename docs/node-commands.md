@@ -9,7 +9,7 @@
 
 This is a reference for every command that can be entered at the LinBPQ /
 BPQ32 node prompt. It is generated from the dispatch table `COMMANDS[]` in
-[`Cmd.c`](../Cmd.c) and the individual command handlers in `Cmd.c`,
+[`Cmd.c`](https://github.com/M0LTE/linbpq/blob/master/Cmd.c) and the individual command handlers in `Cmd.c`,
 `IPCode.c`, `TelnetV6.c`, `RHP.c`, `APRSCode.c`, `AGWAPI.c` and
 `CommonCode.c`.
 
