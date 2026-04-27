@@ -69,6 +69,9 @@ def test_api_info_returns_node_identity(linbpq):
     info = body["info"]
     assert info["NodeCall"] == "N0CALL"
     assert info["Alias"] == "TEST"
+    assert info["Locator"] == "IO91WJ", (
+        f"expected configured LOCATOR, got {info.get('Locator')!r}"
+    )
     assert "Version" in info and info["Version"]
 
 
@@ -107,6 +110,21 @@ def test_api_users_is_well_formed_when_empty(linbpq):
     status, body = _http_get_json(linbpq.http_port, "/api/users")
     assert b"200" in status
     assert body == {"users": []}, f"expected empty users envelope: {body!r}"
+
+
+def test_api_users_reflects_active_telnet_session(linbpq):
+    """While a telnet user is logged in, /api/users includes their call."""
+    from helpers.telnet_client import TelnetClient as _TC
+
+    with _TC("127.0.0.1", linbpq.telnet_port) as client:
+        client.login("test", "test")
+        # While the session is open, /api/users should list us.
+        status, body = _http_get_json(linbpq.http_port, "/api/users")
+    assert b"200" in status
+    users = body["users"]
+    assert any(u.get("Call") == "N0CALL" for u in users), (
+        f"active user not in /api/users: {users!r}"
+    )
 
 
 def test_api_v1_state_no_auth_returns_401(linbpq):
