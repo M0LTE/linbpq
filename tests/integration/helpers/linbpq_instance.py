@@ -136,6 +136,47 @@ CALL=$peer_call QUALITY=200 PORT=2
 )
 
 
+# DEFAULT_CONFIG variant with the BPQ IP-gateway feature enabled.
+# Adds a minimal IPGATEWAY block (LAN adapter with a private-range
+# IP+netmask) so the PING / ARP / NAT / IPROUTE / AXMHEARD /
+# AXRESOLVER node-prompt commands light up.  No real network is
+# touched — the gateway just maintains an in-memory ARP / route
+# table, which is what we want for tests.
+IP_GATEWAY_CONFIG = Template(
+    """\
+SIMPLE=1
+NODECALL=N0CALL
+NODEALIAS=TEST
+LOCATOR=IO91WJ
+AGWPORT=$agw_port
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ NETROMPORT=$netrom_port
+ FBBPORT=$fbb_port
+ APIPORT=$api_port
+ MAXSESSIONS=10
+ USER=test,test,N0CALL,,SYSOP
+ENDPORT
+
+PORT
+ ID=AXIP
+ DRIVER=BPQAXIP
+ CONFIG
+ UDP $axip_port
+ENDPORT
+
+IPGATEWAY
+ADAPTER 192.168.99.1 255.255.255.0
+****
+"""
+)
+
+
 # Pre-canned chatconfig.cfg that puts Chat in application slot 1
 # (BBS conventionally takes slot 2 when both run; chat-only setups
 # tend to take slot 1).  Pre-writing this file prevents linbpq from

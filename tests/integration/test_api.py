@@ -109,9 +109,19 @@ def test_api_users_is_well_formed_when_empty(linbpq):
     assert body == {"users": []}, f"expected empty users envelope: {body!r}"
 
 
-def test_api_v1_state_requires_sysop_token(linbpq):
-    """``/api/v1/state`` is gated by AuthSysop and returns 401 without
-    a token."""
+def test_api_v1_state_no_auth_returns_401(linbpq):
+    """An HTTP/1.0 GET to ``/api/v1/state`` without an
+    ``Authorization: Bearer`` header returns 401.
+
+    Note: this does NOT prove auth is enforced.  The token-verify
+    block in ``nodeapi.c::APIProcessHTTPMessage`` is currently
+    commented out (see https://github.com/M0LTE/linbpq/issues/5),
+    so curl with *any* `Authorization: Bearer` value gets 200.
+    The 401 we see here comes from the URL-match catch-all under
+    HTTP/1.0; HTTP/1.1 + Auth header reaches the actual handler.
+    Once #5 is fixed and real auth lands, expand this into a full
+    auth-required suite (no token / bad token / good token / scope).
+    """
     status = _http_get_status(linbpq.http_port, "/api/v1/state")
     assert b"401" in status, f"expected 401 without token, got {status!r}"
 

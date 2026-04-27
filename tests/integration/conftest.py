@@ -9,6 +9,7 @@ import pytest
 from helpers.linbpq_instance import (
     CHAT_CONFIG,
     CHAT_CONFIG_FILE,
+    IP_GATEWAY_CONFIG,
     LinbpqInstance,
     MAIL_CONFIG,
 )
@@ -41,6 +42,25 @@ def linbpq_mail(tmp_path: Path):
         tmp_path,
         config_template=MAIL_CONFIG,
         extra_args=("mail",),
+    )
+    instance.start()
+    try:
+        yield instance
+    finally:
+        instance.stop()
+
+
+@pytest.fixture
+def linbpq_ipgw(tmp_path: Path):
+    """A linbpq with the BPQ IP-gateway feature enabled.
+
+    Uses ``IP_GATEWAY_CONFIG`` (adds a minimal IPGATEWAY ... ****
+    block).  Enables the PING / ARP / NAT / IPROUTE / AXMHEARD /
+    AXRESOLVER node commands.
+    """
+    instance = LinbpqInstance(
+        tmp_path,
+        config_template=IP_GATEWAY_CONFIG,
     )
     instance.start()
     try:
