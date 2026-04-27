@@ -48,3 +48,4 @@ tests/.venv/
 # pytest / Python caches
 __pycache__/
 .pytest_cache/
+reports/
