@@ -106,6 +106,54 @@ covered; missing:)
 - Multi-`UDP` ports per block (one block listening on several UDP ports)
 - `MAP ... B` (broadcast flag on individual map entries)
 
+### Closeout summary
+
+The bulk of this audit's findings now have at least canary-level
+coverage; spec-checked tests for the wire-format-y bits.  See the
+test docstrings for spec links and per-feature notes.
+
+| Cluster | Coverage | Where |
+|---------|----------|-------|
+| Identity / map / metrics (MAPCOMMENT, EnableM0LTEMap, ENABLEOARCAPI, EnableEvents, AUTOSAVE) | canary | `test_config_keyword_acceptance.py` |
+| `M0LTEMapInfo` per-port | canary | `test_config_to_runtime.py` |
+| Compression / globals (L4Compress, L2COMPRESS, T3) | canary | `test_config_keyword_acceptance.py` |
+| Beacon / identification (IDMSG:, BTEXT:, CTEXT:) | parse + cross-instance CTEXT | `test_config_keyword_acceptance.py`, `test_two_instance.py`, `test_telnet_driver_options.py` |
+| APRS subsystem | core paths | `test_aprs.py` (block parsing, STATUS / SENT / MSGS / BEACON, outbound APRS-IS connect to a fake server) |
+| `KISSOPTIONS=ACKMODE` | wire format vs spec | `test_kiss_serial.py` |
+| Per-RF-port tuning (RETRIES/MAXFRAME/PERSIST/DIGIFLAG/PACLEN-PPACLEN/TXDELAY/TXTAIL) | round-trips | `test_config_to_runtime.py` |
+| Telnet driver options (LOGINPROMPT, PASSWORDPROMPT, block CTEXT, SECURETELNET, DisconnectOnClose, LOCALNET, LOGGING, RELAYAPPL, CMS family) | wire-visible + canaries | `test_telnet_driver_options.py` |
+| LinBPQ Apps Interface (`CMDPORT`) | full | `test_cmdport.py` |
+| `PASSWORD=` cfg + non-Secure_Session challenge | round-trip | `test_password_challenge.py` |
+| LINMAIL, LINCHAT cfg keywords | log lines | `test_config_keyword_acceptance.py` |
+| New APPLICATION line format | full | `test_config_to_runtime.py` |
+| MQTT publishes + topic doc | full | `test_mqtt.py` + `docs/mqtt-output.md` |
+| IPGW `ENABLESNMP` | canary | `test_config_keyword_acceptance.py` |
+| BPQAXIP extras (MHEARD ON, BROADCAST, multi-UDP, MAP ... B) | canary + bind | `test_axip_extras.py` |
+| FBBPORT transport listener | full | `test_fbb_host_mode.py` |
+
+### Items still deferred from this audit
+
+- **NETROMPORT / APIPORT / SNMPPORT** — listener canaries only.
+  Going beyond canary needs the respective protocol simulators.
+- **FBB inter-BBS forwarding protocol** — separate layer from
+  FBBPORT.  Needs a fake forwarding-partner harness; tied to the
+  cross-instance BBS-to-BBS work.
+- **Winlink CMS** real protocol — cfg accepted, but exercising
+  the CMS handshake needs a Winlink CMS server simulator.
+- **L4-uplink** — [issue #4](https://github.com/M0LTE/linbpq/issues/4).
+  BPQAXIP extras parse cleanly but actual NODES propagation
+  between two AX/IP-UDP-linked instances doesn't work; root
+  cause not yet found.
+- **Beacon / ID runtime emission** — IDTIMER decrements once
+  per minute and starts at 2; observing an actual ID frame on
+  a PTY needs a 2+ minute test or instrumentation.
+- **OBJECT / APRSPath details** — keywords inside the APRSDIGI
+  block parse cleanly but the resulting object beacons aren't
+  observed on any port.
+- **`FRACK` / `RESPTIME` per-port round-trips** — non-trivial
+  scaling we haven't modelled; tests skipped with docstring
+  notes rather than pinning a fragile invariant.
+
 ## Coverage target: every command in `docs/node-commands.md`
 
 `docs/node-commands.md` is the reference for the node-prompt
