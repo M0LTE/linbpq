@@ -1,0 +1,108 @@
+site_name: LinBPQ Documentation
+site_description: |
+  Re-presentation of John Wiseman G8BPQ's BPQ32 / LinBPQ documentation,
+  organised by user journey and fact-checked against the binary +
+  integration test suite.
+site_url: https://m0lte.github.io/linbpq/
+repo_url: https://github.com/M0LTE/linbpq
+repo_name: M0LTE/linbpq
+edit_uri: edit/master/docs/
+
+# Build into site/, not site/ inside docs/.  CI builds with --strict so
+# any dead nav link or missing page lands red.
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue grey
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue grey
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+
+# Page nav.  This grows as more pages are converted from upstream HTML.
+nav:
+  - Home: index.md
+  - Getting started:
+      - getting-started/index.md
+  - Configuration:
+      - Reference: configuration/reference.md
+      - bpq32.cfg keywords: configuration/bpq32-cfg-keywords.md
+  - Subsystems:
+      - subsystems/index.md
+      - BBS / mail (BPQMail): subsystems/bbsmail.md
+      - Chat node: subsystems/chat.md
+      - APRS gateway: subsystems/aprs.md
+  - Protocols and interfaces:
+      - protocols/index.md
+      - AX.25: protocols/ax25.md
+      - NET/ROM: protocols/netrom.md
+      - AX/IP over UDP: protocols/axip.md
+      - KISS: protocols/kiss.md
+      - FBB inter-BBS forwarding: protocols/fbb-forwarding.md
+  - Node prompt commands:
+      - node-commands.md
+  - Reference:
+      - test-coverage-audit.md
+      - mqtt-output.md
+  - Project:
+      - Plan: plan.md
+      - Contributing: project/contributing.md
+      - Upstream documentation: project/upstream.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/M0LTE/linbpq
+  generator: false
