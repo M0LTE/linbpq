@@ -132,7 +132,7 @@ Phase 1 once the harness produces useful output.
 |     0 | Drop misdirected prior work; confirm `linbpq.bin` builds locally; identify a minimal cfg that boots clean                | done   |
 |     1 | `tests/integration/` skeleton + Docker test image + `linbpq_instance` pytest fixture + one telnet smoke test             | done   |
 |     2 | Breadth-first interface coverage — telnet, HTTP, AGW, NET/ROM-TCP, FBB-TCP, JSON API; KISS-TCP and AX/IP-UDP deferred  | done\* |
-|     3 | Telnet node-command coverage driven by `docs/node-commands.md` (every command, sysop gating, state-changing round-trips) | todo   |
+|     3 | Telnet node-command coverage driven by `docs/node-commands.md` (every command, sysop gating, state-changing round-trips) | done\* |
 |     4 | BBS + Chat lifecycle — send / read / list / kill mail, chat connect / topic / broadcast                                  | todo   |
 |     5 | Persistence round-trip — boot, mutate, shut down, reboot, verify state restored                                          | todo   |
 |     6 | Two-instance scenarios via AX/IP UDP — NET/ROM discovery, cross-instance connect, message forwarding                     | todo   |
@@ -148,6 +148,35 @@ own driver `PORT` block (and AX/IP needs an interconnection map), so
 they are pulled out into a follow-up batch rather than wedged in
 alongside the TelnetV6-hosted channels. The AGW raw-mode pathway covers
 some of what a KISS-TCP test would catch in the meantime.
+
+\*Phase 3 footnote: covered the read-only commands, per-session settings
+round-trip (PACLEN / IDLETIME / L4T1), sysop gating (rejection +
+PASSWORD-unlock cycle), and BYE.  Deferred to later phases:
+
+- **Connection commands** (`CONNECT` / `C` / `NC` / `ATTACH`): need a
+  reachable target node, so they wait for Phase 6's two-instance
+  topology.
+- **Subsystem commands** (`APRS`, `WL2KSYSOP`, `AGWSTATUS`, `TELSTATUS`,
+  `RHP`, `QTSM`, `RADIO`, `UZ7HO`): each requires its own subsystem
+  configured (APRS port, Winlink credentials, AGW gateway, etc.).
+- **Network diagnostic commands** (`PING`, `ARP`, `NAT`, `IPROUTE`,
+  `AXRESOLVER`, `AXMHEARD`, `NRR`): require the BPQ IP gateway feature
+  enabled, which is its own configuration story.
+- **Sysop side-effect commands** (`REBOOT`, `RESTART`, `RESTARTTNC`,
+  `RIGRECONFIG`, `TELRECONFIG`, `STOPPORT` / `STARTPORT`,
+  `STOPCMS` / `STARTCMS`, `STOPROUTE` / `STARTROUTE`, `KISS`):
+  carry side effects we should not casually trigger; coverage will need
+  fixtures that explicitly invite restart-style behaviour.
+- **Listening / unproto** (`LISTEN`, `CQ`, `UNPROTO`): need an active
+  RF port to do anything observable.
+- **Application aliases** (`BBS`, `CHAT`, `MAIL`): their handlers ride
+  on the BBS / Chat applications, which is Phase 4 territory.
+- **Host-protocol pseudo-commands** (`*** LINKED`, `..FLMSG`): only
+  meaningful inside a BPQ host stream, not over telnet.
+
+Several entries in `docs/node-commands.md` were re-checked against the
+binary while writing these tests; corrections land in a separate
+follow-up commit so the test commit stays focused.
 
 ## Repository layout
 

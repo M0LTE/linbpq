@@ -109,3 +109,8 @@ class TelnetClient:
         self.read_until(b"password:")
         self.write_line(password)
         return self.read_until(b"Telnet Server\r\n\r\n")
+
+    def run_command(self, cmd: str, idle_timeout: float = 0.5) -> bytes:
+        """Send ``cmd`` and return the full response (read-until-idle)."""
+        self.write_line(cmd)
+        return self.read_idle(idle_timeout=idle_timeout)

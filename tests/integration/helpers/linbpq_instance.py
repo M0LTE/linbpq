@@ -37,6 +37,7 @@ PORT
  APIPORT=$api_port
  MAXSESSIONS=10
  USER=test,test,N0CALL,,SYSOP
+ USER=user,user,N0USER,,
 ENDPORT
 """
 )
