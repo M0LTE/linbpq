@@ -153,40 +153,50 @@ Phases 0–3 hold most of the value and are achievable in reasonable
 time. Phases 6 and 8 are real engineering; do not commit until earlier
 phases prove out. Mark progress by updating the table in this file.
 
-\*Phase 2 footnote: KISS-over-TCP and AX/IP-over-UDP each need their
-own driver `PORT` block (and AX/IP needs an interconnection map), so
-they are pulled out into a follow-up batch rather than wedged in
-alongside the TelnetV6-hosted channels. The AGW raw-mode pathway covers
-some of what a KISS-TCP test would catch in the meantime.
+\*Phase 2 footnote: AX/IP-over-UDP and KISS-TCP both now have
+coverage. AX/IP-UDP gets its own `DRIVER=BPQAXIP` `PORT` block in
+the default config plus a canary that the UDP socket binds and
+garbage doesn't crash the daemon. KISS-TCP is the *outbound* form
+(linbpq as client to a remote softmodem like Direwolf or
+[m0lte/kissproxy](https://github.com/m0lte/kissproxy)); a tiny
+Python TCP listener stands in as the fake softmodem and the test
+asserts linbpq's outbound connection is established.
 
 \*Phase 3 footnote: covered the read-only commands, per-session settings
 round-trip (PACLEN / IDLETIME / L4T1), sysop gating (rejection +
-PASSWORD-unlock cycle), and BYE.  Deferred to later phases:
+PASSWORD-unlock cycle), and BYE.  Subsequent batches expanded the
+coverage further:
+
+- **Subsystem-status commands** — `TELSTATUS` (rejected without port
+  number) and `AGWSTATUS` (sockets-table layout) are now locked in.
+- **Safe sysop commands** — `SAVEMH` and `VALIDCALLS` covered alongside
+  the existing `SAVENODES` test.
+- **IP-gateway commands** — `PING` / `ARP` / `IPROUTE` report
+  "IP Gateway is not enabled" and `NRR` reports "Not found" with our
+  config; locked in so an accidental partial wiring lands red.
+- **`LISTEN` / `CQ` / `UNPROTO`** — error responses with no AX.25 port
+  available locked in.
+- **Application aliases** (`BBS` / `CHAT` / `MAIL`) — return
+  "Invalid command" without their respective applications configured.
+
+Still deferred:
 
 - **Connection commands** (`CONNECT` / `C` / `NC` / `ATTACH`): need a
-  reachable target node, so they wait for Phase 6's two-instance
-  topology.
-- **Subsystem commands** (`APRS`, `WL2KSYSOP`, `AGWSTATUS`, `TELSTATUS`,
-  `RHP`, `QTSM`, `RADIO`, `UZ7HO`): each requires its own subsystem
-  configured (APRS port, Winlink credentials, AGW gateway, etc.).
-- **Network diagnostic commands** (`PING`, `ARP`, `NAT`, `IPROUTE`,
-  `AXRESOLVER`, `AXMHEARD`, `NRR`): require the BPQ IP gateway feature
-  enabled, which is its own configuration story.
-- **Sysop side-effect commands** (`REBOOT`, `RESTART`, `RESTARTTNC`,
+  reachable target node, wait for Phase 6's two-instance topology.
+- **`APRS`, `WL2KSYSOP`, `RHP`, `QTSM`, `RADIO`, `UZ7HO`**: each needs
+  its own subsystem configured.
+- **`NAT`, `AXRESOLVER`, `AXMHEARD`**: BPQ IP-gateway feature.
+- **Side-effect sysop commands** (`REBOOT`, `RESTART`, `RESTARTTNC`,
   `RIGRECONFIG`, `TELRECONFIG`, `STOPPORT` / `STARTPORT`,
-  `STOPCMS` / `STARTCMS`, `STOPROUTE` / `STARTROUTE`, `KISS`):
-  carry side effects we should not casually trigger; coverage will need
-  fixtures that explicitly invite restart-style behaviour.
-- **Listening / unproto** (`LISTEN`, `CQ`, `UNPROTO`): need an active
-  RF port to do anything observable.
-- **Application aliases** (`BBS`, `CHAT`, `MAIL`): their handlers ride
-  on the BBS / Chat applications, which is Phase 4 territory.
+  `STOPCMS` / `STARTCMS`, `STOPROUTE` / `STARTROUTE`, `KISS`): carry
+  side effects we should not casually trigger; need fixtures that
+  explicitly invite restart-style behaviour.
 - **Host-protocol pseudo-commands** (`*** LINKED`, `..FLMSG`): only
   meaningful inside a BPQ host stream, not over telnet.
 
 Several entries in `docs/node-commands.md` were re-checked against the
-binary while writing these tests; corrections land in a separate
-follow-up commit so the test commit stays focused.
+binary while writing these tests; corrections landed in a separate
+follow-up commit.
 
 ## Repository layout
 

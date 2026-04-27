@@ -11,13 +11,14 @@ from string import Template
 
 LINBPQ_BIN = os.environ.get("LINBPQ_BIN", "linbpq.bin")
 
-# A bpq32.cfg that boots cleanly with the standard set of TCP-only
-# interfaces enabled, no radio, all on loopback.  See docs/plan.md.
+# A bpq32.cfg that boots cleanly with the standard set of interfaces
+# enabled, no radio, all on loopback.  See docs/plan.md.
 #
 # Telnet/HTTP/NETROM/FBB/API all share one DRIVER=Telnet PORT block
 # (TelnetV6.c hands them the same CONFIG section).  AGW is a separate
-# global keyword.  KISS-TCP and AX/IP-UDP need their own PORT blocks
-# and are added in later phases.
+# global keyword.  AX/IP UDP gets its own DRIVER=BPQAXIP PORT block.
+# KISS-TCP needs an external softmodem (Direwolf / UZ7HO) so cannot
+# be added to a self-contained test config.
 DEFAULT_CONFIG = Template(
     """\
 SIMPLE=1
@@ -38,6 +39,13 @@ PORT
  MAXSESSIONS=10
  USER=test,test,N0CALL,,SYSOP
  USER=user,user,N0USER,,
+ENDPORT
+
+PORT
+ ID=AXIP
+ DRIVER=BPQAXIP
+ CONFIG
+ UDP $axip_port
 ENDPORT
 """
 )
@@ -69,6 +77,7 @@ class LinbpqInstance:
         self.fbb_port = pick_free_port()
         self.api_port = pick_free_port()
         self.agw_port = pick_free_port()
+        self.axip_port = pick_free_port()
         self.proc: subprocess.Popen | None = None
         self.stdout_path = self.work_dir / "linbpq.stdout.log"
 
@@ -84,6 +93,7 @@ class LinbpqInstance:
             fbb_port=self.fbb_port,
             api_port=self.api_port,
             agw_port=self.agw_port,
+            axip_port=self.axip_port,
         )
 
     def start(self, ready_timeout: float = 10.0) -> None:

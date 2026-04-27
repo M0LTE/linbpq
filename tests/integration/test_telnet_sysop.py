@@ -68,3 +68,29 @@ def test_non_sysop_password_returns_challenge(linbpq):
     assert SYSOP_REJECT not in response, (
         f"PASSWORD itself should not be sysop-gated: {response!r}"
     )
+
+
+def test_savemh_after_unlock_succeeds(linbpq):
+    """SAVEMH (parallel of SAVENODES) returns Ok for an unlocked sysop."""
+    with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+        client.login("test", "test")
+        client.run_command("PASSWORD")
+        response = client.run_command("SAVEMH")
+    assert b"Ok" in response, f"SAVEMH did not return Ok: {response!r}"
+    assert SYSOP_REJECT not in response
+
+
+def test_validcalls_without_port_is_rejected(linbpq):
+    """VALIDCALLS is sysop-gated and needs a port number; without one
+    the command-handler emits 'Invalid Port Number' rather than help
+    text."""
+    with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+        client.login("test", "test")
+        client.run_command("PASSWORD")
+        response = client.run_command("VALIDCALLS")
+    assert SYSOP_REJECT not in response, (
+        f"sysop-unlocked but VALIDCALLS still gated: {response!r}"
+    )
+    assert b"Invalid Port" in response, (
+        f"VALIDCALLS without port unexpected: {response!r}"
+    )
