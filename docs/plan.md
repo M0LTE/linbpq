@@ -5,8 +5,11 @@
 ## Spec references
 
 When writing tests that need to construct or parse wire frames,
-the canonical specs are mirrored at
-[packethacking/ax25spec](https://github.com/packethacking/ax25spec):
+prefer the canonical specs over re-deriving framing details from
+the linbpq source — the spec is the contract; linbpq is just one
+implementation of it.
+
+**Mirrored at [packethacking/ax25spec](https://github.com/packethacking/ax25spec):**
 
 - AX.25 link-layer protocol (frame format, address fields, CTL,
   PID).
@@ -16,9 +19,22 @@ the canonical specs are mirrored at
 - FBB forwarding protocol (relevant for the deferred cross-instance
   BBS-to-BBS auto-forwarding tests).
 
-Prefer linking to those specs from test docstrings rather than
-re-deriving framing details from the linbpq source — the spec is
-the contract; linbpq is just one implementation of it.
+**Packet Network Monitoring Project** — protocol used by linbpq's
+node-map / node-status reporting client (M0LTE map, NodeMapTest
+historical sources):
+
+- <https://github.com/M0LTE/node-api/blob/master/Tests/Packet_Network_Monitoring_Project_v0.8a.txt>
+  is the latest revision.  The folder also has older revisions; the
+  latest is not guaranteed to match what's actually deployed, so
+  cross-check against the binary when in doubt.
+
+**RHP (Radio Hosted Protocol)** — minimal implementation in BPQ
+exists to support WhatsApp gateways.  Reference white papers (PDFs):
+
+- <https://wiki.oarc.uk/packet:white-papers>
+
+If a test exercises one of these protocols, link to the relevant
+section from the test docstring.
 
 ## Bugs found while writing tests
 
