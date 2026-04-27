@@ -663,6 +663,55 @@ def test_hroutes_bulls_filter_routes_bulletin(tmp_path: Path):
     )
 
 
+def test_bulletin_routes_to_partner_by_exact_atbbs_match(tmp_path: Path):
+    """Bulletin sent ``SB ALL @ N0BBB`` (exact partner-call match)
+    routes to the partner via the first ``CheckABBS`` clause —
+    ``ATBBS == bbs->Call``.  Locks in the simplest B-routing case."""
+    instance = _fwd_setup_fbb_mode(tmp_path)
+    with instance as linbpq:
+        _post_message(
+            linbpq=linbpq,
+            sender_user="test",
+            sender_pass="test",
+            to_call="ALL",
+            at_call="N0BBB",
+            msg_type="B",
+        )
+        proposals, _ = _connect_partner_and_drain_proposals(linbpq)
+
+    real = [p for p in proposals if p[:2] in (b"FA", b"FB", b"FC")]
+    assert real, (
+        f"B @=N0BBB direct match should route; got {proposals!r}"
+    )
+
+
+def test_invalid_sid_no_F_flag_falls_back_to_mbl(tmp_path: Path):
+    """Partner SID without ``F`` capability flag — per spec §2.3,
+    the BBS falls back to MBL/RLI mode (BBSUtilities.c:9351 — clears
+    FBBForwarding when neither compressed nor BPQ-prefix).  The
+    behaviour is the partner-side message-input prompt sequence
+    rather than FBB proposal exchange."""
+    instance = _fwd_setup_fbb_mode(tmp_path)
+    with instance as linbpq:
+        with fbb_partner(
+            "127.0.0.1",
+            linbpq.telnet_port,
+            username="fbbuser",
+            password="fbbpass",
+            sid=b"[FBB-7.10-IHM$]\r\n",  # No F, no B/1/2 — minimal SID
+        ) as partner:
+            partner.login_to_bbs()
+            partner.send_sid()
+            # In MBL mode, linbpq sends a `>` prompt instead of
+            # FF/FQ/proposals.
+            line = partner.read_one_command(timeout=5)
+
+    assert line.startswith(b">"), (
+        f"non-FBB SID should fall back to MBL prompt mode "
+        f"(BBSUtilities.c:12802), got {line!r}"
+    )
+
+
 def test_partner_accepts_proposal_and_receives_b2_framed_body(tmp_path: Path):
     """Full happy-path round-trip: partner accepts linbpq's B2 proposal
     and reads the SOH-framed message body.
