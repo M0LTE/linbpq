@@ -272,6 +272,43 @@ def test_pty_ui_frame_visible_via_agw_monitor(tmp_path: Path):
     assert "hello" in text, f"payload not in monitor text: {text!r}"
 
 
+def test_kiss_sysop_command_sends_raw_bytes_to_pty(tmp_path: Path):
+    """``KISS <port> <byte> <byte> ...`` (sysop) sends the byte list
+    KISS-encoded out the named port (Cmd.c:6133).  Each byte is a
+    decimal int; the result is FEND-wrapped on the wire.
+
+    Verifies linbpq encodes ``KISS 2 6 1 2 3`` as ``\\xC0\\x06\\x01
+    \\x02\\x03\\xC0`` and writes it to the PTY master.
+    """
+    with PtyKissModem() as modem:
+        cfg = Template(KISS_SERIAL_CONFIG_TEMPLATE.replace("__SLAVE__", modem.slave_path))
+        with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+            # Drain init bytes.
+            modem.read_available()
+
+            with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+                client.login("test", "test")
+                client.run_command("PASSWORD")
+                # Send KISS port 2 with bytes 6 1 2 3.  KISS command
+                # 6 is ``set hardware`` per the KISS spec; 1/2/3 are
+                # arbitrary payload — what matters is the FEND framing.
+                response = client.run_command("KISS 2 6 1 2 3")
+
+            time.sleep(0.5)
+            tx = modem.read_available()
+
+    # Sysop command echoes "Command Sent" on success.
+    assert b"Command Sent" in response, (
+        f"KISS command did not confirm send: {response!r}"
+    )
+
+    # On the wire: FEND <bytes> FEND, with FESC-escape for any FEND/FESC
+    # in the payload.  Our payload is 06 01 02 03 — no escape needed.
+    assert b"\xc0\x06\x01\x02\x03\xc0" in tx, (
+        f"expected KISS-framed bytes on PTY; got {tx.hex()}"
+    )
+
+
 def test_kiss_serial_cq_beacon_lands_on_pty(tmp_path: Path):
     """``LISTEN 2`` then ``CQ`` causes linbpq to transmit a UI beacon
     out the serial KISS port; the test reads the master end of the

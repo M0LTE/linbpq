@@ -18,6 +18,7 @@ from pathlib import Path
 from string import Template
 
 from helpers.linbpq_instance import LinbpqInstance
+from helpers.telnet_client import TelnetClient
 from helpers.vara_modem import vara_modem
 
 
@@ -127,4 +128,40 @@ ENDPORT
 
     assert b"BW2300" in buf, (
         f"cfg-block BW2300 didn't reach VARA TNC: {buf!r}"
+    )
+
+
+def test_attach_to_vara_port_creates_session(tmp_path: Path):
+    """``ATTACH 2`` (sysop) on a Pactor-style port (PROTOCOL=10 — VARA
+    qualifies) sets up a new transport session attached to that port
+    (``Cmd.c::ATTACHCMD``).  Pre-#4 this was deferred because no
+    Pactor-style port was configured in any test cfg; with the VARA
+    fixture in place we can now exercise it.
+    """
+    with vara_modem() as modem:
+        cfg = _vara_cfg(modem.control_port)
+        with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+            with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+                client.login("test", "test")
+                # Non-existent port number — ``Cmd.c:4307`` rejects
+                # with "Invalid Port" when no PORT entry matches.
+                bad = client.run_command("ATTACH 99")
+                # Attach to the VARA port (slot 2).
+                ok = client.run_command("ATTACH 2")
+
+    assert b"Invalid Port" in bad, (
+        f"ATTACH on unknown port should reject; got {bad!r}"
+    )
+    # ATTACH 2 reaches the VARA driver path.  The fake VARA simulator
+    # accepts the TCP connect but doesn't run the post-RDY handshake,
+    # so the per-stream readiness check returns "Error - TNC Not Ready"
+    # rather than the bare "Ok".  Either response means the parser
+    # accepted the command, found the port, and entered the
+    # PROTOCOL>=10 attach path — which is all we can pin down without
+    # a fuller VARA TNC stand-in.
+    assert b"Invalid Port" not in ok, (
+        f"ATTACH to VARA port unexpectedly rejected: {ok!r}"
+    )
+    assert (b"Ok" in ok or b"TNC Not Ready" in ok), (
+        f"ATTACH to VARA port did not reach the attach path: {ok!r}"
     )

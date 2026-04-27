@@ -115,6 +115,49 @@ def test_side_effect_commands_sysop_gated(linbpq, cmd):
     )
 
 
+def test_getportctext_reads_per_port_files(tmp_path, linbpq):
+    """``GETPORTCTEXT`` re-reads per-port ``Port<N>CTEXT.txt`` files
+    from the working directory into ``PORT->CTEXT`` (CommonCode.c:4898).
+
+    Pre-writes a per-port CTEXT file then runs the sysop command —
+    the response lists the ports it loaded text for.
+    """
+    # Write CTEXT for port 1 (the Telnet port in our default config).
+    (linbpq.work_dir / "Port1CTEXT.txt").write_text(
+        "Welcome from getportctext test\n"
+        "Second line of CTEXT\n"
+    )
+
+    with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+        client.login("test", "test")
+        client.run_command("PASSWORD")
+        response = client.run_command("GETPORTCTEXT")
+
+    assert SYSOP_REJECT not in response, (
+        f"sysop unlocked but still rejected: {response!r}"
+    )
+    assert b"CTEXT Read for ports" in response, (
+        f"GETPORTCTEXT didn't echo expected confirmation: {response!r}"
+    )
+    # The port-list in the response is the ports that had a file
+    # loaded — must include port 1.
+    assert b"1" in response, (
+        f"port 1 not in GETPORTCTEXT response: {response!r}"
+    )
+
+
+def test_getportctext_with_no_files_returns_empty_list(linbpq):
+    """GETPORTCTEXT with no ``Port<N>CTEXT.txt`` files present returns
+    the same envelope but with an empty port list."""
+    with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+        client.login("test", "test")
+        client.run_command("PASSWORD")
+        response = client.run_command("GETPORTCTEXT")
+    assert b"CTEXT Read for ports" in response, (
+        f"GETPORTCTEXT didn't return expected envelope: {response!r}"
+    )
+
+
 def test_dump_command_recognised(linbpq):
     """``DUMP`` is documented as a Windows-build sysop command (writes a
     minidump file).  On Linux the dispatch entry exists but the

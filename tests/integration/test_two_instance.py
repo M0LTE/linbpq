@@ -338,6 +338,42 @@ def test_nrr_finds_peer_after_nodes_propagation(two_instances):
     )
 
 
+def test_pollnodes_on_qualified_port_succeeds(two_instances):
+    """``POLLNODES <port>`` on a port with ``PORTQUALITY != 0`` (the
+    AXIP port in our PEER_CONFIG, slot 2) emits a NODES-poll UI frame
+    and returns ``Ok`` (Cmd.c:307).  Pre-issue-#4 this couldn't be
+    exercised because no two-instance topology had a port-quality-set
+    AXIP port; with the L4-uplink fix the topology is now standard.
+    """
+    a, _ = two_instances
+
+    with TelnetClient("127.0.0.1", a.telnet_port, timeout=10) as client:
+        client.login("test", "test")
+        client.run_command("PASSWORD")
+        response = client.run_command("POLLNODES 2")
+
+    assert b"Ok" in response, (
+        f"POLLNODES on qualified AXIP port should return Ok; "
+        f"got {response!r}"
+    )
+
+
+def test_sendrif_to_known_neighbour_succeeds(two_instances):
+    """``SENDRIF <port> <call>`` on a known NET/ROM neighbour returns
+    ``Ok`` (Cmd.c:382) and triggers ``sendAlltoOneNeigbour`` for that
+    route.  Static ROUTES: in PEER_CONFIG installs N0BBB on port 2."""
+    a, _ = two_instances
+
+    with TelnetClient("127.0.0.1", a.telnet_port, timeout=10) as client:
+        client.login("test", "test")
+        client.run_command("PASSWORD")
+        response = client.run_command("SENDRIF 2 N0BBB")
+
+    assert b"Ok" in response, (
+        f"SENDRIF to known neighbour should return Ok; got {response!r}"
+    )
+
+
 def test_stoproute_startroute_disables_and_re_enables_neighbour(two_instances):
     """``STOPROUTE <call>`` disables a NET/ROM neighbour route — visible
     in ``ROUTES`` output as the route losing its ``Locked`` marker or
