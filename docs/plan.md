@@ -2,6 +2,102 @@
 
 > Living document. Update as the suite grows or the strategy shifts.
 
+## Coverage gaps from a real-world config
+
+Walked through GB7RDG's production `bpq32.cfg` (Reading, M0LTE)
+to spot-check coverage.  What's tested and what's not, captured
+here so we can prioritise.
+
+### Currently a canary only — port opens, protocol untouched
+
+- **`FBBPORT`** — FBB host-mode protocol entirely uncovered.
+- **`NETROMPORT`** — NETROM-over-TCP transport / inter-node tunnel.
+- **`APIPORT`** — note: the API itself actually serves on
+  `HTTPPORT`; the parallel `APIPORT` listener doesn't respond to
+  HTTP/1.0 requests we send.
+- **`SNMPPORT`** — SNMP listener; nothing tests it.
+
+### Not covered at all
+
+**Top-level identity / map / metrics**
+- `MAPCOMMENT`
+- `EnableM0LTEMap`, `M0LTEMapInfo` (per-port info for the M0LTE map)
+- `ENABLEOARCAPI`
+- `EnableEvents`
+- `AUTOSAVE`
+
+**Compression / global tunables**
+- `L4Compress`, `L2COMPRESS`
+- `T3`
+
+**Beacon and identification**
+- `IDINTERVAL` / `IDMSG:` (periodic ID frames)
+- `BTINTERVAL` / `BTEXT:` (beacon TX cadence + text)
+- `CTEXT:` (Connect Text shown to incoming connects)
+
+**APRS subsystem (`APRSDIGI` block)**
+- `LAT`, `LON`, `StatusMsg`, `Symbol`, `Symset`
+- `APRSPath n=`
+- `ISHost`, `ISPort`, `ISPasscode` (APRS-IS uplink)
+- `OBJECT ... PATH=...`
+- `BeaconInterval`
+
+**KISS extensions**
+- `KISSOPTIONS=ACKMODE` — Multi-Drop KISS / ackmode framing
+  variant.  Spec mirrored in
+  [packethacking/ax25spec](https://github.com/packethacking/ax25spec).
+  Builds directly on the PtyKissModem helper from Phase 8.
+
+**Per-RF-port tuning** (none of these cfg → runtime round-trips
+are tested — we lock down a sample of *global* settings via
+`test_config_to_runtime.py`, but per-port equivalents are open)
+- `TXDELAY`, `FRACK`, `RETRIES`, `MAXFRAME`, `SLOTTIME`, `PERSIST`,
+  `RESPTIME`, `PACLEN` (port-level), `DIGIFLAG`, `NODESPACLEN`,
+  `TXTAIL`, `isRF` / `ISRF`
+
+**Telnet driver options inside the `CONFIG` block**
+- `SECURETELNET`
+- `LOGGING`
+- `CMS` (Winlink CMS connection)
+- `DisconnectOnClose`
+- `LOCALNET=` (sysop-trust whitelist)
+- `LOGINPROMPT=`, `PASSWORDPROMPT=` (custom prompts)
+- `RELAYAPPL=` (relay app for FBB connections)
+- `CTEXT=` (block-level connect text)
+- `CMDPORT` — [LinBPQ Applications Interface][appsiface]
+  (BPQ host-mode TCP range used by external apps like TelStar,
+  WALL, DAPPS in the GB7RDG cfg).
+
+[appsiface]: https://www.cantab.net/users/john.wiseman/Documents/LinBPQ%20Applications%20Interface.html
+
+**Sysop-cfg keywords**
+- `PASSWORD=` — sets the global `PWTEXT` used by the
+  non-`Secure_Session` `PASSWORD <5 chars>` challenge flow.
+
+**Mail/Chat enablement via cfg keywords**
+- `LINMAIL`, `LINCHAT` — alternative to the `mail` / `chat` cli
+  args we currently use.
+
+**New `APPLICATION` line format**
+- `APPLICATION n,CMD,New Command,Call,Alias,Quality,L2Alias` —
+  extended-form per-app declaration; we use the older
+  `APPLICATIONS=` comma-list.
+
+**MQTT integration**
+- `MQTT=1`, `MQTT_HOST`, `MQTT_PORT`, `MQTT_USER`, `MQTT_PASS`
+- libpaho is linked but no code paths through it are exercised.
+
+**IP gateway extras** (we have `ADAPTER` and the basic commands
+covered; missing:)
+- `ENABLESNMP` inside `IPGATEWAY ... ****`
+
+**BPQAXIP block extras** (relevant to the L4-uplink mystery in
+[issue #4](https://github.com/M0LTE/linbpq/issues/4))
+- `MHEARD ON`
+- `BROADCAST NODES`, `BROADCAST ID`
+- Multi-`UDP` ports per block (one block listening on several UDP ports)
+- `MAP ... B` (broadcast flag on individual map entries)
+
 ## Spec references
 
 When writing tests that need to construct or parse wire frames,
