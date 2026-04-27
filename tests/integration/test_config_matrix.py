@@ -196,6 +196,75 @@ ENDPORT
 )
 
 
+LOWERCASE_KEYWORDS = Template(
+    """\
+simple=1
+nodecall=N0CALL
+nodealias=TEST
+locator=NONE
+
+port
+ ID=Telnet
+ driver=Telnet
+ config
+ tcpport=$telnet_port
+ httpport=$http_port
+ maxsessions=10
+ user=test,test,N0CALL,,SYSOP
+endport
+"""
+)
+
+
+def test_keywords_are_case_insensitive(tmp_path):
+    """``simple`` / ``nodecall`` / ``port`` / ``driver`` / ``tcpport``
+    in any case are accepted and the daemon boots normally."""
+    from helpers.telnet_client import TelnetClient as _TC
+
+    with LinbpqInstance(
+        tmp_path, config_template=LOWERCASE_KEYWORDS
+    ) as linbpq:
+        with _TC("127.0.0.1", linbpq.telnet_port) as client:
+            client.login("test", "test")
+            response = client.run_command("VERSION")
+        assert b"Version" in response
+
+
+# Trailing spaces on top-level keywords and inside CONFIG must be
+# tolerated so a copy-pasted cfg from a doc with stray whitespace
+# doesn't silently break.  Note the deliberate trailing spaces on
+# several lines below.
+TRAILING_WHITESPACE = Template(
+    "SIMPLE=1   \n"
+    "NODECALL=N0CALL   \n"
+    "NODEALIAS=TEST\n"
+    "LOCATOR=NONE\n"
+    "\n"
+    "PORT\n"
+    " ID=Telnet\n"
+    " DRIVER=Telnet\n"
+    " CONFIG\n"
+    " TCPPORT=$telnet_port   \n"
+    " HTTPPORT=$http_port\n"
+    " MAXSESSIONS=10\n"
+    " USER=test,test,N0CALL,,SYSOP\n"
+    "ENDPORT\n"
+)
+
+
+def test_trailing_whitespace_is_tolerated(tmp_path):
+    """Trailing spaces on keyword=value lines don't break parsing."""
+    from helpers.telnet_client import TelnetClient as _TC
+
+    with LinbpqInstance(
+        tmp_path, config_template=TRAILING_WHITESPACE
+    ) as linbpq:
+        with _TC("127.0.0.1", linbpq.telnet_port) as client:
+            client.login("test", "test")
+            response = client.run_command("VERSION")
+        assert b"Version" in response
+
+
 def test_hash_comment_at_top_level_is_warned_but_tolerated(tmp_path):
     """Top-level ``#`` lines log 'not recognised - Ignored' but the
     daemon boots and serves telnet anyway.  Locks in current
