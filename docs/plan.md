@@ -131,7 +131,7 @@ Phase 1 once the harness produces useful output.
 | ----: | ------------------------------------------------------------------------------------------------------------------------ | ------ |
 |     0 | Drop misdirected prior work; confirm `linbpq.bin` builds locally; identify a minimal cfg that boots clean                | done   |
 |     1 | `tests/integration/` skeleton + Docker test image + `linbpq_instance` pytest fixture + one telnet smoke test             | done   |
-|     2 | Breadth-first interface coverage — one MVP test per protocol (telnet, HTTP, AGW, KISS-TCP, AX/IP UDP, host-mode TCP)     | todo   |
+|     2 | Breadth-first interface coverage — telnet, HTTP, AGW, NET/ROM-TCP, FBB-TCP, JSON API; KISS-TCP and AX/IP-UDP deferred  | done\* |
 |     3 | Telnet node-command coverage driven by `docs/node-commands.md` (every command, sysop gating, state-changing round-trips) | todo   |
 |     4 | BBS + Chat lifecycle — send / read / list / kill mail, chat connect / topic / broadcast                                  | todo   |
 |     5 | Persistence round-trip — boot, mutate, shut down, reboot, verify state restored                                          | todo   |
@@ -142,6 +142,12 @@ Phase 1 once the harness produces useful output.
 Phases 0–3 hold most of the value and are achievable in reasonable
 time. Phases 6 and 8 are real engineering; do not commit until earlier
 phases prove out. Mark progress by updating the table in this file.
+
+\*Phase 2 footnote: KISS-over-TCP and AX/IP-over-UDP each need their
+own driver `PORT` block (and AX/IP needs an interconnection map), so
+they are pulled out into a follow-up batch rather than wedged in
+alongside the TelnetV6-hosted channels. The AGW raw-mode pathway covers
+some of what a KISS-TCP test would catch in the meantime.
 
 ## Repository layout
 
