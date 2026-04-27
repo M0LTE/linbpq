@@ -201,10 +201,16 @@ class FBBPartner:
     def read_one_command(self, timeout: float = 5.0) -> bytes:
         """Read one CR-terminated FBB command line, skipping over empty
         lines (linbpq sometimes emits stray CR/LF between BBS welcome
-        text and FBB-mode commands)."""
+        text and FBB-mode commands).  Consumes the trailing ``\\n`` if
+        present so the buffer doesn't leave orphan LFs that confuse
+        the next binary-mode read."""
         deadline = time.monotonic() + timeout
         while True:
             line = self.read_until(b"\r", timeout=max(0.1, deadline - time.monotonic()))
+            # Pull trailing LF if present, so a B1/B2 binary read
+            # following this command doesn't see the leftover \n.
+            if self._buf[:1] == b"\n":
+                del self._buf[:1]
             stripped = line.lstrip(b"\r\n")
             if stripped:
                 return stripped

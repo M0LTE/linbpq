@@ -45,7 +45,7 @@ PORT
  TCPPORT=$telnet_port
  HTTPPORT=$http_port
  MAXSESSIONS=10
- USER=test,test,N0AAA-1,,SYSOP
+ USER=test,test,N0SDR,,SYSOP
  USER=fbbuser,fbbpass,N0BBB,,
 ENDPORT
 """
@@ -249,11 +249,8 @@ def _post_message(
     cmd = f"S{msg_type} {to_call} @ {at_call}"
     with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
         client.login(sender_user, sender_pass)
-        client.run_command("BBS")
-        # BBS prompts may include a "Please enter your Name" step on
-        # first connection — ours has DontNeedName=1 in cfg, so the
-        # prompt should land directly.
-        client.read_until(f"de {bbs_call}>".encode(), timeout=8)
+        # ``run_command("BBS")`` reads the BBS-app banner + prompt to idle.
+        client.run_command("BBS", idle_timeout=1.5)
         client.write_line(cmd)
         client.read_until(b"Enter Title", timeout=5)
         client.write_line(title)
@@ -398,6 +395,119 @@ def test_protocol_error_on_non_F_command_after_sid(tmp_path: Path):
 
     assert b"Protocol Error" in line, (
         f"non-F line should trigger protocol error, got {line!r}"
+    )
+
+
+def test_linbpq_sends_proposal_for_queued_message(tmp_path: Path):
+    """End-to-end: queue a message for partner via SP, then have the
+    partner connect and read its FBB proposal.
+
+    Wire flow:
+    1. local user SPs ``SP TESTUSER @ N0BBB`` — BPQMail's
+       ``MatchMessagetoBBSList`` matches the @BBS to partner ``N0BBB``
+       and sets ``fbbs[BBSNumber=1]`` on the message.
+    2. Partner connects and exchanges SIDs.
+    3. Partner sends ``FF`` (we have no messages to offer).
+    4. linbpq's ``FBBDoForward`` finds the queued msg and sends an
+       ``FA`` (compressed) proposal containing the right BID, From,
+       To, ATBBS, and size.
+    """
+    instance = _fwd_setup_fbb_mode(tmp_path)
+    with instance as linbpq:
+        _post_message(
+            linbpq=linbpq,
+            sender_user="test",
+            sender_pass="test",
+            to_call="TESTUSER",
+            at_call="N0BBB",
+            msg_type="P",
+            title="for-partner-subj",
+            body="for-partner-body",
+        )
+
+        with fbb_partner(
+            "127.0.0.1",
+            linbpq.telnet_port,
+            username="fbbuser",
+            password="fbbpass",
+        ) as partner:
+            partner.login_to_bbs()
+            partner.send_sid()
+            partner.send_ff()
+            # linbpq should now propose the queued message.
+            proposals, terminator = partner.read_proposal_block(timeout=10)
+
+    # FF/FQ-only "block" returned by helper means linbpq had nothing
+    # to forward — that's a regression for this test.
+    assert proposals and not proposals[0].startswith(b"F"[:2]) is False, (
+        f"linbpq sent {proposals!r} {terminator!r} — expected an FA proposal"
+    )
+    assert any(p.startswith(b"FA") or p.startswith(b"FC") for p in proposals), (
+        f"expected at least one FA/FC proposal, got {proposals!r}"
+    )
+    # FA carries To/From/AT inline; FC (B2) hides them inside the
+    # encapsulated message and only carries BID + sizes (spec §11.2).
+    proposal = proposals[0]
+    if proposal.startswith(b"FA"):
+        assert b"TESTUSER" in proposal, f"TO not in FA proposal: {proposal!r}"
+        assert b"N0BBB" in proposal, f"ATBBS not in FA proposal: {proposal!r}"
+    else:
+        # FC BID format: ``<seq>_<bbs>`` (FBB spec §3.1).
+        assert b"_N0AAA" in proposal, (
+            f"FC proposal BID should reference originating BBS: {proposal!r}"
+        )
+
+
+def test_partner_accepts_proposal_and_receives_b2_framed_body(tmp_path: Path):
+    """Full happy-path round-trip: partner accepts linbpq's B2 proposal
+    and reads the SOH-framed message body.
+
+    Per FBB spec §8.2, the body opens with ``\\x01`` (SOH) followed by
+    a length byte; the field after the header begins with ``\\x02``
+    (STX, data block).  We assert on the leading framing bytes and
+    the title-in-header — the trailing EOT depends on exact compressed
+    size and isn't worth chasing across LZHUF variants.
+    """
+    instance = _fwd_setup_fbb_mode(tmp_path)
+    with instance as linbpq:
+        _post_message(
+            linbpq=linbpq,
+            sender_user="test",
+            sender_pass="test",
+            to_call="TESTUSER",
+            at_call="N0BBB",
+            msg_type="P",
+            title="round-trip-subj",
+            body="round-trip-body" * 5,
+        )
+
+        with fbb_partner(
+            "127.0.0.1",
+            linbpq.telnet_port,
+            username="fbbuser",
+            password="fbbpass",
+        ) as partner:
+            partner.login_to_bbs()
+            partner.send_sid()
+            partner.send_ff()
+            proposals, _ = partner.read_proposal_block(timeout=10)
+            partner.send_fs_response(b"+")
+            # Read the SOH header by hand — much simpler than driving
+            # the full STX/EOT framing.
+            soh = partner.read_bytes(1, timeout=10)
+            length_b = partner.read_bytes(1, timeout=5)
+            header = partner.read_bytes(length_b[0], timeout=5)
+            stx = partner.read_bytes(1, timeout=5)
+
+    assert soh == b"\x01", f"expected SOH, got 0x{soh[0]:02x}"
+    assert b"round-trip-subj" in header, (
+        f"title missing from B2 SOH-header: {header!r}"
+    )
+    assert b"\x00000000\x00" in header, (
+        f"B2 header offset field malformed: {header!r}"
+    )
+    assert stx == b"\x02", (
+        f"expected STX (start-of-data) after header, got 0x{stx[0]:02x}"
     )
 
 
