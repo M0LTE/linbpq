@@ -54,6 +54,48 @@ ENDPORT
 MINIMAL_CONFIG = DEFAULT_CONFIG
 
 
+# Two-instance config with BBS enabled — used to exercise BBS over
+# a cross-instance NET/ROM-via-AX/IP-UDP link (a user on A connects
+# to B downlink, enters B's BBS, posts a message; another session
+# on B reads it back locally).
+PEER_MAIL_CONFIG = Template(
+    """\
+SIMPLE=1
+NODECALL=$node_call
+NODEALIAS=$node_alias
+LOCATOR=NONE
+APPLICATIONS=BBS
+BBSCALL=$bbs_call
+BBSALIAS=BBS
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ NETROMPORT=$netrom_port
+ FBBPORT=$fbb_port
+ APIPORT=$api_port
+ MAXSESSIONS=10
+ USER=test,test,$node_call,,SYSOP
+ENDPORT
+
+PORT
+ ID=AXIP
+ DRIVER=BPQAXIP
+ CONFIG
+ UDP $axip_port
+ MAP $peer_call 127.0.0.1 UDP $peer_axip_port
+ENDPORT
+
+ROUTES:
+CALL=$peer_call QUALITY=200 PORT=2
+***
+"""
+)
+
+
 # Two-instance config used for AX/IP-over-UDP topology tests.  The
 # template substitutions add the *peer*'s callsign and UDP port so the
 # instance can MAP it.  $node_call / $node_alias / $bbs_call are
