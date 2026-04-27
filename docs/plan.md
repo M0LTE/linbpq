@@ -2,6 +2,24 @@
 
 > Living document. Update as the suite grows or the strategy shifts.
 
+## Spec references
+
+When writing tests that need to construct or parse wire frames,
+the canonical specs are mirrored at
+[packethacking/ax25spec](https://github.com/packethacking/ax25spec):
+
+- AX.25 link-layer protocol (frame format, address fields, CTL,
+  PID).
+- KISS TNC spec (FEND / FESC / TFEND / TFESC framing, command
+  byte layout).
+- Multi-Drop KISS / ackmode extensions.
+- FBB forwarding protocol (relevant for the deferred cross-instance
+  BBS-to-BBS auto-forwarding tests).
+
+Prefer linking to those specs from test docstrings rather than
+re-deriving framing details from the linbpq source — the spec is
+the contract; linbpq is just one implementation of it.
+
 ## Bugs found while writing tests
 
 If a test reveals a real bug in linbpq — a crash, malformed output,
