@@ -16,14 +16,19 @@ here so we can prioritise.
   **inter-BBS FBB forwarding protocol** (SID exchange, `FB`/`FA`/
   `FC`/`F>`/`FF`/`FQ` proposal rounds, B2 binary blocks per
   [packethacking/ax25spec/doc/fbb-forwarding-protocol.md]) is a
-  *separate* layer that runs on top of any transport — covered as
-  part of cross-instance BBS-to-BBS forwarding (still deferred;
-  needs a fake forwarding partner).
-- **`NETROMPORT`** — NETROM-over-TCP transport / inter-node tunnel.
-- **`APIPORT`** — note: the API itself actually serves on
-  `HTTPPORT`; the parallel `APIPORT` listener doesn't respond to
-  HTTP/1.0 requests we send.
-- **`SNMPPORT`** — SNMP listener; nothing tests it.
+  *separate* layer that runs on top of any transport — covered by
+  `test_bbs_forwarding.py` + `helpers/fbb_partner.py` (Python-side
+  fake BBS).  *Two real BPQMail daemons* forwarding to each other
+  is the next layer; deferred deliberately as lower marginal value
+  (Phase 6 footnote).
+- ~~**`NETROMPORT`**~~ — covered by `test_netromtcp.py` (FindNeighbour
+  gate + ROUTES active-marker behaviour).
+- **`APIPORT`** — note: the JSON API itself actually serves on
+  `HTTPPORT`; the parallel `APIPORT` listener accepts the connection
+  (canary in `test_aux_listeners.py`) but the HTTP-level surface is
+  exercised through `HTTPPORT` (`test_api.py`).
+- ~~**`SNMPPORT`**~~ — covered by `test_snmp.py` (sysName, sysUpTime,
+  unknown-OID drop).
 
 ### Not covered at all
 
@@ -38,10 +43,11 @@ here so we can prioritise.
 - `L4Compress`, `L2COMPRESS`
 - `T3`
 
-**Beacon and identification**
-- `IDINTERVAL` / `IDMSG:` (periodic ID frames)
-- `BTINTERVAL` / `BTEXT:` (beacon TX cadence + text)
-- `CTEXT:` (Connect Text shown to incoming connects)
+~~**Beacon and identification**~~ — all covered:
+- `IDINTERVAL` / `IDMSG:` — `test_long_runtime_beacons.py`
+- `BTINTERVAL` / `BTEXT:` — `test_long_runtime_beacons.py`
+- `CTEXT:` — `test_telnet_more_subsystems.py` /
+  `test_two_instance.py` cross-instance CTEXT delivery
 
 **APRS subsystem (`APRSDIGI` block)**
 - `LAT`, `LON`, `StatusMsg`, `Symbol`, `Symset`
@@ -133,17 +139,39 @@ test docstrings for spec links and per-feature notes.
 
 ### Items still deferred from this audit
 
-- **NETROMPORT / APIPORT / SNMPPORT** — listener canaries only.
-  Going beyond canary needs the respective protocol simulators.
-- **FBB inter-BBS forwarding protocol** — separate layer from
-  FBBPORT.  Needs a fake forwarding-partner harness; tied to the
-  cross-instance BBS-to-BBS work.
-- **Winlink CMS** real protocol — cfg accepted, but exercising
-  the CMS handshake needs a Winlink CMS server simulator.
-- **L4-uplink** — [issue #4](https://github.com/M0LTE/linbpq/issues/4).
-  BPQAXIP extras parse cleanly but actual NODES propagation
-  between two AX/IP-UDP-linked instances doesn't work; root
-  cause not yet found.
+- ~~**NETROMPORT** beyond canary~~ — done in
+  `test_netromtcp.py`.  Drives the NET/ROM-over-TCP framing
+  (`Length(2 LE) | Call(10) | PID=0xCF | L3 packet` —
+  NETROMTCP.c:27); negative test verifies unknown call closes the
+  socket (NETROMTCP.c:500), positive test verifies known call
+  flips ``ROUTES`` output to show the active-link `>` marker
+  (Cmd.c:1912).
+- **APIPORT** beyond canary — already covered separately by
+  `test_api.py` (full API surface: info, ports, nodes, links,
+  routes, users).  Listener-canary entry in
+  `test_aux_listeners.py` is the safety net.
+- ~~**SNMPPORT** beyond canary~~ — done in `test_snmp.py`.  Hand-
+  built SNMP-v1 GetRequest BER, three OIDs verified: ``sysName.0``
+  → ``MYNODECALL``, ``sysUpTime.0`` → non-zero TimeTicks
+  (IPCode.c:5365), unknown OID → silent drop.
+- **FBB inter-BBS forwarding protocol** — covered by
+  `test_bbs_forwarding.py` plus `helpers/fbb_partner.py` (fake-FBB
+  partner harness).  "Two real BPQMail daemons forwarding to each
+  other" is a *next layer* deferred deliberately (lower marginal
+  value than the fake-partner coverage already in place — see Phase 6
+  footnote below).
+- **Winlink CMS** real protocol — cfg accepted (CMS keyword set
+  in the Telnet PORT block) but exercising the CMS handshake needs
+  a fake Winlink CMS server.  CMS uses a session-key authentication
+  scheme over TCP; building a faithful simulator is significant
+  infrastructure (~200-400 LoC + cryptographic specifics).  Open.
+- ~~**L4-uplink** ([issue #4](https://github.com/M0LTE/linbpq/issues/4))~~ —
+  resolved.  Three cfg knobs (port-block ``QUALITY=``, ``BROADCAST
+  NODES``, ``B`` flag on the ``MAP`` line) plus comma-form
+  ``ROUTES:`` (keyword=value form misparsed —
+  [#12](https://github.com/M0LTE/linbpq/issues/12)) make NET/ROM
+  propagation work over AX/IP-UDP.  Locked in by
+  `test_two_instance.py::test_nodes_propagation_and_l4_uplink_connect`.
 - ~~**Beacon / ID runtime emission**~~ — done in
   `test_long_runtime_beacons.py` (one ~2:15 test exercises both
   ID and BT in a single boot).  Marked `@pytest.mark.long_runtime`;
@@ -156,9 +184,10 @@ test docstrings for spec links and per-feature notes.
   (APRSCode.c:1811: ``Timer = ObjectCount * 10 + 30``); test reads
   KISS frames from a PTY-backed RF port, asserts the body and the
   AX.25 destination ``APBPQ1`` (default ``APRSDest``).
-- **`FRACK` / `RESPTIME` per-port round-trips** — non-trivial
-  scaling we haven't modelled; tests skipped with docstring
-  notes rather than pinning a fragile invariant.
+- ~~**`FRACK` / `RESPTIME` per-port round-trips**~~ — done in the
+  audit's Batch-3 runtime-setter pattern: ``CMD PORT VAL`` → read
+  back via ``CMD PORT``, asserting ``PORTVAL`` round-trip.  No
+  cfg → runtime scaling assumed.
 
 ## Standing target: drive tests through public interfaces only
 
@@ -497,24 +526,34 @@ coverage further:
 
 Still deferred:
 
-- **Connection commands**: the downlink form is fully covered now —
+- **Connection commands**: the downlink form is fully covered —
   `C <port> <call>`, `CONNECT <port> <call>`, and `NC <port> <call>`
   all exercised on Phase 6's two-instance topology, plus
   `BYE`-from-peer drops the cross-link and returns to the local node
   prompt.  L4-uplink form of CONNECT (`C <call>` with no port, route
-  via NODES) is now covered too — see
+  via NODES) is covered too — see
   `test_two_instance.py::test_nodes_propagation_and_l4_uplink_connect`
   ([#4](https://github.com/M0LTE/linbpq/issues/4) closeout).
-  Still deferred: `ATTACH` (Pactor / VARA / Telnet stream attach
-  — needs an externally-set-up stream).
-- **`APRS`, `WL2KSYSOP`, `RHP`, `QTSM`, `RADIO`, `UZ7HO`**: each needs
-  its own subsystem configured.
-- **`NAT`, `AXRESOLVER`, `AXMHEARD`**: BPQ IP-gateway feature.
-- **Side-effect sysop commands** (`REBOOT`, `RESTART`, `RESTARTTNC`,
-  `RIGRECONFIG`, `TELRECONFIG`, `STOPPORT` / `STARTPORT`,
-  `STOPCMS` / `STARTCMS`, `STOPROUTE` / `STARTROUTE`, `KISS`): carry
-  side effects we should not casually trigger; need fixtures that
-  explicitly invite restart-style behaviour.
+  ``ATTACH`` is partially covered (audit Batch 2):
+  ``ATTACH 99`` → "Invalid Port", ``ATTACH 2`` reaches the attach
+  path on a VARA driver via `helpers/vara_modem.py`.  Full attach +
+  data through a Pactor / Telnet stream still needs an
+  externally-set-up stream — open.
+- ~~**`APRS`, `WL2KSYSOP`, `RHP`, `QTSM`, `RADIO`, `UZ7HO`**~~ —
+  each subsystem now has at least canary coverage:
+  `test_aprs.py` (APRSDIGI), `test_telnet_more_subsystems.py`
+  (WL2KSYSOP, QTSM, RADIO), `test_telnet_uz7ho.py` (UZ7HO), audit
+  Batch 2 (RHP — header-line canary).
+- **`NAT`, `AXRESOLVER`, `AXMHEARD`**: BPQ IP-gateway feature —
+  covered by `test_telnet_ip_gateway.py` /
+  `test_telnet_ip_gateway_enabled.py`.
+- ~~**Side-effect sysop commands**~~ (`REBOOT`, `RESTART`,
+  `RESTARTTNC`, `RIGRECONFIG`, `TELRECONFIG`, `STOPCMS` / `STARTCMS`,
+  `EXTRESTART`, `STOPROUTE` / `STARTROUTE`, `KISS`) — covered as
+  parser-recognition + sysop-gating canaries (audit Batch 1).
+  ``STOPROUTE`` / ``STARTROUTE`` exercised behaviourally on
+  `test_two_instance.py`.  ``KISS`` exercised against the
+  ``PtyKissModem`` PTY in audit Batch 2.
 - **Host-protocol pseudo-commands** (`*** LINKED`, `..FLMSG`): only
   meaningful inside a BPQ host stream, not over telnet.
 
@@ -644,8 +683,10 @@ Test for the expected behaviour is in place but skipped pending fix.
   command word that appears in ``?``.
 
 Still deferred:
-- **`FRACK` / `RESPTIME` per-port round-trips** — non-trivial
-  scaling we haven't modelled (FRACK=2000→6, FRACK=3300→9).
+- ~~**`FRACK` / `RESPTIME` per-port round-trips**~~ — covered via
+  the audit's Batch-3 runtime-setter pattern (``CMD PORT VAL`` →
+  read back via ``CMD PORT``); non-trivial cfg→runtime scaling not
+  asserted, but the sysop command itself round-trips cleanly.
 - **`isRF` / `ISRF`** — informational; no observable runtime
   effect to test against.
 
