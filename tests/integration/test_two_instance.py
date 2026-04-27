@@ -305,6 +305,39 @@ def test_nodes_propagation_and_l4_uplink_connect(two_instances):
     )
 
 
+def test_nrr_finds_peer_after_nodes_propagation(two_instances):
+    """``NRR <call>`` (NetRom Record Route) walks the NODES (DESTS)
+    table for the call and emits a record-route packet (``Cmd.c:4231``).
+    With an empty NODES table it returns ``Not found``; once #4's fix
+    has propagated NODES, ``NRR N0BBB`` finds the entry and returns
+    ``OK``."""
+    a, b = two_instances
+
+    # Trigger SENDNODES on both sides, wait for propagation.
+    for inst in (a, b):
+        with TelnetClient("127.0.0.1", inst.telnet_port, timeout=10) as client:
+            client.login("test", "test")
+            client.run_command("PASSWORD")
+            client.run_command("SENDNODES")
+    time.sleep(3)
+
+    # Now NRR N0BBB on A should succeed (DESTS has N0BBB entry).
+    # Response also includes the actual round-trip trace, e.g.
+    # ``NRR Response in 2 Secs: N0AAA N0BBB* N0AAA``.
+    with TelnetClient("127.0.0.1", a.telnet_port, timeout=10) as client:
+        client.login("test", "test")
+        response = client.run_command("NRR N0BBB", idle_timeout=3)
+    assert b"Not found" not in response, (
+        f"NRR after NODES propagation should find peer, got: {response!r}"
+    )
+    assert b"NRR Response" in response, (
+        f"NRR should report a round-trip from N0BBB, got: {response!r}"
+    )
+    assert b"N0BBB" in response, (
+        f"NRR Response trace should include N0BBB, got: {response!r}"
+    )
+
+
 def test_bye_from_peer_returns_to_local_node(two_instances):
     """After connecting to B, ``BYE`` drops the cross-link and returns
     the user to A's node prompt — verified by running a command and

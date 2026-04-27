@@ -495,14 +495,12 @@ Still deferred:
   `C <port> <call>`, `CONNECT <port> <call>`, and `NC <port> <call>`
   all exercised on Phase 6's two-instance topology, plus
   `BYE`-from-peer drops the cross-link and returns to the local node
-  prompt.  Still deferred: `ATTACH` (Pactor / VARA / Telnet stream
-  attach — needs an externally-set-up stream) and the **L4-uplink
-  form of CONNECT** (`C <call>` with no port, route via NODES).
-  Tracked in [M0LTE/linbpq#4](https://github.com/M0LTE/linbpq/issues/4):
-  even with `QUALITY=192` on the AXIP port, `BROADCAST NODES` in
-  the AX/IP CONFIG block, and `SENDNODES` triggered from both sides,
-  NODES tables stay empty.  Needs deeper investigation of the
-  port-quality path and AX/IP broadcast TX routing.
+  prompt.  L4-uplink form of CONNECT (`C <call>` with no port, route
+  via NODES) is now covered too — see
+  `test_two_instance.py::test_nodes_propagation_and_l4_uplink_connect`
+  ([#4](https://github.com/M0LTE/linbpq/issues/4) closeout).
+  Still deferred: `ATTACH` (Pactor / VARA / Telnet stream attach
+  — needs an externally-set-up stream).
 - **`APRS`, `WL2KSYSOP`, `RHP`, `QTSM`, `RADIO`, `UZ7HO`**: each needs
   its own subsystem configured.
 - **`NAT`, `AXRESOLVER`, `AXMHEARD`**: BPQ IP-gateway feature.

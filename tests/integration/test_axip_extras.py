@@ -1,4 +1,4 @@
-"""BPQAXIP cfg-block extras (gap-analysis closeout).
+"""BPQAXIP cfg-block extras.
 
 Beyond the basic ``UDP <port>`` + ``MAP <call> ...`` we already
 exercise in test_axip.py and test_two_instance.py, the BPQAXIP
@@ -12,11 +12,11 @@ exercise in test_axip.py and test_two_instance.py, the BPQAXIP
 - ``MAP ... B`` (broadcast flag on individual map entries — same
   concept but per-peer).
 
-These are all related to issue #4 (L4-uplink not propagating);
-the fix for #4 likely involves combining ``BROADCAST NODES`` with
-``MAP ... B`` to get NODES broadcasts to fan out properly.  These
-tests just lock in the cfg-parser acceptance for now — full
-behavioural coverage waits on the L4-uplink investigation.
+Behavioural coverage for ``BROADCAST NODES`` + ``MAP ... B`` was
+unblocked by closing [#4](https://github.com/M0LTE/linbpq/issues/4):
+``test_broadcast_nodes_fans_out_to_mapped_peer`` below stands up a
+fake UDP listener as the peer and verifies linbpq emits an actual
+AX.25-NODES frame to it after ``SENDNODES``.
 """
 
 from __future__ import annotations
@@ -75,6 +75,99 @@ def test_axip_multi_udp_and_broadcast_block_parses(tmp_path: Path):
     log = (tmp_path / "linbpq.stdout.log").read_text(errors="replace")
     assert "bad config record" not in log.lower(), (
         f"BPQAXIP parser rejected an extra: {log[:2000]}"
+    )
+
+
+_AXIP_BROADCAST_BEHAVIOUR_CFG = Template(
+    """\
+SIMPLE=1
+NODECALL=N0AAA
+NODEALIAS=AAA
+LOCATOR=NONE
+NODESINTERVAL=1
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ MAXSESSIONS=10
+ USER=test,test,N0AAA,,SYSOP
+ENDPORT
+
+PORT
+ ID=AXIP
+ DRIVER=BPQAXIP
+ QUALITY=200
+ MINQUAL=1
+ CONFIG
+ UDP $axip_port
+ BROADCAST NODES
+ MAP N0PEER 127.0.0.1 UDP $peer_udp_port B
+ENDPORT
+
+ROUTES:
+N0PEER,200,2
+***
+"""
+)
+
+
+def test_broadcast_nodes_fans_out_to_mapped_peer(tmp_path: Path):
+    """When ``SENDNODES`` fires, linbpq should emit an actual AX.25 NODES
+    broadcast UDP frame to every mapped peer with the ``B`` flag set
+    on the MAP entry — not just parse the cfg cleanly.
+
+    Test setup: bind a UDP listener at a fake-peer port, configure
+    linbpq with ``BROADCAST NODES`` and ``MAP N0PEER 127.0.0.1 UDP
+    <listener> B``.  Sysop-trigger ``SENDNODES``.  Listener should
+    receive a datagram.  The first byte of an AX/IP-UDP NODES frame
+    is the KISS command byte (``0x00``) followed by 7 bytes of the
+    AX.25 destination call ``NODES`` — the 6-byte left-shifted
+    callsign + SSID byte (``9C 9E 88 8A A6 40 E0`` for ``NODES``,
+    SSID 0).
+    """
+    import socket as _sock
+    import time
+
+    from helpers.telnet_client import TelnetClient
+
+    # Pick a free UDP port for our fake-peer listener.
+    with _sock.socket(_sock.AF_INET, _sock.SOCK_DGRAM) as s:
+        s.bind(("127.0.0.1", 0))
+        peer_udp_port = s.getsockname()[1]
+
+    # Re-bind for real, this time as the listener for the test.
+    listener = _sock.socket(_sock.AF_INET, _sock.SOCK_DGRAM)
+    listener.setsockopt(_sock.SOL_SOCKET, _sock.SO_REUSEADDR, 1)
+    listener.bind(("127.0.0.1", peer_udp_port))
+    listener.settimeout(15.0)
+
+    class _T(Template):
+        def substitute(self, **kw):
+            return Template.substitute(self, peer_udp_port=peer_udp_port, **kw)
+
+    cfg = _T(_AXIP_BROADCAST_BEHAVIOUR_CFG.template)
+    try:
+        with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+            with TelnetClient("127.0.0.1", linbpq.telnet_port, timeout=10) as client:
+                client.login("test", "test")
+                client.run_command("PASSWORD")
+                client.run_command("SENDNODES")
+
+            # Receive the broadcast.  Linbpq sends within seconds of
+            # SENDNODES — give it a generous 15s slot for slow CI.
+            data, _ = listener.recvfrom(4096)
+    finally:
+        listener.close()
+
+    # The NODES AX.25 destination encoding is fixed: 'NODES' left-
+    # shifted (per L2Code.c::NODECALL[]).
+    NODES_AX25 = bytes([0x9C, 0x9E, 0x88, 0x8A, 0xA6, 0x40])
+    assert NODES_AX25 in data, (
+        f"NODES broadcast frame should contain AX.25-encoded "
+        f"'NODES' destination; got {data.hex()}"
     )
 
 

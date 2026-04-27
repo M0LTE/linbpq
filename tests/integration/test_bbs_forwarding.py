@@ -632,7 +632,9 @@ def test_at_calls_filter_routes_personal_message(tmp_path: Path):
 @pytest.mark.skip(
     reason=(
         "HRoutes-based bulletin routing doesn't queue for partner — "
-        "tracked in https://github.com/M0LTE/linbpq/issues/7."
+        "tracked in https://github.com/M0LTE/linbpq/issues/7. Independent "
+        "of issue #4 (verified post-#4-fix); BBSMail's CheckABBS matcher "
+        "vs the cfg-loader, not the NET/ROM neighbour layer."
     )
 )
 def test_hroutes_bulls_filter_routes_bulletin(tmp_path: Path):
