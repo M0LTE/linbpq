@@ -2,6 +2,23 @@
 
 > Living document. Update as the suite grows or the strategy shifts.
 
+## Bugs found while writing tests
+
+If a test reveals a real bug in linbpq — a crash, malformed output,
+uninitialised buffer, missing handler, or any other observable
+defect that isn't just an undocumented design choice — **file it as
+an issue** at <https://github.com/M0LTE/linbpq/issues> with:
+
+- A short title naming the symptom.
+- A minimal repro (cfg snippet + the request that triggers it).
+- The actual vs. expected response.
+- A source pointer (file:line) if you found one.
+- A "Found while" line linking back to the test that surfaced it.
+
+Where a test depends on the buggy behaviour for now, leave a comment
+in the test pointing at the issue number so the test is easy to
+upgrade once the bug is fixed.
+
 ## Goal
 
 A regression test suite around the `linbpq` daemon that gives high confidence

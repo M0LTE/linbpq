@@ -83,9 +83,10 @@ def test_api_ports_lists_telnet(linbpq):
 
 def test_api_nodes_envelope_present(linbpq):
     """/api/nodes returns an envelope; with an empty NODES table the
-    body is currently malformed JSON (``{"nodes":\\n]}`` — known
-    quirk of the JSON builder, but the envelope is recognisable).
-    Lock in the recognisable shape rather than valid JSON."""
+    body is currently malformed JSON (``{"nodes":\\n]}`` — see
+    https://github.com/M0LTE/linbpq/issues/1).  Lock in the
+    recognisable shape rather than valid JSON; once the issue is
+    fixed, switch this to a json.loads + ``== {"nodes": []}``."""
     with socket.create_connection(("127.0.0.1", linbpq.http_port), timeout=3) as sock:
         sock.sendall(b"GET /api/nodes HTTP/1.0\r\nConnection: close\r\n\r\n")
         sock.settimeout(3)

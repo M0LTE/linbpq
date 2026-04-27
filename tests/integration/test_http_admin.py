@@ -66,6 +66,11 @@ ADMIN_PAGES_WITH_NAV = [
 # common nav-bar wrapper but should still 200 and not be empty.
 # /Node/Streams is the popup-window stream-status page with its own
 # minimal HTML; /Node/EditCfg.html is the config-editor textarea.
+#
+# /WebMail is intentionally NOT listed here: with the mail subsystem
+# disabled it returns 641 NUL bytes (uninitialised buffer) — see
+# https://github.com/M0LTE/linbpq/issues/2.  Add it back once that's
+# fixed, gated on the linbpq_mail fixture.
 ADMIN_PAGES_BARE = [
     "/Node/Streams",
     "/Node/EditCfg.html",
