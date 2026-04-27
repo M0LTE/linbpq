@@ -124,60 +124,60 @@ BPQ32 node prompt. It is generated from the dispatch table `COMMANDS[]` in
 These commands all take the form `CMD PORT` to display, or
 `CMD PORT VALUE` to set a port-control byte. They require sysop status.
 
-| Command | Abbr | Field |
-|---------|-----:|-------|
-| [`TXDELAY`](#port-parameters)    | 3 | `PORTTXDELAY` |
-| [`MAXFRAME`](#port-parameters)   | 3 | `PORTWINDOW` |
-| [`RETRIES`](#port-parameters)    | 3 | `PORTN2` |
-| [`FRACK`](#port-parameters)      | 3 | `PORTT1` |
-| [`RESPTIME`](#port-parameters)   | 3 | `PORTT2` |
-| [`PPACLEN`](#port-parameters)    | 3 | `PORTPACLEN` (port default packet length) |
-| [`QUALITY`](#port-parameters)    | 3 | `PORTQUALITY` |
-| [`PERSIST`](#port-parameters)    | 2 | `PORTPERSISTANCE` |
-| [`TXTAIL`](#port-parameters)     | 3 | `PORTTAILTIME` |
-| [`XMITOFF`](#port-parameters)    | 7 | `PORTDISABLED` |
-| [`DIGIFLAG`](#port-parameters)   | 5 | `DIGIFLAG` |
-| [`DIGIPORT`](#port-parameters)   | 5 | `DIGIPORT` |
-| [`MAXUSERS`](#port-parameters)   | 4 | `USERS` |
-| [`L3ONLY`](#port-parameters)     | 6 | `PORTL3FLAG` |
-| [`BBSALIAS`](#port-parameters)   | 4 | `PORTBBSFLAG` |
-| [`INP3ONLY`](#port-parameters)   | 8 | `INP3ONLY` |
-| [`ALLOWINP3`](#port-parameters)  | 9 | `ALLOWINP3` |
-| [`ENABLEINP3`](#port-parameters) | 10 | `ENABLEINP3` |
-| [`FULLDUP`](#port-parameters)    | 4 | `FULLDUPLEX` |
-| [`SOFTDCD`](#port-parameters)    | 4 | `SOFTDCDFLAG` |
-| [`EXTRESTART`](#extrestart)      | 10 | Restart an external (TNC) port. |
+| Command | Abbr | Field | Description |
+|---------|-----:|-------|-------------|
+| [`TXDELAY`](#port-parameters)    | 3 | `PORTTXDELAY` | TX keyup delay (byte stores 10 ms units). |
+| [`MAXFRAME`](#port-parameters)   | 3 | `PORTWINDOW` | Maximum outstanding L2 frames (window size). |
+| [`RETRIES`](#port-parameters)    | 3 | `PORTN2` | L2 maximum retry count. |
+| [`FRACK`](#port-parameters)      | 3 | `PORTT1` | L2 retry timer (FRACK). |
+| [`RESPTIME`](#port-parameters)   | 3 | `PORTT2` | L2 delayed-ACK timer. |
+| [`PPACLEN`](#port-parameters)    | 3 | `PORTPACLEN` | Port default L2 packet length. |
+| [`QUALITY`](#port-parameters)    | 3 | `PORTQUALITY` | Default NET/ROM quality assigned to nodes heard via this port. |
+| [`PERSIST`](#port-parameters)    | 2 | `PORTPERSISTANCE` | CSMA persistence value (1–255). |
+| [`TXTAIL`](#port-parameters)     | 3 | `PORTTAILTIME` | TX tail time (KISS TNCs). |
+| [`XMITOFF`](#port-parameters)    | 7 | `PORTDISABLED` | Disable transmitter on this port. |
+| [`DIGIFLAG`](#port-parameters)   | 5 | `DIGIFLAG` | Digipeat policy (0 = off, 1 = digi everything, 255 = UI only). |
+| [`DIGIPORT`](#port-parameters)   | 5 | `DIGIPORT` | Alternate port for digipeated frames (0 = same port). |
+| [`MAXUSERS`](#port-parameters)   | 4 | `USERS` | Max concurrent L2 sessions on this port. |
+| [`L3ONLY`](#port-parameters)     | 6 | `PORTL3FLAG` | Refuse L2 downlink connects (transit traffic only). |
+| [`BBSALIAS`](#port-parameters)   | 4 | `PORTBBSFLAG` | Port call/alias represents the BBS rather than the node. |
+| [`INP3ONLY`](#port-parameters)   | 8 | `INP3ONLY` | Only INP3 routing on this port. |
+| [`ALLOWINP3`](#port-parameters)  | 9 | `ALLOWINP3` | Permit INP3 routing on this port. |
+| [`ENABLEINP3`](#port-parameters) | 10 | `ENABLEINP3` | Actively send INP3 RIFs on this port. |
+| [`FULLDUP`](#port-parameters)    | 4 | `FULLDUPLEX` | Allow transmission while DCD is active. |
+| [`SOFTDCD`](#port-parameters)    | 4 | `SOFTDCDFLAG` | Use valid-frame detection in place of hardware DCD. |
+| [`EXTRESTART`](#extrestart)      | 10 | — | Restart an external (TNC) port. |
 
 ### Sysop — switch globals
 
 These set node-wide variables. Form is `CMD` (display) or `CMD VALUE`
 (set). 8-bit values use `SWITCHVAL`; 16-bit values use `SWITCHVALW`.
 
-| Command | Abbr | Variable | Width |
-|---------|-----:|----------|------:|
-| [`OBSINIT`](#switch-globals)      | 7 | `OBSINIT` | 8 |
-| [`OBSMIN`](#switch-globals)       | 6 | `OBSMIN` | 8 |
-| [`NODESINT`](#switch-globals)     | 8 | `L3INTERVAL` | 8 |
-| [`L3TTL`](#switch-globals)        | 5 | `L3LIVES` | 8 |
-| [`L4RETRIES`](#switch-globals)    | 5 | `L4N2` | 8 |
-| [`L4TIMEOUT`](#switch-globals)    | 5 | `L4T1` | 16 |
-| [`T3`](#switch-globals)           | 2 | `T3` | 16 |
-| [`NODEIDLETIME`](#switch-globals) | 8 | `L4LIMIT` | 16 |
-| [`LINKEDFLAG`](#switch-globals)   | 10 | `LINKEDFLAG` | 8 |
-| [`IDINTERVAL`](#switch-globals)   | 5 | `IDINTERVAL` | 8 |
-| [`MINQUAL`](#switch-globals)      | 7 | `MINQUAL` | 8 |
-| [`FULLCTEXT`](#switch-globals)    | 6 | `FULL_CTEXT` | 8 |
-| [`HIDENODES`](#switch-globals)    | 8 | `HIDENODES` | 8 |
-| [`L4DELAY`](#switch-globals)      | 7 | `L4DELAY` | 8 |
-| [`L4WINDOW`](#switch-globals)     | 6 | `L4DEFAULTWINDOW` | 8 |
-| [`BTINTERVAL`](#switch-globals)   | 5 | `BTINTERVAL` | 8 |
-| [`DEBUGINP3`](#switch-globals)    | 8 | `DEBUGINP3` | 8 |
-| [`RIFINTERVAL`](#switch-globals)  | 11 | `RIFInterval` | 16 |
-| [`MAXHOPS`](#switch-globals)      | 7 | `MaxHops` | 8 |
-| [`PREFERINP3`](#switch-globals)   | 10 | `PREFERINP3ROUTES` | 8 |
-| [`MAXRTT`](#switch-globals)       | 6 | `MAXRTT` | 16 |
-| [`MAXTT`](#switch-globals)        | 6 | `MAXRTT` (alias of `MAXRTT`) | 16 |
-| [`MONTOFILE`](#switch-globals)    | 9 | `MONTOFILEFLAG` | 8 |
+| Command | Abbr | Variable | Width | Description |
+|---------|-----:|----------|------:|-------------|
+| [`OBSINIT`](#switch-globals)      | 7 | `OBSINIT` | 8 | Initial obsolescence count assigned to newly heard nodes. |
+| [`OBSMIN`](#switch-globals)       | 6 | `OBSMIN` | 8 | Minimum obsolescence to include in NODES broadcasts. |
+| [`NODESINT`](#switch-globals)     | 8 | `L3INTERVAL` | 8 | NODES broadcast interval (also resets `L3TIMER` so the next broadcast fires immediately). |
+| [`L3TTL`](#switch-globals)        | 5 | `L3LIVES` | 8 | NET/ROM L3 maximum hop count. |
+| [`L4RETRIES`](#switch-globals)    | 5 | `L4N2` | 8 | L4 retry count. |
+| [`L4TIMEOUT`](#switch-globals)    | 5 | `L4T1` | 16 | Default L4 retry timer (per-session override via [`L4T1`](#l4t1)). |
+| [`T3`](#switch-globals)           | 2 | `T3` | 16 | Link validation timer — sends RR(P) when the link is otherwise idle. |
+| [`NODEIDLETIME`](#switch-globals) | 8 | `L4LIMIT` | 16 | Idle-session limit; closes a link once no traffic has flowed for this long. |
+| [`LINKEDFLAG`](#switch-globals)   | 10 | `LINKEDFLAG` | 8 | Who may issue [`*** LINKED`](#linked) (Y = any session, A = authenticated only). |
+| [`IDINTERVAL`](#switch-globals)   | 5 | `IDINTERVAL` | 8 | ID beacon interval. |
+| [`MINQUAL`](#switch-globals)      | 7 | `MINQUAL` | 8 | Minimum quality to include in a NODES broadcast. |
+| [`FULLCTEXT`](#switch-globals)    | 6 | `FULL_CTEXT` | 8 | Send the full CTEXT on every connect (otherwise short form). |
+| [`HIDENODES`](#switch-globals)    | 8 | `HIDENODES` | 8 | Suppress aliases starting with `#` from `NODES` (`NODES *` overrides). |
+| [`L4DELAY`](#switch-globals)      | 7 | `L4DELAY` | 8 | L4 delayed-ACK timer. |
+| [`L4WINDOW`](#switch-globals)     | 6 | `L4DEFAULTWINDOW` | 8 | Default L4 receive window. |
+| [`BTINTERVAL`](#switch-globals)   | 5 | `BTINTERVAL` | 8 | BT beacon interval. |
+| [`DEBUGINP3`](#switch-globals)    | 8 | `DEBUGINP3` | 8 | Enable INP3 debug logging. |
+| [`RIFINTERVAL`](#switch-globals)  | 11 | `RIFInterval` | 16 | INP3 RIF send interval. |
+| [`MAXHOPS`](#switch-globals)      | 7 | `MaxHops` | 8 | Maximum INP3 hop count. |
+| [`PREFERINP3`](#switch-globals)   | 10 | `PREFERINP3ROUTES` | 8 | Prefer INP3-derived routes over NET/ROM routes when both exist. |
+| [`MAXRTT`](#switch-globals)       | 6 | `MAXRTT` | 16 | Maximum RTT (ms) accepted for INP3 routes. |
+| [`MAXTT`](#switch-globals)        | 6 | `MAXRTT` (alias of `MAXRTT`) | 16 | Alias of [`MAXRTT`](#switch-globals). |
+| [`MONTOFILE`](#switch-globals)    | 9 | `MONTOFILEFLAG` | 8 | Write monitor trace to file. |
 
 ### Sysop — actions and reconfiguration
 
