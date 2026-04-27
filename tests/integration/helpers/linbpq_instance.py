@@ -94,6 +94,54 @@ CALL=$peer_call QUALITY=200 PORT=2
 )
 
 
+# Pre-canned chatconfig.cfg that puts Chat in application slot 1
+# (BBS conventionally takes slot 2 when both run; chat-only setups
+# tend to take slot 1).  Pre-writing this file prevents linbpq from
+# generating its own default with ApplNum=2 which won't match the
+# bpq32.cfg APPLICATIONS=CHAT slot we configure.
+CHAT_CONFIG_FILE = """\
+Chat :
+{
+  ApplNum = 1;
+  MaxStreams = 10;
+  reportChatEvents = 0;
+  chatPaclen = 236;
+  OtherChatNodes = "";
+  ChatWelcomeMsg = "Welcome to the test chat node!";
+  MapPosition = "";
+  MapPopup = "";
+  PopupMode = 0;
+};
+"""
+
+
+# Like DEFAULT_CONFIG but with the Chat application registered so the
+# telnet "CHAT" alias enters the chat subsystem.  Used together with
+# ``LinbpqInstance(..., extra_args=("chat",))`` plus the
+# ``CHAT_CONFIG_FILE`` pre-written into the work dir.
+CHAT_CONFIG = Template(
+    """\
+SIMPLE=1
+NODECALL=N0CALL
+NODEALIAS=TEST
+LOCATOR=IO91WJ
+APPLICATIONS=CHAT
+APPL1CALL=N0CHAT
+APPL1ALIAS=CHT
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ MAXSESSIONS=10
+ USER=test,test,N0CALL,,SYSOP
+ENDPORT
+"""
+)
+
+
 # Like DEFAULT_CONFIG but with the BBS application registered so the
 # telnet "BBS" alias enters BPQMail.  Used together with
 # ``LinbpqInstance(..., extra_args=("mail",))`` to start linbpq with

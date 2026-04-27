@@ -143,7 +143,7 @@ Phase 1 once the harness produces useful output.
 |     1 | `tests/integration/` skeleton + Docker test image + `linbpq_instance` pytest fixture + one telnet smoke test             | done   |
 |     2 | Breadth-first interface coverage — telnet, HTTP, AGW, NET/ROM-TCP, FBB-TCP, JSON API; KISS-TCP and AX/IP-UDP deferred  | done\* |
 |     3 | Telnet node-command coverage driven by `docs/node-commands.md` (every command, sysop gating, state-changing round-trips) | done\* |
-|     4 | BBS + Chat lifecycle — send / read / list / kill mail, chat connect / topic / broadcast                                  | started |
+|     4 | BBS + Chat lifecycle — send / read / list / kill mail, chat connect / topic / broadcast                                  | done\* |
 |     5 | Persistence round-trip — boot, mutate, shut down, reboot, verify state restored                                          | started |
 |     6 | Two-instance scenarios via AX/IP UDP — NET/ROM discovery, cross-instance connect, message forwarding                     | started |
 |     7 | Configuration matrix — minimal / full / edge configs, parse-or-reject assertions                                         | started |
@@ -164,6 +164,15 @@ serial-to-TCP bridge such as
 a real USB KISS modem (e.g. NinoTNC) onto TCP. A tiny Python TCP
 listener stands in as that peer and the test asserts linbpq's
 outbound connection is established.
+
+\*Phase 4 footnote: BBS round-trip (SP → Title → Body → /EX → R → K)
+plus persistence across reboot, and Chat lifecycle (enter, register
+name, /U users, /T topics, /H help) all covered.  Despite
+``bpqchat`` shipping as its own binary too, the chat-server code is
+linked into ``linbpq.bin`` and turned on by passing ``chat`` on the
+command line — confirmed empirically.  Cross-instance forwarding (an
+A-side BBS forwarding mail to a B-side BBS) is the natural deeper
+test once we want to exercise BBS routing.
 
 \*Phase 3 footnote: covered the read-only commands, per-session settings
 round-trip (PACLEN / IDLETIME / L4T1), sysop gating (rejection +
