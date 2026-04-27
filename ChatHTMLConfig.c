@@ -122,30 +122,12 @@ static char CHKD[] = "checked=checked ";
 static char sel[] = "selected";
 
 
-char ChatSignon[] = "<html><head><title>BPQ32 Chat Server Access</title></head><body background=\"/background.jpg\">"
-	"<h3 align=center>BPQ32 Chat Server %s Access</h3>"
-	"<h3 align=center>Please enter Callsign and Password to access the Chat Server</h3>"
-	"<form method=post action=/Chat/Signon?Chat>"
-	"<table align=center  bgcolor=white>"
-	"<tr><td>User</td><td><input type=text name=user tabindex=1 size=20 maxlength=50 /></td></tr>" 
-	"<tr><td>Password</td><td><input type=password name=password tabindex=2 size=20 maxlength=50 /></td></tr></table>"  
-	"<p align=center><input type=submit value=Submit /><input type=submit value=Cancel name=Cancel /></form>";
+// HTML for ChatSignon and ChatPage now lives in HTML/ChatSignon.txt
+// and HTML/ChatPage.txt.  Loaded once on first use, cached for the
+// lifetime of the process.  See HTMLCommonCode.c::GetTemplateFromFile.
 
-
-char ChatPage[] = "<html><head><title>%s's Chat Server</title></head>"
-	"<body background=\"/background.jpg\"><h3 align=center>BPQ32 Chat Node %s</h3><P>"
-	"<P align=center><table border=1 cellpadding=2 bgcolor=white><tr>"
-	"<td><a href=/Chat/ChatStatus?%s>Status</a></td>"
-	"<td><a href=/Chat/ChatConf?%s>Configuration</a></td>"
-	"<td><a href=/>Node Menu</a></td>"
-	"</tr></table>";
-
-
-
-static char LostSession[] = "<html><body>"
-"<form style=\"font-family: monospace; text-align: center;\" method=post action=/Chat/Lost?%s>"
-"Sorry, Session had been lost<br><br>&nbsp;&nbsp;&nbsp;&nbsp;"
-"<input name=Submit value=Restart type=submit> <input type=submit value=Exit name=Cancel><br></form>";
+static char * ChatSignon = NULL;
+static char * ChatPage = NULL;
 
 char * ChatConfigTemplate = NULL;
 char * ChatStatusTemplate = NULL;
@@ -159,6 +141,8 @@ static int compare(const void *arg1, const void *arg2)
 
 int SendChatHeader(char * Reply, char * Key)
 {
+	if (!ChatPage)
+		ChatPage = GetTemplateFromFile(1, "ChatPage.txt");
 	return sprintf(Reply, ChatPage, OurNode, OurNode, Key, Key);
 }
 
@@ -232,6 +216,8 @@ void ProcessChatHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 		return;
 	}
 
+	if (!ChatSignon)
+		ChatSignon = GetTemplateFromFile(1, "ChatSignon.txt");
 	ReplyLen = sprintf(Reply, ChatSignon, OurNode, OurNode);
 	*RLen = ReplyLen;
 
