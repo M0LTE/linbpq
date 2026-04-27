@@ -96,6 +96,10 @@ PER_PORT_TUNING = [
     pytest.param("MAXFRAME=5", "MAXFRAME 2", b"MAXFRAME 5", id="MAXFRAME"),
     pytest.param("PERSIST=127", "PERSIST 2", b"PERSIST 127", id="PERSIST"),
     pytest.param("DIGIFLAG=1", "DIGIFLAG 2", b"DIGIFLAG 1", id="DIGIFLAG"),
+    # PACLEN is the port-level cfg keyword; PPACLEN is the sysop
+    # read-back command (the bare PACLEN command reads the *session*
+    # paclen, a different field).  Round-trips 1:1.
+    pytest.param("PACLEN=160", "PPACLEN 2", b"PPACLEN 160", id="PACLEN-PPACLEN"),
 ]
 
 
@@ -165,3 +169,70 @@ def test_cfg_per_port_visible_via_sysop_command(
     assert expected in response, (
         f"{cmd}: expected {expected!r}; got {response!r}"
     )
+
+
+# Scaled per-port tuning: cfg value is in milliseconds, the sysop
+# command reports the stored byte value (scaled).  Empirically
+# verified with two cfg values each:
+#
+#   TXDELAY=300  → cmd "TXDELAY 30"   (scale /10)
+#   TXDELAY=500  → cmd "TXDELAY 50"
+#   TXTAIL=50    → cmd "TXTAIL 5"     (scale /10)
+#   TXTAIL=120   → cmd "TXTAIL 12"
+#
+# FRACK and RESPTIME have non-trivial scaling we don't model here
+# (FRACK=2000 → 6, FRACK=3300 → 9 — neither cleanly divisible);
+# they're skipped to avoid pinning a fragile invariant.
+PER_PORT_SCALED_TUNING = [
+    pytest.param("TXDELAY=300", "TXDELAY 2", b"TXDELAY 30", id="TXDELAY-300"),
+    pytest.param("TXDELAY=500", "TXDELAY 2", b"TXDELAY 50", id="TXDELAY-500"),
+    pytest.param("TXTAIL=50", "TXTAIL 2", b"TXTAIL 5", id="TXTAIL-50"),
+    pytest.param("TXTAIL=120", "TXTAIL 2", b"TXTAIL 12", id="TXTAIL-120"),
+]
+
+
+@pytest.mark.parametrize("cfg_line,cmd,expected", PER_PORT_SCALED_TUNING)
+def test_cfg_per_port_scaled_round_trip(
+    tmp_path: Path, cfg_line: str, cmd: str, expected: bytes
+):
+    """Scaled per-port keywords (TXDELAY, TXTAIL — both in 10ms
+    units stored as bytes) round-trip via the sysop command."""
+    cfg = Template(_PER_PORT_CFG_TEMPLATE.replace("{extra}", " " + cfg_line))
+    with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+        with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+            client.login("test", "test")
+            client.run_command("PASSWORD")
+            response = client.run_command(cmd)
+    assert expected in response, (
+        f"{cmd}: expected {expected!r}; got {response!r}"
+    )
+
+
+# Per-port keywords with no read-back sysop command — we only
+# assert the cfg parser accepts them and the daemon boots clean.
+PER_PORT_ACCEPTED_ONLY = [
+    pytest.param("SLOTTIME=100", id="SLOTTIME"),
+    pytest.param("NODESPACLEN=200", id="NODESPACLEN"),
+]
+
+
+@pytest.mark.parametrize("cfg_line", PER_PORT_ACCEPTED_ONLY)
+def test_cfg_per_port_accepted_canary(tmp_path: Path, cfg_line: str):
+    """Per-port cfg keyword parses cleanly; daemon serves telnet.
+
+    There's no matching ``<CMD> <port>`` sysop command (or the
+    command reports a different field than the cfg keyword sets),
+    so we only canary the cfg-parser acceptance — the test goes
+    red if a refactor silently drops the keyword.
+    """
+    cfg = Template(_PER_PORT_CFG_TEMPLATE.replace("{extra}", " " + cfg_line))
+    with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+        with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+            client.login("test", "test")
+            response = client.run_command("VERSION")
+        assert b"Version" in response
+    log = (tmp_path / "linbpq.stdout.log").read_text(errors="replace")
+    keyword = cfg_line.split("=")[0]
+    assert f"Ignored:{keyword}" not in log and (
+        f"Ignored: {keyword}" not in log
+    ), f"{keyword} got 'not recognised - Ignored': {log[:2000]}"
