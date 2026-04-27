@@ -83,3 +83,61 @@ def test_cfg_global_visible_via_sysop_command(
     assert expected in response, (
         f"{cmd}: expected {expected!r}; got {response!r}"
     )
+
+
+# Per-port tuning round-trips: cfg sets a port-level keyword,
+# matching ``<CMD> <port>`` sysop command reads back the value.
+# Some keywords (TXDELAY, FRACK, RESPTIME) are scaled by linbpq
+# before being stored — those aren't trivially round-trip-able
+# without modelling the scaling, so we skip them here and lock in
+# the ones that round-trip cleanly.
+PER_PORT_TUNING = [
+    pytest.param("RETRIES=20", "RETRIES 2", b"RETRIES 20", id="RETRIES"),
+    pytest.param("MAXFRAME=5", "MAXFRAME 2", b"MAXFRAME 5", id="MAXFRAME"),
+    pytest.param("PERSIST=127", "PERSIST 2", b"PERSIST 127", id="PERSIST"),
+    pytest.param("DIGIFLAG=1", "DIGIFLAG 2", b"DIGIFLAG 1", id="DIGIFLAG"),
+]
+
+
+_PER_PORT_CFG_TEMPLATE = """\
+SIMPLE=1
+NODECALL=N0CALL
+NODEALIAS=TEST
+LOCATOR=NONE
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ MAXSESSIONS=10
+ USER=test,test,N0CALL,,SYSOP
+ENDPORT
+
+PORT
+ PORTNUM=2
+ ID=AXIP
+ DRIVER=BPQAXIP
+ {extra}
+ CONFIG
+ UDP $axip_port
+ENDPORT
+"""
+
+
+@pytest.mark.parametrize("cfg_line,cmd,expected", PER_PORT_TUNING)
+def test_cfg_per_port_visible_via_sysop_command(
+    tmp_path: Path, cfg_line: str, cmd: str, expected: bytes
+):
+    """A port-level cfg keyword (``RETRIES=N`` etc.) round-trips
+    through the matching ``<CMD> <port>`` sysop command."""
+    cfg = Template(_PER_PORT_CFG_TEMPLATE.replace("{extra}", " " + cfg_line))
+    with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+        with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+            client.login("test", "test")
+            client.run_command("PASSWORD")
+            response = client.run_command(cmd)
+    assert expected in response, (
+        f"{cmd}: expected {expected!r}; got {response!r}"
+    )

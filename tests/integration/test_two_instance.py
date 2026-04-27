@@ -165,6 +165,63 @@ def test_nc_alias_to_peer(two_instances):
     assert b"Connected to N0BBB" in response
 
 
+def test_ctext_delivered_on_cross_instance_connect(tmp_path):
+    """Configure ``CTEXT:`` on B; A connects to B over AX/IP-UDP
+    and B's CTEXT body appears in A's session output."""
+    from contextlib import ExitStack
+
+    from helpers.linbpq_instance import LinbpqInstance, PEER_CONFIG
+
+    a_dir = tmp_path / "A"
+    b_dir = tmp_path / "B"
+    a_dir.mkdir()
+    b_dir.mkdir()
+
+    # B's template = PEER_CONFIG with a CTEXT block injected.
+    b_with_ctext = PEER_CONFIG.template.replace(
+        "LOCATOR=NONE\n",
+        "LOCATOR=NONE\nCTEXT:\nWelcome to N0BBB test node!\n"
+        "This is the connect text.\n***\n",
+    )
+
+    a = LinbpqInstance(
+        a_dir,
+        config_template=_peer_template(
+            node_call="N0AAA", node_alias="AAA",
+            peer_call="N0BBB", peer_axip_port=0,
+        ),
+    )
+
+    class _BTemplate(Template):
+        def substitute(self, **kw):
+            return Template.substitute(
+                self,
+                node_call="N0BBB", node_alias="BBB",
+                peer_call="N0AAA", peer_axip_port=a.axip_port,
+                **kw,
+            )
+
+    b = LinbpqInstance(b_dir, config_template=_BTemplate(b_with_ctext))
+
+    a.config_template = _peer_template(
+        node_call="N0AAA", node_alias="AAA",
+        peer_call="N0BBB", peer_axip_port=b.axip_port,
+    )
+
+    with ExitStack() as stack:
+        stack.enter_context(a)
+        stack.enter_context(b)
+        with TelnetClient("127.0.0.1", a.telnet_port, timeout=15) as client:
+            client.login("test", "test")
+            client.write_line("C 2 N0BBB")
+            response = client.read_idle(idle_timeout=1.5, max_total=5.0)
+
+    assert b"Connected to N0BBB" in response
+    assert b"This is the connect text." in response, (
+        f"CTEXT body not in cross-connect output: {response!r}"
+    )
+
+
 def test_bye_from_peer_returns_to_local_node(two_instances):
     """After connecting to B, ``BYE`` drops the cross-link and returns
     the user to A's node prompt — verified by running a command and
