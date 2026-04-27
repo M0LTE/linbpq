@@ -80,6 +80,70 @@ def test_savemh_after_unlock_succeeds(linbpq):
     assert SYSOP_REJECT not in response
 
 
+import pytest
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "REBOOT",
+        "RESTART",
+        "RESTARTTNC",
+        "RIGRECONFIG",
+        "TELRECONFIG",
+        "STOPCMS",
+        "STARTCMS",
+        "EXTRESTART",
+    ],
+)
+def test_side_effect_commands_sysop_gated(linbpq, cmd):
+    """Sysop-only commands with side effects (restart, reconfigure,
+    bring CMS up/down, etc.) — non-sysop users get the standard
+    ``Command requires SYSOP status`` rejection.
+
+    We deliberately don't exercise the unlocked path: triggering any
+    of these would either take the daemon down mid-test or
+    re-initialise something we don't have the cleanup machinery to
+    restore. The sysop-gating canary locks in (a) the parser
+    recognises the command word and (b) authentication is required —
+    enough to flag a regression that broke the gate."""
+    with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+        client.login("user", "user")
+        response = client.run_command(cmd)
+    assert SYSOP_REJECT in response, (
+        f"{cmd} not sysop-gated: {response!r}"
+    )
+
+
+def test_dump_command_recognised(linbpq):
+    """``DUMP`` is documented as a Windows-build sysop command (writes a
+    minidump file).  On Linux the dispatch entry exists but the
+    handler is a no-op that returns ``Ok``.  Never crash the session.
+
+    Test asserts the parser recognises the word — distinct from
+    ``Invalid command`` or session death.
+    """
+    with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+        client.login("user", "user")
+        response = client.run_command("DUMP")
+    assert b"Invalid command" not in response, (
+        f"DUMP not recognised by parser: {response!r}"
+    )
+
+
+def test_exclude_command_recognised(linbpq):
+    """``EXCLUDE`` is documented as a Windows-build sysop command for
+    the connect-exclude list.  On Linux the parser still recognises
+    the word; behaviour beyond that depends on build flags.
+    """
+    with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+        client.login("user", "user")
+        response = client.run_command("EXCLUDE")
+    assert b"Invalid command" not in response, (
+        f"EXCLUDE not recognised by parser: {response!r}"
+    )
+
+
 def test_validcalls_without_port_is_rejected(linbpq):
     """VALIDCALLS is sysop-gated and needs a port number; without one
     the command-handler emits 'Invalid Port Number' rather than help

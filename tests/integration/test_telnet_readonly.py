@@ -25,11 +25,27 @@ READONLY_COMMANDS = [
     # MHEARD without a port number prints usage hint — that's still a
     # well-formed response, not an error.
     pytest.param("MHEARD", b"Port Number needed", id="MHEARD-no-port"),
+    # MHEARD filter variants: MHL (locked), MHU (unlocked), MHV (verbose),
+    # MHLV / MHUV (verbose locked / unlocked).  Same usage hint as
+    # MHEARD when no port number is supplied.
+    pytest.param("MHL", b"Port Number needed", id="MHL-no-port"),
+    pytest.param("MHU", b"Port Number needed", id="MHU-no-port"),
+    pytest.param("MHV", b"Port Number needed", id="MHV-no-port"),
+    pytest.param("MHLV", b"Port Number needed", id="MHLV-no-port"),
+    pytest.param("MHUV", b"Port Number needed", id="MHUV-no-port"),
     pytest.param("?", b"CONNECT", id="HELP-?"),
+    # HELP is *not* the same as ? — it tries to read a help.txt file.
+    # With no help.txt configured we get "Help file not found"; that's
+    # still a well-formed response from a recognised command.
+    pytest.param("HELP", b"Help file not found", id="HELP"),
     # STREAMS is reachable for a regular logged-in user despite the
     # AI-generated command doc tagging it sysop.  See empirical probe
     # results in the Phase 3 commit message.
     pytest.param("STREAMS", b"|", id="STREAMS"),
+    # LIS is the abbreviated LISTEN — accepted by the parser per
+    # node-commands.md (abbr: 3).  With no AX.25 port available the
+    # node responds with the listening-disabled message.
+    pytest.param("LIS", b"Listen", id="LIS-abbreviation"),
 ]
 
 

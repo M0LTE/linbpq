@@ -193,12 +193,12 @@ rows).  When closing a coverage gap from `node-commands.md`, leave
 a comment in the test pointing at the section anchor so a reader
 can find the spec quickly.
 
-A future task on this plan: do an audit pass — walk every entry
-in `docs/node-commands.md`, list which have direct test coverage,
-which are covered by side-effect, and which are uncovered;
-prioritise the uncovered ones by user impact.
+First audit pass landed: see
+[`test-coverage-audit.md`](test-coverage-audit.md).  Currently 101 /
+115 commands covered; the remaining 14 are documented there with
+reasons (need a fixture, no clean cfg round-trip, or out-of-scope).
 
-Until that audit lands, the directive is: when you add a new test
+When adding a new test
 that exercises a node-prompt command, check whether the doc's
 entry needs updating (empirical findings sometimes diverge from
 the AI-generated wording — see e.g. the `BYE` clarification

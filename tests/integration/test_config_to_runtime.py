@@ -61,10 +61,36 @@ Multiple lines work too.
 
 
 # (cfg-keyword, value, sysop-command, expected-substring-in-response)
+# Every entry is a sysop-global tunable: the cfg sets it on boot, and
+# the matching sysop command (after PASSWORD unlock) reads it back
+# unchanged.  See SWITCHVAL / SWITCHVALW handlers in Cmd.c.
 CFG_TO_RUNTIME = [
+    # 8-bit globals (SWITCHVAL).
     pytest.param("L4WINDOW=8", "L4WINDOW", b"L4WINDOW 8", id="L4WINDOW"),
     pytest.param("NODESINTERVAL=15", "NODESINT", b"NODESINT 15", id="NODESINTERVAL"),
     pytest.param("MINQUAL=128", "MINQUAL", b"MINQUAL 128", id="MINQUAL"),
+    pytest.param("OBSINIT=6", "OBSINIT", b"OBSINIT 6", id="OBSINIT"),
+    pytest.param("OBSMIN=4", "OBSMIN", b"OBSMIN 4", id="OBSMIN"),
+    pytest.param("L3TIMETOLIVE=25", "L3TTL", b"L3TTL 25", id="L3TTL"),
+    pytest.param("L4RETRIES=3", "L4RETRIES", b"L4RETRIES 3", id="L4RETRIES"),
+    pytest.param("IDINTERVAL=10", "IDINTERVAL", b"IDINTERVAL 10", id="IDINTERVAL"),
+    pytest.param("FULL_CTEXT=1", "FULLCTEXT", b"FULLCTEXT 1", id="FULLCTEXT"),
+    pytest.param("HIDENODES=1", "HIDENODES", b"HIDENODES 1", id="HIDENODES"),
+    pytest.param("L4DELAY=12", "L4DELAY", b"L4DELAY 12", id="L4DELAY"),
+    pytest.param("BTINTERVAL=15", "BTINTERVAL", b"BTINTERVAL 15", id="BTINTERVAL"),
+    pytest.param("MAXHOPS=6", "MAXHOPS", b"MAXHOPS 6", id="MAXHOPS"),
+    pytest.param("PREFERINP3ROUTES=1", "PREFERINP3", b"PREFERINP3 1", id="PREFERINP3"),
+    pytest.param("DEBUGINP3=1", "DEBUGINP3", b"DEBUGINP3 1", id="DEBUGINP3"),
+    pytest.param("MONTOFILE=1", "MONTOFILE", b"MONTOFILE 1", id="MONTOFILE"),
+    # 16-bit globals (SWITCHVALW).
+    pytest.param("L4TIMEOUT=300", "L4TIMEOUT", b"L4TIMEOUT 300", id="L4TIMEOUT-global"),
+    pytest.param("MAXRTT=120", "MAXRTT", b"MAXRTT 120", id="MAXRTT"),
+    # MAXTT is an alias of MAXRTT — same field, exposed under both names.
+    pytest.param("MAXTT=150", "MAXTT", b"MAXTT 150", id="MAXTT"),
+    pytest.param("RIFInterval=20", "RIFINTERVAL", b"RIFINTERVAL 20", id="RIFINTERVAL"),
+    # IDLETIME= cfg → L4LIMIT runtime, exposed as NODEIDLETIME sysop
+    # command (cMain.c:842).  Cfg minimum is 120 (Cmd guard).
+    pytest.param("IDLETIME=300", "NODEIDLETIME", b"NODEIDLETIME 300", id="NODEIDLETIME"),
 ]
 
 
@@ -100,6 +126,16 @@ PER_PORT_TUNING = [
     # read-back command (the bare PACLEN command reads the *session*
     # paclen, a different field).  Round-trips 1:1.
     pytest.param("PACLEN=160", "PPACLEN 2", b"PPACLEN 160", id="PACLEN-PPACLEN"),
+    # Per-port byte tunables that store directly without scaling.
+    pytest.param("QUALITY=180", "QUALITY 2", b"QUALITY 180", id="QUALITY"),
+    pytest.param("DIGIPORT=1", "DIGIPORT 2", b"DIGIPORT 1", id="DIGIPORT"),
+    pytest.param("USERS=8", "MAXUSERS 2", b"MAXUSERS 8", id="MAXUSERS"),
+    pytest.param("L3ONLY=1", "L3ONLY 2", b"L3ONLY 1", id="L3ONLY"),
+    pytest.param("INP3ONLY=1", "INP3ONLY 2", b"INP3ONLY 1", id="INP3ONLY"),
+    pytest.param("ALLOWINP3=1", "ALLOWINP3 2", b"ALLOWINP3 1", id="ALLOWINP3"),
+    pytest.param("ENABLEINP3=1", "ENABLEINP3 2", b"ENABLEINP3 1", id="ENABLEINP3"),
+    pytest.param("FULLDUP=1", "FULLDUP 2", b"FULLDUP 1", id="FULLDUP"),
+    pytest.param("SOFTDCD=1", "SOFTDCD 2", b"SOFTDCD 1", id="SOFTDCD"),
 ]
 
 

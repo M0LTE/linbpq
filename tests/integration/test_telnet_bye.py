@@ -37,3 +37,17 @@ def test_node_session_continues_after_bye(linbpq):
         f"node session not still alive after BYE: {response!r}"
     )
     assert b"Telnet" in response, f"PORTS did not run: {response!r}"
+
+
+def test_quit_is_alias_of_bye(linbpq):
+    """``QUIT`` is documented as a synonym for ``BYE`` — same dispatch
+    handler in ``Cmd.c`` (``COMMANDS[]``)."""
+    with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+        client.login("test", "test")
+        response = client.run_command("QUIT", idle_timeout=1.0)
+    assert b"Disconnected" in response, (
+        f"QUIT did not produce disconnect message: {response!r}"
+    )
+    assert b"Telnet Session kept" in response, (
+        f"QUIT did not match BYE behaviour: {response!r}"
+    )

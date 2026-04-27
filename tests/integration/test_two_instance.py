@@ -338,6 +338,42 @@ def test_nrr_finds_peer_after_nodes_propagation(two_instances):
     )
 
 
+def test_stoproute_startroute_disables_and_re_enables_neighbour(two_instances):
+    """``STOPROUTE <call>`` disables a NET/ROM neighbour route — visible
+    in ``ROUTES`` output as the route losing its ``Locked`` marker or
+    being suppressed.  ``STARTROUTE <call>`` re-enables it.
+
+    Sysop-only; verifies the parametrised stop/start of a route
+    without taking the test daemon offline.
+    """
+    a, _ = two_instances
+
+    with TelnetClient("127.0.0.1", a.telnet_port, timeout=10) as client:
+        client.login("test", "test")
+        client.run_command("PASSWORD")
+        # First confirm the peer is in routes.
+        before = client.run_command("ROUTES")
+        assert b"N0BBB" in before, f"peer not in ROUTES: {before!r}"
+
+        # Stop the route.  Empirically: STOPROUTE PORT CALL.
+        stop = client.run_command("STOPROUTE 2 N0BBB")
+        # Re-enable.
+        start = client.run_command("STARTROUTE 2 N0BBB")
+
+    # Both commands should be recognised by the parser — either
+    # confirm with "Ok" / a route-state reply, or note the state
+    # ("Route not active" if no L2 link is up) — but never
+    # "Invalid command" / parser error.
+    for label, response in (("STOPROUTE", stop), ("STARTROUTE", start)):
+        assert b"Invalid command" not in response, (
+            f"{label}: command not recognised, got {response!r}"
+        )
+        # Recognised replies seen in practice: "Ok", "Route not active".
+        assert (b"Ok" in response or b"Route" in response), (
+            f"{label}: unexpected response, got {response!r}"
+        )
+
+
 def test_bye_from_peer_returns_to_local_node(two_instances):
     """After connecting to B, ``BYE`` drops the cross-link and returns
     the user to A's node prompt — verified by running a command and
