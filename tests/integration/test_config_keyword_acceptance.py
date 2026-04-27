@@ -83,10 +83,10 @@ def test_top_level_keyword_accepted(tmp_path: Path, cfg_line: str):
 
 def test_idmsg_block_parses_cleanly(tmp_path: Path):
     """``IDMSG:`` ... ``***`` multi-line block with ``IDINTERVAL`` is
-    accepted; daemon serves telnet.  Runtime emission isn't verified
-    here — the IDTIMER decrements once per minute and starts at 2,
-    so observing an actual ID frame takes 2+ minutes.  Deferred to
-    a long-runtime fixture batch."""
+    accepted; daemon serves telnet.  Runtime emission is exercised
+    separately in ``test_long_runtime_beacons.py`` (one ~2-minute
+    boot covers both ID and BT in one test, marked
+    ``@pytest.mark.long_runtime`` so xdist runs it in parallel)."""
     cfg = Template(
         """\
 SIMPLE=1
@@ -119,7 +119,8 @@ ENDPORT
 
 def test_btext_block_parses_cleanly(tmp_path: Path):
     """``BTEXT:`` ... ``***`` multi-line block with ``BTINTERVAL`` is
-    accepted; daemon serves telnet.  Same emission-deferral as IDMSG."""
+    accepted; daemon serves telnet.  Runtime emission covered in
+    ``test_long_runtime_beacons.py``."""
     cfg = Template(
         """\
 SIMPLE=1

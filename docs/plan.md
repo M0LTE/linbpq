@@ -144,9 +144,12 @@ test docstrings for spec links and per-feature notes.
   BPQAXIP extras parse cleanly but actual NODES propagation
   between two AX/IP-UDP-linked instances doesn't work; root
   cause not yet found.
-- **Beacon / ID runtime emission** — IDTIMER decrements once
-  per minute and starts at 2; observing an actual ID frame on
-  a PTY needs a 2+ minute test or instrumentation.
+- ~~**Beacon / ID runtime emission**~~ — done in
+  `test_long_runtime_beacons.py` (one ~2:15 test exercises both
+  ID and BT in a single boot).  Marked `@pytest.mark.long_runtime`;
+  `conftest.py`'s `pytest_collection_modifyitems` sorts the
+  marker to the front of the xdist queue so it runs in parallel
+  with the rest of the suite, not at the end.
 - **OBJECT / APRSPath details** — keywords inside the APRSDIGI
   block parse cleanly but the resulting object beacons aren't
   observed on any port.

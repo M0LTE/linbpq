@@ -15,6 +15,20 @@ from helpers.linbpq_instance import (
 )
 
 
+def pytest_collection_modifyitems(config, items):
+    """Sort tests marked ``long_runtime`` to the front of the queue.
+
+    pytest-xdist's default ``load`` scheduler hands tests out FIFO
+    from the collected list.  Long-running timer-bound tests (e.g.
+    waiting ~2min for an ID/BT beacon) should start first so they
+    run in parallel with the rest of the suite — otherwise a worker
+    might pick one up near the end and stretch overall wall-clock.
+    """
+    long_running = [i for i in items if i.get_closest_marker("long_runtime")]
+    rest = [i for i in items if not i.get_closest_marker("long_runtime")]
+    items[:] = long_running + rest
+
+
 @pytest.fixture
 def linbpq(tmp_path: Path):
     """A freshly-started linbpq.bin in a per-test temp directory.
