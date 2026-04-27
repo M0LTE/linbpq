@@ -32,11 +32,13 @@ from helpers.telnet_client import TelnetClient
 
 
 # COMPORT gets substituted at runtime to the PTY slave path.
+# AGWPORT included so the cross-protocol monitor test can connect.
 KISS_SERIAL_CONFIG_TEMPLATE = """\
 SIMPLE=1
 NODECALL=N0CALL
 NODEALIAS=TEST
 LOCATOR=NONE
+AGWPORT=$agw_port
 
 PORT
  ID=Telnet
@@ -112,6 +114,37 @@ def test_kiss_serial_ax25_frame_lands_in_mh(tmp_path: Path):
         f"G7TEST not heard on port 2: {response!r}"
     )
     assert b"Heard List for Port 2" in response
+
+
+def test_pty_ui_frame_visible_via_agw_monitor(tmp_path: Path):
+    """An AGW client with monitor-mode toggled on receives a 'U'
+    (UI) monitor frame summarising a UI frame that arrived on the
+    serial KISS port — exercises both transports end-to-end."""
+    from helpers.agw_client import AgwClient, AgwFrame
+
+    with PtyKissModem() as modem:
+        cfg = Template(
+            KISS_SERIAL_CONFIG_TEMPLATE.replace("__SLAVE__", modem.slave_path)
+        )
+        with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+            with AgwClient("127.0.0.1", linbpq.agw_port, timeout=3) as agw:
+                # Toggle monitor on — no reply expected.
+                agw.send(AgwFrame(0, b"m", 0, b"", b"", b""))
+
+                # Send a UI frame on the serial port.
+                ax25 = _ax25_ui_frame("G7TEST", "NODES", b"hello")
+                modem.write(kiss_encode(ax25))
+                time.sleep(1.0)
+
+                reply = agw.recv()
+
+    assert reply.data_kind == b"U", (
+        f"expected 'U' UI-monitor frame, got {reply.data_kind!r}"
+    )
+    text = reply.data.decode("ascii", errors="replace")
+    assert "G7TEST" in text, f"src not in monitor text: {text!r}"
+    assert "NODES" in text, f"dest not in monitor text: {text!r}"
+    assert "hello" in text, f"payload not in monitor text: {text!r}"
 
 
 def test_kiss_serial_cq_beacon_lands_on_pty(tmp_path: Path):
