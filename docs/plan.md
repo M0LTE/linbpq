@@ -420,10 +420,10 @@ Phase 1 once the harness produces useful output.
 |     2 | Breadth-first interface coverage — telnet, HTTP, AGW, NET/ROM-TCP, FBB-TCP, JSON API; KISS-TCP and AX/IP-UDP deferred  | done\* |
 |     3 | Telnet node-command coverage driven by `docs/node-commands.md` (every command, sysop gating, state-changing round-trips) | done\* |
 |     4 | BBS + Chat lifecycle — send / read / list / kill mail, chat connect / topic / broadcast                                  | done\* |
-|     5 | Persistence round-trip — boot, mutate, shut down, reboot, verify state restored                                          | started |
-|     6 | Two-instance scenarios via AX/IP UDP — NET/ROM discovery, cross-instance connect, message forwarding                     | started |
-|     7 | Configuration matrix — minimal / full / edge configs, parse-or-reject assertions                                         | started |
-|     8 | PTY-based serial-transport tests + modem simulators for KISS-on-serial, ARDOP, VARA, KAM-Pactor, FLDigi, etc.            | todo   |
+|     5 | Persistence round-trip — boot, mutate, shut down, reboot, verify state restored                                          | done\* |
+|     6 | Two-instance scenarios via AX/IP UDP — NET/ROM discovery, cross-instance connect, message forwarding                     | done\* |
+|     7 | Configuration matrix — minimal / full / edge configs, parse-or-reject assertions                                         | done\* |
+|     8 | PTY-based serial-transport tests + modem simulators for KISS-on-serial, ARDOP, VARA, KAM-Pactor, FLDigi, etc.            | started |
 
 Phases 0–3 hold most of the value and are achievable in reasonable
 time. Phases 6 and 8 are real engineering; do not commit until earlier
@@ -496,17 +496,84 @@ Several entries in `docs/node-commands.md` were re-checked against the
 binary while writing these tests; corrections landed in a separate
 follow-up commit.
 
+\*Phase 5 footnote: persistence round-trips covered:
+- ``BPQNODES.dat`` written by ``SAVENODES`` is loaded on next
+  boot in the same dir (no "BPQNODES.dat not found" warning).
+- BBS messages survive reboot — post via Phase 4's SP-flow,
+  shut down, reboot, and ``R <N>`` returns the title and body
+  (``test_persistence.py``).
+
+Open: more state types (chat-room state, MH list cross-reboot
+beyond just on-disk presence) — covered as canaries via the BBS
+.mes-file presence assertions, deeper round-trips would need
+dedicated harnesses.
+
+\*Phase 6 footnote: two-instance over AX/IP-UDP covered:
+- Coexistence of two LinbpqInstance daemons in their own
+  tempdirs with bidirectional ``MAP`` entries.
+- ``ROUTES`` lists the peer on both sides.
+- Downlink CONNECT in three syntactic forms (``C 2 N0BBB``,
+  ``CONNECT 2 N0BBB``, ``NC 2 N0BBB``) and ``BYE`` returns to
+  the local node prompt (``test_two_instance.py``).
+- Cross-instance ``CTEXT`` delivery on connect.
+- Cross-instance BBS post — A's user posts via downlink-connect
+  into B's BBS and the message file lands on B's disk
+  (``test_two_instance_bbs.py``).
+
+Still deferred:
+- **NET/ROM discovery** (NODES propagation between two AX/IP-UDP
+  linked instances).  [Issue #4](https://github.com/M0LTE/linbpq/issues/4):
+  `BROADCAST NODES` + `MAP ... B` cfg parses cleanly but actual
+  NODES propagation doesn't happen; root cause not yet found.
+  Blocks **L4-uplink ``C <call>``**.
+- **Cross-instance message forwarding** (BBS-to-BBS auto-forward
+  via the FBB inter-BBS forwarding protocol).  Needs a fake
+  forwarding partner harness; see Phase 4's open items.
+
+\*Phase 7 footnote: configuration matrix covered:
+- Minimal cfg (truly minimal: SIMPLE/NODECALL/LOCATOR/PORT-block
+  only); unknown-keyword tolerance; multi-user; comment styles
+  (``;`` clean, ``#`` warned-but-tolerated at top level, both
+  clean inside CONFIG); case-insensitive keywords; trailing
+  whitespace tolerance.
+- Sysop globals round-trip (``L4WINDOW``, ``NODESINTERVAL``,
+  ``MINQUAL``); ``INFOMSG:`` block content rendered via INFO
+  command; ``PASSWORD=`` PWTEXT challenge round-trip with the
+  exact sum-of-chars logic from PWDCMD.
+- Per-port tuning round-trip 1:1 (RETRIES / MAXFRAME / PERSIST /
+  DIGIFLAG / PACLEN-via-PPACLEN); scaled round-trip for
+  TXDELAY / TXTAIL (10ms units).
+- Block syntaxes (``IDMSG:`` / ``BTEXT:`` with ``***`` terminator,
+  ``IPGATEWAY ... ****``, ``APRSDIGI ... ***``) all parse cleanly.
+- Telnet driver options: LOGINPROMPT / PASSWORDPROMPT custom
+  strings on the wire, block-level CTEXT after login, LOGGING
+  produces the Telnet log file with expected event lines,
+  cfg-acceptance canaries for the rest (SECURETELNET,
+  DisconnectOnClose, LOCALNET, RELAYAPPL, CMS family).
+- LinBPQ Apps Interface: ``CMDPORT`` array + ``C HOST <slot>``
+  full bidirectional relay (``test_cmdport.py``).
+- LINMAIL / LINCHAT cfg-keyword equivalents to the ``mail`` /
+  ``chat`` cli args.
+- New extended-form ``APPLICATION n,...`` line registers a
+  command word that appears in ``?``.
+
+Still deferred:
+- **`FRACK` / `RESPTIME` per-port round-trips** — non-trivial
+  scaling we haven't modelled (FRACK=2000→6, FRACK=3300→9).
+- **`isRF` / `ISRF`** — informational; no observable runtime
+  effect to test against.
+
 \*Phase 8 footnote: scope extends beyond modem-protocol simulators.
-**KISS-over-serial** (`TYPE=ASYNC PROTOCOL=KISS COMPORT=<tty>`) has
-zero coverage today: the KISS-TCP tests exercise the same KISS
-framing logic but ride a TCP socket, leaving `SerialPort.c`'s
-TTY-open / termios-setup / COMPORT-config paths untested.  A PTY
-approach (`os.openpty()` → linbpq opens the slave node as a serial
-device → Python drives the master end) mirrors the existing
-KISS-TCP pattern and is the natural first step for Phase 8.  The
-modem-specific protocols (ARDOP, VARA, KAM-Pactor, FLDigi,
-HSMODEM, WinRPR) each then need their own simulator on top of the
-PTY transport.
+**KISS-over-serial** is now done: the
+[Multi-Drop KISS spec](https://github.com/packethacking/ax25spec/blob/master/doc/multi-drop-kiss-operation.md)
+ACKMODE wire format, basic RX/TX over PTY, and a cross-protocol
+PTY → AGW-monitor flow are all locked in (``test_kiss_serial.py``,
+``helpers/pty_kiss_modem.py``).  The PtyKissModem helper is
+reusable for any future serial-transport modem.
+
+Modem-specific protocols on top of the PTY transport (ARDOP,
+VARA, KAM-Pactor, FLDigi, HSMODEM, WinRPR) each need their own
+simulator and remain Phase 8 open work.
 
 ## Repository layout
 
