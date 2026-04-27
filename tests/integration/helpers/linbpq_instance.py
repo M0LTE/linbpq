@@ -84,13 +84,16 @@ ENDPORT
 PORT
  ID=AXIP
  DRIVER=BPQAXIP
+ QUALITY=200
+ MINQUAL=1
  CONFIG
  UDP $axip_port
- MAP $peer_call 127.0.0.1 UDP $peer_axip_port
+ BROADCAST NODES
+ MAP $peer_call 127.0.0.1 UDP $peer_axip_port B
 ENDPORT
 
 ROUTES:
-CALL=$peer_call QUALITY=200 PORT=2
+$peer_call,200,2
 ***
 """
 )
@@ -124,13 +127,16 @@ ENDPORT
 PORT
  ID=AXIP
  DRIVER=BPQAXIP
+ QUALITY=200
+ MINQUAL=1
  CONFIG
  UDP $axip_port
- MAP $peer_call 127.0.0.1 UDP $peer_axip_port
+ BROADCAST NODES
+ MAP $peer_call 127.0.0.1 UDP $peer_axip_port B
 ENDPORT
 
 ROUTES:
-CALL=$peer_call QUALITY=200 PORT=2
+$peer_call,200,2
 ***
 """
 )

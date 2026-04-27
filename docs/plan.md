@@ -542,12 +542,30 @@ dedicated harnesses.
   into B's BBS and the message file lands on B's disk
   (``test_two_instance_bbs.py``).
 
-Still deferred:
-- **NET/ROM discovery** (NODES propagation between two AX/IP-UDP
-  linked instances).  [Issue #4](https://github.com/M0LTE/linbpq/issues/4):
-  `BROADCAST NODES` + `MAP ... B` cfg parses cleanly but actual
-  NODES propagation doesn't happen; root cause not yet found.
-  Blocks **L4-uplink ``C <call>``**.
+**NET/ROM discovery** ([#4](https://github.com/M0LTE/linbpq/issues/4))
+now resolved at the test-cfg level — root cause was misconfiguration
+combined with a parser bug.  Three things are required for NODES
+propagation across an AX/IP-UDP link, and the working
+`PEER_CONFIG` now sets all three:
+
+- PORT-block `QUALITY=` set to a non-zero value (otherwise
+  `L3Code.c:823` skips the port for NODES emit).
+- `BROADCAST NODES` line in the BPQAXIP CONFIG block (so "NODES"
+  is in `BroadcastAddresses`).
+- `B` flag on the `MAP <peer>` entry (so `BCFlag` is set on that
+  arp-table entry; without it `bpqaxip.c:658` skips broadcast
+  fan-out to that peer).
+
+Plus a static `ROUTES:` neighbour entry for the bootstrap.  The
+older comma-separated `<call>,<qual>,<port>` form works correctly;
+the keyword=value form was *misparsed*
+([#12](https://github.com/M0LTE/linbpq/issues/12)) — separator set
+inconsistency in `config.c:1619`.
+
+`test_two_instance.py::test_nodes_propagation_and_l4_uplink_connect`
+locks in the working topology: SENDNODES on both sides, ~3s wait,
+then NODES tables list the peer and `C N0BBB` (no port) connects
+via NET/ROM uplink.
 - **Two real BBS instances forwarding to each other**: needs a
   multi-line ConnectScript that dials the peer's BBS application
   through AX/IP, plus mutual ``BBSUsers`` / ``BBSForwarding`` cfg.
