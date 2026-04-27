@@ -10,7 +10,15 @@ here so we can prioritise.
 
 ### Currently a canary only — port opens, protocol untouched
 
-- **`FBBPORT`** — FBB host-mode protocol entirely uncovered.
+- **`FBBPORT`** — *was* canary-only.  Now covered at the **transport
+  listener** layer (`test_fbb_host_mode.py`): bare-CR login flow,
+  command relay, bad-password loop, initial silence.  The
+  **inter-BBS FBB forwarding protocol** (SID exchange, `FB`/`FA`/
+  `FC`/`F>`/`FF`/`FQ` proposal rounds, B2 binary blocks per
+  [packethacking/ax25spec/doc/fbb-forwarding-protocol.md]) is a
+  *separate* layer that runs on top of any transport — covered as
+  part of cross-instance BBS-to-BBS forwarding (still deferred;
+  needs a fake forwarding partner).
 - **`NETROMPORT`** — NETROM-over-TCP transport / inter-node tunnel.
 - **`APIPORT`** — note: the API itself actually serves on
   `HTTPPORT`; the parallel `APIPORT` listener doesn't respond to
