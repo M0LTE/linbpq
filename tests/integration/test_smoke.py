@@ -7,12 +7,26 @@ import socket
 
 def test_telnet_port_accepts_connections(linbpq):
     """linbpq starts cleanly and the Telnet server greets new connections."""
+    import time
+
     with socket.create_connection(
         ("127.0.0.1", linbpq.telnet_port), timeout=2
     ) as sock:
-        sock.settimeout(2)
-        data = sock.recv(256)
-    # The Telnet server sends IAC negotiation bytes followed by a "user:" prompt.
+        sock.settimeout(0.5)
+        data = b""
+        deadline = time.monotonic() + 3.0
+        # The Telnet server sends IAC negotiation bytes (FF FB ...)
+        # followed by a "user:" prompt; on a busy CI run the two halves
+        # can arrive in separate TCP segments, so accumulate until we
+        # see the marker or the deadline expires.
+        while b"user:" not in data and time.monotonic() < deadline:
+            try:
+                chunk = sock.recv(256)
+            except (TimeoutError, socket.timeout):
+                continue
+            if not chunk:
+                break
+            data += chunk
     assert b"user:" in data, f"expected login prompt, got {data!r}"
 
 
