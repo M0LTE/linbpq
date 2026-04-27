@@ -183,7 +183,7 @@ These set node-wide variables. Form is `CMD` (display) or `CMD VALUE`
 
 | Command | Abbr | Summary |
 |---------|-----:|---------|
-| [`SAVENODES`](#savenodes)         | 8  | Persist NET/ROM nodes table to disk. |
+| [`SAVENODES`](#savenodes)         | 8  | Persist NET/ROM nodes and routes tables to disk. |
 | [`SAVEMH`](#savemh)               | 6  | Persist MHeard tables to disk. |
 | [`POLLNODES`](#pollnodes)         | 8  | Send an INP3 nodes-poll on a port. |
 | [`SENDNODES`](#sendnodes)         | 8  | Send NET/ROM `NODES` broadcast (`0` = all). |
@@ -804,8 +804,10 @@ nodes broadcast happens immediately.
 <a id="savenodes"></a>
 ### `SAVENODES` *(abbr: 8, sysop)*
 
-Source: `SAVENODES` in `Cmd.c:429`. Calls `SaveNodes()` to persist the
-current NET/ROM destinations table to disk; replies `OK`.
+Source: `SAVENODES` in `Cmd.c:429`. Calls `SaveNodes()`
+(`CommonCode.c:3060`), which writes both the NET/ROM destinations and
+the neighbour routes to a single `BPQNODES.dat` file in `BPQDirectory`;
+replies `OK`.
 
 <a id="savemh"></a>
 ### `SAVEMH` *(abbr: 6, sysop)*
