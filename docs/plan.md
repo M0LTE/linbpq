@@ -102,6 +102,16 @@ Native execution stays supported (`make test-native`) for fast
 inner-loop iteration when you are already on a Linux box. Docker is
 the easy default; native is the fast path.
 
+To bootstrap the native runner once:
+
+```
+uv venv tests/.venv
+uv pip install --python tests/.venv/bin/python pytest pytest-xdist
+```
+
+`tests/.venv/` is gitignored. The makefile prints the bootstrap
+command if the venv is missing.
+
 ### Continuous integration
 
 The Docker-first design carries straight into GitHub Actions:
@@ -134,7 +144,7 @@ Phase 1 once the harness produces useful output.
 |     2 | Breadth-first interface coverage — telnet, HTTP, AGW, NET/ROM-TCP, FBB-TCP, JSON API; KISS-TCP and AX/IP-UDP deferred  | done\* |
 |     3 | Telnet node-command coverage driven by `docs/node-commands.md` (every command, sysop gating, state-changing round-trips) | done\* |
 |     4 | BBS + Chat lifecycle — send / read / list / kill mail, chat connect / topic / broadcast                                  | todo   |
-|     5 | Persistence round-trip — boot, mutate, shut down, reboot, verify state restored                                          | todo   |
+|     5 | Persistence round-trip — boot, mutate, shut down, reboot, verify state restored                                          | started |
 |     6 | Two-instance scenarios via AX/IP UDP — NET/ROM discovery, cross-instance connect, message forwarding                     | todo   |
 |     7 | Configuration matrix — minimal / full / edge configs, parse-or-reject assertions                                         | started |
 |     8 | PTY-based modem simulators for KISS HF, ARDOP, VARA, KAM, etc.                                                           | todo   |

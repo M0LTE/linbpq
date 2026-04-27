@@ -41,3 +41,10 @@ core
 .DS_Store
 *.user
 *.log
+
+# Test virtualenv for `make test-native`
+tests/.venv/
+
+# pytest / Python caches
+__pycache__/
+.pytest_cache/

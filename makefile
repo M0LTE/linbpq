@@ -91,7 +91,12 @@ test:
 	docker build -f docker/Dockerfile.test -t $(DOCKER_TEST_IMAGE) .
 	docker run --rm $(DOCKER_TEST_IMAGE)
 
-# Native runner — fast inner loop on Linux when you already have
-# python3, pytest and the libs installed. The harness reads $LINBPQ_BIN.
-test-native:
-	cd tests/integration && LINBPQ_BIN=$(CURDIR)/linbpq.bin python3 -m pytest
+# Native runner — fast inner loop on Linux. Builds linbpq.bin if needed
+# and runs pytest inside tests/.venv. Create the venv first time with:
+#   uv venv tests/.venv
+#   uv pip install --python tests/.venv/bin/python pytest pytest-xdist
+TEST_VENV_PYTEST = tests/.venv/bin/pytest
+
+test-native: linbpq.bin
+	@test -x $(TEST_VENV_PYTEST) || (echo "tests/.venv missing; run: uv venv tests/.venv && uv pip install --python tests/.venv/bin/python pytest pytest-xdist" && exit 1)
+	cd tests/integration && LINBPQ_BIN=$(CURDIR)/linbpq.bin $(CURDIR)/$(TEST_VENV_PYTEST)
