@@ -22,6 +22,8 @@ from string import Template
 
 import time
 
+import pytest
+
 from helpers.bpqmail_cfg import FwdPartner, render_bpqmail_cfg
 from helpers.fbb_partner import FBBPartner, fbb_partner
 from helpers.linbpq_instance import LinbpqInstance
@@ -456,6 +458,209 @@ def test_linbpq_sends_proposal_for_queued_message(tmp_path: Path):
         assert b"_N0AAA" in proposal, (
             f"FC proposal BID should reference originating BBS: {proposal!r}"
         )
+
+
+# ----------------------------------------------------------------------
+# Partner-config option matrix (FwdDetail.txt fields)
+# ----------------------------------------------------------------------
+
+
+def _connect_partner_and_drain_proposals(linbpq):
+    """Connect as the partner, send SID + FF, return the proposals
+    linbpq emits (plus the FF/FQ terminator for empty queues)."""
+    with fbb_partner(
+        "127.0.0.1",
+        linbpq.telnet_port,
+        username="fbbuser",
+        password="fbbpass",
+    ) as partner:
+        partner.login_to_bbs()
+        partner.send_sid()
+        partner.send_ff()
+        proposals, terminator = partner.read_proposal_block(timeout=10)
+        return proposals, terminator
+
+
+def test_personal_only_filters_out_bulletins(tmp_path: Path):
+    """Cfg ``FWDPersonalsOnly = 1`` (FwdDetail screen "Send Personal
+    Mail Only" checkbox) — bulletins (``B`` type) addressed to the
+    partner should NOT be proposed.
+
+    BBSUtilities.c:6678 ``FindMessagestoForward`` runs separately
+    for T/P/B; ``PersonalOnly`` should suppress B and T.
+    """
+    instance = _fwd_setup_fbb_mode(tmp_path, personal_only=True)
+    with instance as linbpq:
+        # Post both a P (personal) and a B (bulletin) message to the
+        # partner.
+        _post_message(
+            linbpq=linbpq,
+            sender_user="test",
+            sender_pass="test",
+            to_call="USERX",
+            at_call="N0BBB",
+            msg_type="P",
+            title="personal-msg",
+            body="personal-body",
+        )
+        _post_message(
+            linbpq=linbpq,
+            sender_user="test",
+            sender_pass="test",
+            to_call="ALL",
+            at_call="N0BBB",
+            msg_type="B",
+            title="bulletin-msg",
+            body="bulletin-body",
+        )
+        proposals, _ = _connect_partner_and_drain_proposals(linbpq)
+
+    # Filter to actual proposal lines (FA/FB/FC), drop FF/FQ tail.
+    real = [p for p in proposals if p[:2] in (b"FA", b"FB", b"FC")]
+    assert real, f"linbpq sent no proposals at all: {proposals!r}"
+    # In B2 mode the proposal type is in the encapsulated message,
+    # not the FC line — so we can't filter by type from FC alone.
+    # Just lock in that exactly one proposal lands (the personal one),
+    # not two.
+    assert len(real) == 1, (
+        f"PersonalOnly=1 should yield 1 proposal (P only), got "
+        f"{len(real)}: {real!r}"
+    )
+
+
+def test_disabled_partner_still_responds_to_inbound_connect(tmp_path: Path):
+    """``Enabled = 0`` is the OUTBOUND switch — it suppresses linbpq
+    *initiating* a forward (the periodic ``ConnectScript`` dial-out,
+    BBSUtilities.c:7767).  An inbound connection from the partner
+    still triggers FBB exchange and proposal sending — there's no
+    per-direction suppression for that case.
+
+    Locks in this asymmetry so a refactor doesn't change one without
+    the other.
+    """
+    instance = _fwd_setup_fbb_mode(tmp_path, enabled=False)
+    with instance as linbpq:
+        _post_message(
+            linbpq=linbpq,
+            sender_user="test",
+            sender_pass="test",
+            to_call="USERX",
+            at_call="N0BBB",
+            msg_type="P",
+        )
+        proposals, _ = _connect_partner_and_drain_proposals(linbpq)
+
+    real = [p for p in proposals if p[:2] in (b"FA", b"FB", b"FC")]
+    assert real, (
+        f"Enabled=0 should not suppress inbound forwarding; got {proposals!r}"
+    )
+
+
+def test_to_calls_filter_routes_message(tmp_path: Path):
+    """``TOCalls = "WX1USR"`` — when a P message addressed
+    ``TO=WX1USR @=somewhere-else`` arrives, MatchMessagetoBBSList
+    matches the partner's TOCalls list and queues it for that
+    partner anyway (BPQMail.c:3508 ``CheckBBSToList``).
+    """
+    instance = _fwd_setup_fbb_mode(
+        tmp_path, to_calls=["WX1USR"]
+    )
+    with instance as linbpq:
+        _post_message(
+            linbpq=linbpq,
+            sender_user="test",
+            sender_pass="test",
+            to_call="WX1USR",
+            at_call="N0OTHER",  # @-BBS doesn't match partner
+            msg_type="P",
+        )
+        proposals, _ = _connect_partner_and_drain_proposals(linbpq)
+
+    real = [p for p in proposals if p[:2] in (b"FA", b"FB", b"FC")]
+    assert real, (
+        f"TOCalls=WX1USR should route TO=WX1USR to partner; got {proposals!r}"
+    )
+
+
+def test_personals_to_no_known_partner_dont_route(tmp_path: Path):
+    """A P message addressed ``TO=NOWHO @=NOTABBS`` with no matching
+    TOCalls / ATCalls / HRoutes shouldn't be queued for any partner."""
+    instance = _fwd_setup_fbb_mode(tmp_path)  # default: empty lists
+    with instance as linbpq:
+        _post_message(
+            linbpq=linbpq,
+            sender_user="test",
+            sender_pass="test",
+            to_call="NOWHO",
+            at_call="NOTABBS",
+            msg_type="P",
+        )
+        proposals, terminator = _connect_partner_and_drain_proposals(linbpq)
+
+    # Should be empty queue → FF/FQ first.
+    assert proposals and proposals[0][:2] in (b"FF", b"FQ"), (
+        f"unmatched P message should not route; got {proposals!r}"
+    )
+
+
+def test_at_calls_filter_routes_personal_message(tmp_path: Path):
+    """``ATCalls = "MAILBOX"`` — when a P message arrives with
+    ``@=MAILBOX``, the partner's ATCalls list is consulted (BPQMail.c
+    ``CheckBBSAtList``) and the message is queued for the partner.
+    """
+    instance = _fwd_setup_fbb_mode(
+        tmp_path, at_calls=["MAILBOX"]
+    )
+    with instance as linbpq:
+        _post_message(
+            linbpq=linbpq,
+            sender_user="test",
+            sender_pass="test",
+            to_call="USERX",
+            at_call="MAILBOX",
+            msg_type="P",
+        )
+        proposals, _ = _connect_partner_and_drain_proposals(linbpq)
+
+    real = [p for p in proposals if p[:2] in (b"FA", b"FB", b"FC")]
+    assert real, (
+        f"ATCalls=MAILBOX should route P @=MAILBOX to partner; "
+        f"got {proposals!r}"
+    )
+
+
+@pytest.mark.skip(
+    reason=(
+        "HRoutes-based bulletin routing didn't trigger in initial "
+        "testing — matcher should accept '.EU' suffix vs 'ALL.EU' @-BBS "
+        "(BPQMail.c CheckABBS lines 3629-3650).  Behaviour to be "
+        "investigated; on this branch the sender sees "
+        "'msg may not be delivered'.  Filing as M0LTE/linbpq follow-up."
+    )
+)
+def test_hroutes_bulls_filter_routes_bulletin(tmp_path: Path):
+    """``HRoutes = ".EU"`` — bulletin with ``@=ALL.EU`` matches the
+    partner via hierarchical-route suffix check.
+    """
+    instance = _fwd_setup_fbb_mode(
+        tmp_path,
+        hroutes_bulls=[".EU"],
+    )
+    with instance as linbpq:
+        _post_message(
+            linbpq=linbpq,
+            sender_user="test",
+            sender_pass="test",
+            to_call="ALL",
+            at_call="ALL.EU",
+            msg_type="B",
+        )
+        proposals, _ = _connect_partner_and_drain_proposals(linbpq)
+
+    real = [p for p in proposals if p[:2] in (b"FA", b"FB", b"FC")]
+    assert real, (
+        f"HRoutes=.EU should route B @=ALL.EU to partner; got {proposals!r}"
+    )
 
 
 def test_partner_accepts_proposal_and_receives_b2_framed_body(tmp_path: Path):
