@@ -631,11 +631,8 @@ def test_at_calls_filter_routes_personal_message(tmp_path: Path):
 
 @pytest.mark.skip(
     reason=(
-        "HRoutes-based bulletin routing didn't trigger in initial "
-        "testing — matcher should accept '.EU' suffix vs 'ALL.EU' @-BBS "
-        "(BPQMail.c CheckABBS lines 3629-3650).  Behaviour to be "
-        "investigated; on this branch the sender sees "
-        "'msg may not be delivered'.  Filing as M0LTE/linbpq follow-up."
+        "HRoutes-based bulletin routing doesn't queue for partner — "
+        "tracked in https://github.com/M0LTE/linbpq/issues/7."
     )
 )
 def test_hroutes_bulls_filter_routes_bulletin(tmp_path: Path):

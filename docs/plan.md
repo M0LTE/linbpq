@@ -548,9 +548,47 @@ Still deferred:
   `BROADCAST NODES` + `MAP ... B` cfg parses cleanly but actual
   NODES propagation doesn't happen; root cause not yet found.
   Blocks **L4-uplink ``C <call>``**.
-- **Cross-instance message forwarding** (BBS-to-BBS auto-forward
-  via the FBB inter-BBS forwarding protocol).  Needs a fake
-  forwarding partner harness; see Phase 4's open items.
+- **Two real BBS instances forwarding to each other**: needs a
+  multi-line ConnectScript that dials the peer's BBS application
+  through AX/IP, plus mutual ``BBSUsers`` / ``BBSForwarding`` cfg.
+  The single-instance fake-partner coverage (below) exercises the
+  FBB wire protocol; running it against two real BPQMail daemons
+  is the next layer.
+
+**FBB inter-BBS forwarding** (issue #4) coverage landed as
+``test_bbs_forwarding.py`` plus ``helpers/fbb_partner.py`` (a
+Python-side fake BBS that talks the protocol over the wire) and
+``helpers/bpqmail_cfg.py`` (renders ``linmail.cfg`` with a
+forwarding-partner entry covering every option from the FwdDetail
+web-config screen).  Tests are spec-driven, citing the
+[FBB protocol spec](https://github.com/packethacking/ax25spec/blob/main/doc/fbb-forwarding-protocol.md):
+
+- SID exchange — F flag presence ↔ ``allow_blocked``; B/1/2 ↔
+  cfg compression flags; B2-implies-B1 suppression rule
+  (BBSUtilities.c:9092).  Falling back to MBL when partner SID
+  lacks F.
+- Empty-queue protocol flow: SID + FF → FQ termination per spec
+  §10.1.
+- Proposal-block parsing: linbpq sends ``FS <code-per-proposal>``;
+  multi-proposal blocks (3 props → 3 codes); spec §6.1.
+- Spec-violation handling: oversized From field, non-F commands,
+  bad F> checksum.
+- Linbpq sends FA/FC proposals when messages are queued for the
+  partner.  B2 (FC) proposal carries BID + sizes only; FA carries
+  the full To/From/AT inline.
+- Accepting a proposal triggers a SOH/STX/EOT framed B2 body.
+- Partner-config option matrix: TOCalls, ATCalls, PersonalOnly,
+  Enabled (locks in the inbound-vs-outbound asymmetry — Enabled=0
+  only suppresses linbpq's outbound dial-out).
+- Bulletin direct-match (``@=N0BBB``) routes via CheckABBS first
+  clause.
+
+Filed bug found while writing these tests:
+[#7](https://github.com/M0LTE/linbpq/issues/7) — HRoutes-based
+bulletin routing doesn't queue for the partner (matcher in
+``CheckABBS`` lines 3629-3650 should fire, but ``MatchMessageto­BBSList``
+returns 0 for ``B @ ALL.EU`` against ``HRoutes = ".EU"``).
+Test for the expected behaviour is in place but skipped pending fix.
 
 \*Phase 7 footnote: configuration matrix covered:
 - Minimal cfg (truly minimal: SIMPLE/NODECALL/LOCATOR/PORT-block
