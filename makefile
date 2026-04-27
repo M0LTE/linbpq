@@ -23,7 +23,7 @@ OBJS = pngwtran.o pngrtran.o pngset.o pngrio.o pngwio.o pngtrans.o pngrutil.o pn
 
 all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)	
 all: LIBS = -lpaho-mqtt3a -ljansson -lminiupnpc -lm -lz -lpthread -lconfig -lpcap                       
-all: linbpq.bin
+all: linbpq
 
 #other OS
 
@@ -35,7 +35,7 @@ ifeq ($(OS_NAME),NetBSD)
 
 all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)	
 all: LIBS = -lminiupnpc -lm -lz -lpthread -lconfig -lpcap                    
-all: linbpq.bin
+all: linbpq
 
 
 endif
@@ -46,7 +46,7 @@ ifeq ($(OS_NAME),FreeBSD)
 
 all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)	
 all: LIBS =  -lminiupnpc -lm -lz -lpthread -lconfig -lpcap	                       
-all: linbpq.bin
+all: linbpq
 
 endif
 
@@ -57,7 +57,7 @@ ifeq ($(OS_NAME),Darwin)
 
 all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)	
 all: LIBS = -lminiupnpc -lm -lz -lpthread -lconfig -lpcap                     
-all: linbpq.bin
+all: linbpq
 endif
 
 $(info OS_NAME is $(OS_NAME))
@@ -66,22 +66,22 @@ $(info OS_NAME is $(OS_NAME))
 
 nomqtt: CFLAGS = -DLINBPQ -MMD -fcommon -g  -rdynamic -DNOMQTT -fasynchronous-unwind-tables
 nomqtt: LIBS = -lminiupnpc -lm -lz -lpthread -lconfig -lpcap   
-nomqtt: linbpq.bin
+nomqtt: linbpq
 
 noi2c: CFLAGS = -DLINBPQ -MMD -DNOI2C -g  -rdynamic -fcommon -fasynchronous-unwind-tables
 noi2c: LIBS = -lpaho-mqtt3a -ljansson -lminiupnpc -lm -lz -lpthread -lconfig -lpcap                        
-noi2c: linbpq.bin
+noi2c: linbpq
 
 
-linbpq.bin: $(OBJS)
-	cc $(OBJS) $(CFLAGS) $(LDFLAGS) $(LIBS) -o linbpq.bin
-	-sudo setcap "CAP_NET_ADMIN=ep CAP_NET_RAW=ep CAP_NET_BIND_SERVICE=ep" linbpq.bin || true		
+linbpq: $(OBJS)
+	cc $(OBJS) $(CFLAGS) $(LDFLAGS) $(LIBS) -o linbpq
+	-sudo setcap "CAP_NET_ADMIN=ep CAP_NET_RAW=ep CAP_NET_BIND_SERVICE=ep" linbpq || true		
 
 -include *.d
 
 clean :
 	rm *.d
-	rm linbpq.bin $(OBJS)
+	rm linbpq $(OBJS)
 
 # Integration tests run inside docker for reproducibility across
 # Linux / WSL / Windows-with-Docker / macOS. See docs/plan.md.
@@ -91,12 +91,12 @@ test:
 	docker build -f docker/Dockerfile.test -t $(DOCKER_TEST_IMAGE) .
 	docker run --rm $(DOCKER_TEST_IMAGE)
 
-# Native runner — fast inner loop on Linux. Builds linbpq.bin if needed
+# Native runner — fast inner loop on Linux. Builds linbpq if needed
 # and runs pytest inside tests/.venv. Create the venv first time with:
 #   uv venv tests/.venv
 #   uv pip install --python tests/.venv/bin/python pytest pytest-xdist
 TEST_VENV_PYTEST = tests/.venv/bin/pytest
 
-test-native: linbpq.bin
+test-native: linbpq
 	@test -x $(TEST_VENV_PYTEST) || (echo "tests/.venv missing; run: uv venv tests/.venv && uv pip install --python tests/.venv/bin/python pytest pytest-xdist" && exit 1)
-	cd tests/integration && LINBPQ_BIN=$(CURDIR)/linbpq.bin $(CURDIR)/$(TEST_VENV_PYTEST)
+	cd tests/integration && LINBPQ_BIN=$(CURDIR)/linbpq $(CURDIR)/$(TEST_VENV_PYTEST)

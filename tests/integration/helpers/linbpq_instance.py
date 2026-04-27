@@ -1,4 +1,4 @@
-"""Spawn / control a linbpq.bin process for integration tests."""
+"""Spawn / control a linbpq process for integration tests."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 from string import Template
 
-LINBPQ_BIN = os.environ.get("LINBPQ_BIN", "linbpq.bin")
+LINBPQ_BIN = os.environ.get("LINBPQ_BIN", "linbpq")
 
 # A bpq32.cfg that boots cleanly with the standard set of interfaces
 # enabled, no radio, all on loopback.  See docs/plan.md.
@@ -280,7 +280,7 @@ def pick_free_port() -> int:
 
 
 class LinbpqInstance:
-    """A linbpq.bin subprocess running in an isolated working directory.
+    """A linbpq subprocess running in an isolated working directory.
 
     Caller is responsible for start() / stop(); the pytest fixture wraps that.
     """

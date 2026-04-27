@@ -20,7 +20,7 @@ output.map
 *.i*86
 *.x86_64
 *.hex
-linbpq.bin
+linbpq
 
 # Debug files
 *.dSYM/
