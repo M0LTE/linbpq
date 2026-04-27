@@ -65,3 +65,69 @@ def test_savenodes_persists_across_reboot(tmp_path: Path):
         "load path broken; log was:\n"
         f"{log_second[:2000]}"
     )
+
+
+def test_bbs_message_persists_across_reboot(tmp_path: Path):
+    """A BBS message posted in one instance is readable from a fresh
+    boot in the same data directory.
+
+    Locks in the BPQMail message-store contract: messages live in
+    ``Mail/`` plus the message-database files, and a clean reboot
+    re-indexes them.  A regression in either the writer or the loader
+    breaks this test.
+    """
+    import time
+
+    from helpers.linbpq_instance import MAIL_CONFIG
+
+    # Round 1: enter BBS, post a message, leave, shut down.
+    first = LinbpqInstance(
+        tmp_path,
+        config_template=MAIL_CONFIG,
+        extra_args=("mail",),
+    )
+    with first:
+        with TelnetClient("127.0.0.1", first.telnet_port) as client:
+            client.login("test", "test")
+            client.write_line("BBS")
+            client.read_until(b"Please enter your Name", timeout=5)
+            client.read_until(b">", timeout=5)
+            client.write_line("Tester")
+            client.read_until(b"de N0CALL>", timeout=5)
+
+            client.write_line("SP TEST")
+            client.read_until(b"Enter Title", timeout=5)
+            client.write_line("persistence-subject")
+            client.read_until(b"Enter Message Text", timeout=5)
+            client.write_line("body-survives-reboot")
+            time.sleep(0.5)  # see test_bbs_message_round_trip
+            client.write_line("/EX")
+            client.read_until(b"Message: 1 Bid:", timeout=10)
+
+    # The Mail/ directory and the message databases should have been
+    # written by the time first.stop() returns.
+    mail_dir = tmp_path / "Mail"
+    assert mail_dir.is_dir(), f"Mail dir missing under {tmp_path}"
+    msg_files = list(mail_dir.glob("m_*.mes"))
+    assert msg_files, f"no .mes files written under {mail_dir}"
+
+    # Round 2: fresh instance, same dir.  Read message 1.
+    second = LinbpqInstance(
+        tmp_path,
+        config_template=MAIL_CONFIG,
+        extra_args=("mail",),
+    )
+    with second:
+        with TelnetClient("127.0.0.1", second.telnet_port) as client:
+            client.login("test", "test")
+            client.write_line("BBS")
+            # Returning user — no name prompt this time.
+            client.read_until(b"de N0CALL>", timeout=5)
+            client.write_line("R 1")
+            response = client.read_until(b"de N0CALL>", timeout=5)
+    assert b"Title: persistence-subject" in response, (
+        f"title did not survive reboot: {response!r}"
+    )
+    assert b"body-survives-reboot" in response, (
+        f"body did not survive reboot: {response!r}"
+    )
