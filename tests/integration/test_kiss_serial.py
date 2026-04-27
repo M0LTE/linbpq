@@ -22,7 +22,12 @@ from pathlib import Path
 from string import Template
 
 from helpers.linbpq_instance import LinbpqInstance
-from helpers.pty_kiss_modem import PtyKissModem, kiss_encode
+from helpers.pty_kiss_modem import (
+    PtyKissModem,
+    ax25_decode_call,
+    kiss_decode_frames,
+    kiss_encode,
+)
 from helpers.telnet_client import TelnetClient
 
 
@@ -107,3 +112,43 @@ def test_kiss_serial_ax25_frame_lands_in_mh(tmp_path: Path):
         f"G7TEST not heard on port 2: {response!r}"
     )
     assert b"Heard List for Port 2" in response
+
+
+def test_kiss_serial_cq_beacon_lands_on_pty(tmp_path: Path):
+    """``LISTEN 2`` then ``CQ`` causes linbpq to transmit a UI beacon
+    out the serial KISS port; the test reads the master end of the
+    PTY and parses out a real KISS-framed AX.25 UI frame with the
+    configured NODECALL as the source and ``CQ`` as the destination."""
+    with PtyKissModem() as modem:
+        cfg = Template(KISS_SERIAL_CONFIG_TEMPLATE.replace("__SLAVE__", modem.slave_path))
+        with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+            # Drain anything queued during init.
+            modem.read_available()
+
+            with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+                client.login("test", "test")
+                client.run_command("LISTEN 2")
+                client.run_command("CQ")
+
+            # Give the TX a beat.
+            time.sleep(0.5)
+            tx = modem.read_available()
+
+    assert tx, "no bytes from linbpq after CQ"
+    frames = kiss_decode_frames(tx)
+    assert frames, f"no KISS frames decoded: {tx.hex()}"
+
+    # First frame: dest (CQ), src (N0CALL-something), then CTL+PID
+    frame = frames[0]
+    assert len(frame) >= 14, f"frame too short for AX.25 header: {frame.hex()}"
+    dest = ax25_decode_call(frame[:7])
+    src = ax25_decode_call(frame[7:14])
+    ctl = frame[14] if len(frame) > 14 else None
+    pid = frame[15] if len(frame) > 15 else None
+
+    assert dest == "CQ", f"unexpected dest call: {dest!r} (frame {frame.hex()})"
+    assert src.startswith("N0CALL"), (
+        f"unexpected src call: {src!r} (frame {frame.hex()})"
+    )
+    assert ctl == 0x03, f"expected UI CTL=0x03, got {ctl!r}"
+    assert pid == 0xF0, f"expected PID=0xF0 (no L3), got {pid!r}"

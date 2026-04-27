@@ -29,6 +29,48 @@ TFEND = 0xDC
 TFESC = 0xDD
 
 
+def kiss_decode_frames(stream: bytes) -> list[bytes]:
+    """Split ``stream`` on FEND, unescape FESC sequences in each
+    frame, drop the leading command byte, return AX.25 payloads
+    (just the AX.25 frame, no KISS framing or command byte)."""
+    frames: list[bytes] = []
+    for chunk in stream.split(bytes([FEND])):
+        if not chunk:
+            continue
+        # Unescape FESC sequences.
+        out = bytearray()
+        i = 0
+        while i < len(chunk):
+            b = chunk[i]
+            if b == FESC and i + 1 < len(chunk):
+                nxt = chunk[i + 1]
+                if nxt == TFEND:
+                    out.append(FEND)
+                elif nxt == TFESC:
+                    out.append(FESC)
+                else:
+                    out.extend([FESC, nxt])
+                i += 2
+            else:
+                out.append(b)
+                i += 1
+        if len(out) >= 1:
+            # Drop the KISS command byte; payload is what follows.
+            frames.append(bytes(out[1:]))
+    return frames
+
+
+def ax25_decode_call(seven_bytes: bytes) -> str:
+    """Render a 6-byte left-shifted call + SSID byte back to text."""
+    if len(seven_bytes) < 7:
+        return ""
+    chars = bytes(b >> 1 for b in seven_bytes[:6]).decode(
+        "ascii", errors="replace"
+    ).rstrip()
+    ssid = (seven_bytes[6] >> 1) & 0x0F
+    return f"{chars}-{ssid}" if ssid else chars
+
+
 def kiss_encode(data: bytes, port: int = 0, cmd: int = 0) -> bytes:
     """Wrap ``data`` in a KISS data frame for ``port``."""
     cmd_byte = ((port & 0x0F) << 4) | (cmd & 0x0F)
