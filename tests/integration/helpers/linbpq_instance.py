@@ -132,3 +132,10 @@ class LinbpqInstance:
                 self.proc.kill()
                 self.proc.wait()
         self.proc = None
+
+    def __enter__(self) -> "LinbpqInstance":
+        self.start()
+        return self
+
+    def __exit__(self, *_exc) -> None:
+        self.stop()

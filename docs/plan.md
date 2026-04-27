@@ -136,7 +136,7 @@ Phase 1 once the harness produces useful output.
 |     4 | BBS + Chat lifecycle — send / read / list / kill mail, chat connect / topic / broadcast                                  | todo   |
 |     5 | Persistence round-trip — boot, mutate, shut down, reboot, verify state restored                                          | todo   |
 |     6 | Two-instance scenarios via AX/IP UDP — NET/ROM discovery, cross-instance connect, message forwarding                     | todo   |
-|     7 | Configuration matrix — minimal / full / edge configs, parse-or-reject assertions                                         | todo   |
+|     7 | Configuration matrix — minimal / full / edge configs, parse-or-reject assertions                                         | started |
 |     8 | PTY-based modem simulators for KISS HF, ARDOP, VARA, KAM, etc.                                                           | todo   |
 
 Phases 0–3 hold most of the value and are achievable in reasonable
