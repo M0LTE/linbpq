@@ -115,6 +115,61 @@ def test_side_effect_commands_sysop_gated(linbpq, cmd):
     )
 
 
+# Per-port byte tunables that have no clean cfg→sysop round-trip
+# (cfg keyword either doesn't exist, takes a different value space,
+# or applies non-trivial scaling).  Cover via a runtime-only setter
+# pattern: read current, set to a known value, read back, assert.
+PER_PORT_RUNTIME_SETTER = [
+    pytest.param("FRACK", 2, 9, id="FRACK"),
+    pytest.param("RESPTIME", 2, 7, id="RESPTIME"),
+    pytest.param("XMITOFF", 2, 1, id="XMITOFF"),
+    pytest.param("BBSALIAS", 2, 1, id="BBSALIAS"),
+]
+
+
+@pytest.mark.parametrize("cmd,port,value", PER_PORT_RUNTIME_SETTER)
+def test_per_port_runtime_setter_round_trip(linbpq, cmd, port, value):
+    """``CMD PORT`` reads, ``CMD PORT VAL`` sets and emits
+    ``CMD was <old> now <new>``.  Covers the per-port tunables that
+    don't have a clean cfg→sysop round-trip — verifies the runtime
+    set/get path through ``PORTVAL`` (Cmd.c:553) directly."""
+    with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+        client.login("test", "test")
+        client.run_command("PASSWORD")
+
+        set_response = client.run_command(f"{cmd} {port} {value}")
+        read_response = client.run_command(f"{cmd} {port}")
+
+    assert b"now" in set_response and str(value).encode() in set_response, (
+        f"{cmd} set should report 'now <val>': {set_response!r}"
+    )
+    assert f"{cmd} {value}".encode() in read_response, (
+        f"{cmd} read-back should show {value}: {read_response!r}"
+    )
+
+
+def test_linkedflag_runtime_setter_round_trip(linbpq):
+    """``LINKEDFLAG`` is an 8-bit global byte (default 'A' = 65).
+    Cfg keyword ``ENABLE_LINKED`` accepts a single character but the
+    value space doesn't match the runtime byte; cover via the
+    sysop-level setter path (``SWITCHVAL`` in Cmd.c:668) directly."""
+    with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+        client.login("test", "test")
+        client.run_command("PASSWORD")
+
+        # Set LINKEDFLAG to 89 ('Y' = unconditional).
+        set_response = client.run_command("LINKEDFLAG 89")
+        # Read back.
+        read_response = client.run_command("LINKEDFLAG")
+
+    assert b"now 89" in set_response, (
+        f"LINKEDFLAG set should echo 'now 89': {set_response!r}"
+    )
+    assert b"LINKEDFLAG 89" in read_response, (
+        f"LINKEDFLAG read-back should show 89: {read_response!r}"
+    )
+
+
 def test_getportctext_reads_per_port_files(tmp_path, linbpq):
     """``GETPORTCTEXT`` re-reads per-port ``Port<N>CTEXT.txt`` files
     from the working directory into ``PORT->CTEXT`` (CommonCode.c:4898).
