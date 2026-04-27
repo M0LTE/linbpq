@@ -217,11 +217,11 @@ Still deferred:
   prompt.  Still deferred: `ATTACH` (Pactor / VARA / Telnet stream
   attach — needs an externally-set-up stream) and the **L4-uplink
   form of CONNECT** (`C <call>` with no port, route via NODES).
-  Empirically, `SENDNODES` between two AX/IP-UDP-linked instances
-  doesn't seem to actually propagate the NODES table within a
-  reasonable test window — needs deeper investigation, likely an
-  issue around AX/IP carrying NETROM frames or NODES-broadcast
-  prerequisites we haven't met.
+  Tracked in [M0LTE/linbpq#4](https://github.com/M0LTE/linbpq/issues/4):
+  even with `QUALITY=192` on the AXIP port, `BROADCAST NODES` in
+  the AX/IP CONFIG block, and `SENDNODES` triggered from both sides,
+  NODES tables stay empty.  Needs deeper investigation of the
+  port-quality path and AX/IP broadcast TX routing.
 - **`APRS`, `WL2KSYSOP`, `RHP`, `QTSM`, `RADIO`, `UZ7HO`**: each needs
   its own subsystem configured.
 - **`NAT`, `AXRESOLVER`, `AXMHEARD`**: BPQ IP-gateway feature.
