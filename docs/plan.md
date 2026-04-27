@@ -603,10 +603,27 @@ post-connect-byte coverage:
   canary — the SCS-Tracker reply protocol isn't simulated, so
   we only confirm the connect lands.
 
-Still open: AEAPactor, MULTIPSK, SCSPactor, SCSTracker, HALDriver
-each need their own simulator (variants of the serial / TCP
-patterns we already have) — none are required by GB7RDG's cfg or
-M0LTE's deployment, so they're lower priority.
+**Legacy modems** (`test_legacy_modems.py` + `test_multipsk.py`):
+canary coverage for the remaining drivers — they boot cleanly
+with their `DRIVER=` keyword, log their init banner, and
+`AEAPACTOR` writes to the serial port post-init:
+
+- **AEAPactor** (PK-232 family) — serial; opens PTY synchronously
+  in `AEAExtInit`, writes init bytes within seconds.
+- **SCSPactor** (PTC family) — serial.
+- **SCSTracker** (DSP-4100) — serial.
+- **TrackeMulti** — serial; shares SCSTRK init banner.
+- **HALDriver** (DXP-38 / Clover-II) — serial.
+- **MULTIPSK** — TCP single-socket dial-out canary.
+
+Driving each driver's full handshake (cmd: prompt detection,
+`MYCALL` round-trip, host-mode entry) needs per-modem fake-TNC
+simulators — deferred since none of these modems appear in
+GB7RDG's or M0LTE's cfg.
+
+Phase 8 closeout: Sister drivers like KISSHF / FreeData remain
+covered only as cfg-acceptance canaries; KISSHF rides the same
+`KISSHF` driver as the existing UZ7HO/Direwolf KISS-TCP coverage.
 
 ## Repository layout
 
