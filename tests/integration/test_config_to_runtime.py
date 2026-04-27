@@ -126,6 +126,30 @@ ENDPORT
 """
 
 
+def test_new_application_line_format_registers_command(tmp_path: Path):
+    """The newer ``APPLICATION n,CMD,New,Call,Alias,Quality,L2Alias``
+    line registers a command word that appears in ``?`` and
+    dispatches (rejection is fine — "Sorry, Application X is not
+    running"; the point is the parser wired the alias)."""
+    cfg = _cfg_with_globals("APPLICATION 1,WIDGET,,N0CALL-2,WGT,255")
+    with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+        with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+            client.login("test", "test")
+            help_response = client.run_command("?")
+            widget_response = client.run_command("WIDGET")
+    assert b"WIDGET" in help_response, (
+        f"WIDGET not in '?' output: {help_response!r}"
+    )
+    assert b"WIDGET" in widget_response, (
+        f"WIDGET not dispatched: {widget_response!r}"
+    )
+    # We don't have an app actually running on N0CALL-2; that's fine.
+    assert (
+        b"is not running" in widget_response
+        or b"Connected to" in widget_response
+    ), f"unexpected WIDGET response: {widget_response!r}"
+
+
 @pytest.mark.parametrize("cfg_line,cmd,expected", PER_PORT_TUNING)
 def test_cfg_per_port_visible_via_sysop_command(
     tmp_path: Path, cfg_line: str, cmd: str, expected: bytes
