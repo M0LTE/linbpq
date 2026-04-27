@@ -116,6 +116,131 @@ def test_kiss_serial_ax25_frame_lands_in_mh(tmp_path: Path):
     assert b"Heard List for Port 2" in response
 
 
+def _read_first_kiss_frame(modem: PtyKissModem, timeout: float = 3.0) -> bytes:
+    """Read from the PTY master until at least one complete
+    FEND-delimited frame is available; return that frame's contents
+    (cmd byte + payload, no surrounding FENDs)."""
+    deadline = time.monotonic() + timeout
+    buf = b""
+    while time.monotonic() < deadline:
+        chunk = modem.read_available()
+        if chunk:
+            buf += chunk
+            # We need at least two FENDs to bound a frame.
+            if buf.count(bytes([0xC0])) >= 2:
+                break
+        time.sleep(0.1)
+    if buf.count(bytes([0xC0])) < 2:
+        raise AssertionError(f"no complete KISS frame in {buf.hex()!r}")
+    # Strip leading FENDs and grab everything up to the next FEND.
+    start = buf.index(bytes([0xC0]))
+    end = buf.index(bytes([0xC0]), start + 1)
+    return buf[start + 1 : end]
+
+
+# Same template as KISS_SERIAL_CONFIG_TEMPLATE but with
+# ``KISSOPTIONS=ACKMODE`` injected into the second PORT block.
+KISS_SERIAL_ACKMODE_TEMPLATE = """\
+SIMPLE=1
+NODECALL=N0CALL
+NODEALIAS=TEST
+LOCATOR=NONE
+AGWPORT=$agw_port
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ MAXSESSIONS=10
+ USER=test,test,N0CALL,,SYSOP
+ENDPORT
+
+PORT
+ PORTNUM=2
+ ID=KissSerial
+ TYPE=ASYNC
+ PROTOCOL=KISS
+ KISSOPTIONS=ACKMODE
+ COMPORT=__SLAVE__
+ SPEED=9600
+ENDPORT
+"""
+
+
+def test_kissoptions_ackmode_wraps_connect_frame(tmp_path: Path):
+    """With ``KISSOPTIONS=ACKMODE`` set, a connect attempt produces a
+    KISS frame whose command byte's low nybble is 0x0C (ACKMODE
+    opcode) followed by 2 bytes of ack-id before the AX.25 frame.
+
+    Spec: Multi-Drop KISS ACKMODE frame layout is
+    ``$C0 $xC $aa $bb <data> $C0`` where ``x`` is the port (TNC
+    address) and ``$aa $bb`` are two opaque ack-id bytes that the
+    TNC echoes back as ``$C0 $xC $aa $bb $C0`` once the frame has
+    been transmitted.  See ``packethacking/ax25spec``'s
+    ``multi-drop-kiss-operation.md``.
+
+    linbpq side (``kiss.c`` around line 1085): only frames whose
+    ``Buffer->Linkptr`` is set get wrapped this way — SABM and
+    connected-mode I-frames qualify, UI frames do not.
+    """
+    with PtyKissModem() as modem:
+        cfg = Template(
+            KISS_SERIAL_ACKMODE_TEMPLATE.replace("__SLAVE__", modem.slave_path)
+        )
+        with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+            modem.read_available()  # drain anything queued
+
+            with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+                client.login("test", "test")
+                # Connect attempt to a non-existent peer — linbpq
+                # will SABM repeatedly, which is what we want to
+                # observe on the PTY.
+                client.write_line("C 2 G7TEST")
+                time.sleep(1.0)
+
+            frame = _read_first_kiss_frame(modem, timeout=3.0)
+
+    cmd_byte = frame[0]
+    assert (cmd_byte & 0x0F) == 0x0C, (
+        f"expected ACKMODE opcode 0x0C in low nybble of cmd byte, "
+        f"got 0x{cmd_byte:02x} (frame: {frame.hex()})"
+    )
+    # Bytes 1 and 2 are the ack-id (LSB first).  AX.25 starts at 3;
+    # dest call is bytes 3..10.
+    dest = ax25_decode_call(frame[3:10])
+    src = ax25_decode_call(frame[10:17])
+    assert dest == "G7TEST", f"unexpected dest: {dest!r} (frame {frame.hex()})"
+    assert src.startswith("N0CALL"), f"unexpected src: {src!r}"
+
+
+def test_kiss_serial_without_ackmode_uses_plain_cmd_byte(tmp_path: Path):
+    """Control case — without ``KISSOPTIONS=ACKMODE``, the same
+    connect attempt produces a plain data frame (cmd byte's low
+    nybble is 0x00) with the AX.25 SABM following directly."""
+    with PtyKissModem() as modem:
+        cfg = Template(
+            KISS_SERIAL_CONFIG_TEMPLATE.replace("__SLAVE__", modem.slave_path)
+        )
+        with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+            modem.read_available()
+            with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+                client.login("test", "test")
+                client.write_line("C 2 G7TEST")
+                time.sleep(1.0)
+            frame = _read_first_kiss_frame(modem, timeout=3.0)
+
+    cmd_byte = frame[0]
+    assert (cmd_byte & 0x0F) == 0x00, (
+        f"expected plain data cmd-byte low nybble 0x00, got "
+        f"0x{cmd_byte:02x} (frame: {frame.hex()})"
+    )
+    # AX.25 starts at byte 1.
+    dest = ax25_decode_call(frame[1:8])
+    assert dest == "G7TEST", f"unexpected dest: {dest!r}"
+
+
 def test_pty_ui_frame_visible_via_agw_monitor(tmp_path: Path):
     """An AGW client with monitor-mode toggled on receives a 'U'
     (UI) monitor frame summarising a UI frame that arrived on the
