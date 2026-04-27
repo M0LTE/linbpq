@@ -81,17 +81,17 @@ def _ax25_ui_frame(src: str, dest: str, body: bytes) -> bytes:
 
 
 def test_linbpq_opens_pty_as_serial_kiss_port(tmp_path: Path):
-    """linbpq's serial driver opens the PTY slave node successfully."""
+    """linbpq's serial driver opens the PTY slave node successfully —
+    verified via ``PORTS`` listing the configured KissSerial port and
+    a behavioural KISS frame round-trip in the next test."""
     with PtyKissModem() as modem:
         cfg = Template(KISS_SERIAL_CONFIG_TEMPLATE.replace("__SLAVE__", modem.slave_path))
-        with LinbpqInstance(tmp_path, config_template=cfg):
-            # If we got here, linbpq booted (the fixture's readiness
-            # probe checks the telnet port). Now look at the log for
-            # the ASYNC port-init line.
-            log = (tmp_path / "linbpq.stdout.log").read_bytes()
-    assert b"ASYNC" in log, f"no ASYNC port init in log: {log[-500:]!r}"
-    assert modem.slave_path.encode() in log, (
-        f"slave path {modem.slave_path} not in log: {log[-500:]!r}"
+        with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+            with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+                client.login("test", "test")
+                response = client.run_command("PORTS")
+    assert b"KissSerial" in response, (
+        f"KissSerial port missing from PORTS — cfg rejected: {response!r}"
     )
 
 

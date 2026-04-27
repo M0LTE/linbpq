@@ -132,21 +132,18 @@ def test_kam_pactor_opens_serial_and_writes(tmp_path: Path):
 
 def test_kam_pactor_cfg_parses_cleanly(tmp_path: Path):
     """Canary: ``DRIVER=KAMPACTOR`` + ``COMPORT=...`` parses
-    cleanly; daemon serves telnet."""
-    import socket
+    cleanly and the port shows up in the ``PORTS`` listing."""
+    from helpers.telnet_client import TelnetClient
 
     with PtyKissModem() as modem:
         cfg = Template(
             _KAM_CFG_TEMPLATE.replace("__SLAVE__", modem.slave_path)
         )
         with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
-            with socket.create_connection(
-                ("127.0.0.1", linbpq.telnet_port), timeout=3
-            ) as sock:
-                sock.settimeout(2)
-                assert sock.recv(64), "telnet didn't greet"
+            with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+                client.login("test", "test")
+                response = client.run_command("PORTS")
 
-    log = (tmp_path / "linbpq.stdout.log").read_text(errors="replace")
-    assert "KAM Pactor" in log, (
-        f"KAM Pactor init line missing from log: {log[:2000]}"
+    assert b"KAM" in response, (
+        f"KAM port missing from PORTS — cfg rejected: {response!r}"
     )

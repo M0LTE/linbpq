@@ -64,17 +64,16 @@ ENDPORT
 
 def test_axip_multi_udp_and_broadcast_block_parses(tmp_path: Path):
     """Multi-UDP, MHEARD ON, BROADCAST <call>, MAP ... B all parse
-    cleanly; daemon serves telnet."""
-    with LinbpqInstance(tmp_path, config_template=_AXIP_EXTRAS_CFG) as linbpq:
-        with socket.create_connection(("127.0.0.1", linbpq.telnet_port), timeout=3) as sock:
-            sock.settimeout(2)
-            # Just probe that the connection opens.
-            assert sock.recv(64), "telnet didn't greet"
+    cleanly; daemon serves telnet and ``PORTS`` lists the AXIP
+    port — confirming the cfg was accepted and the port came up."""
+    from helpers.telnet_client import TelnetClient
 
-    # No bad-config-record warnings.
-    log = (tmp_path / "linbpq.stdout.log").read_text(errors="replace")
-    assert "bad config record" not in log.lower(), (
-        f"BPQAXIP parser rejected an extra: {log[:2000]}"
+    with LinbpqInstance(tmp_path, config_template=_AXIP_EXTRAS_CFG) as linbpq:
+        with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+            client.login("test", "test")
+            response = client.run_command("PORTS")
+    assert b"AXIP" in response, (
+        f"AXIP port missing from PORTS — cfg was rejected: {response!r}"
     )
 
 

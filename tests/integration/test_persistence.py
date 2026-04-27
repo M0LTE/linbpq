@@ -1,69 +1,104 @@
 """Phase 5 — persistence: state written by one boot is loaded by the next.
 
-The simplest demonstrable persistence in linbpq is the routing-table
-save file ``BPQNODES.dat``.  On a fresh boot the log says
-``Route/Node recovery file BPQNODES.dat not found``.  After a sysop
-runs ``SAVENODES``, the file is written, and a subsequent boot in the
-same working directory loads it (no warning).
+Public-interface tests only — we don't peek at internal save files.
 
-This proves that:
-1. The save path is deterministic and lives in the working directory.
-2. ``SAVENODES`` actually writes the file (i.e. the keyword is wired up).
-3. The next boot picks the file up automatically.
+The NODES table is observable via the ``NODES`` command.  Adding an
+entry with ``NODES ADD`` and persisting via ``SAVENODES`` proves the
+save side; the same NODES entry being visible after reboot proves
+the load side.  No log-grep, no internal-file existence check.
 
-Locks in the boundary contract; a refactor that breaks save/load lands
-this test red.
+The BBS message-store side: post a message, reboot, ``R <num>`` it
+back — the read-back content is the public-interface assertion.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
+from string import Template
+
 from helpers.linbpq_instance import LinbpqInstance
 from helpers.telnet_client import TelnetClient
 
 
-NOT_FOUND_MSG = "BPQNODES.dat not found"
+# Cfg with an AXIP port + static ROUTE entry installing a neighbour
+# at port 2.  ``NODES ADD ... N0NBR 2`` then associates with a real
+# neighbour, so SAVENODES / load round-trip preserves the entry.
+_PERSIST_CFG = Template(
+    """\
+SIMPLE=1
+NODECALL=N0CALL
+NODEALIAS=TEST
+LOCATOR=NONE
 
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ MAXSESSIONS=10
+ USER=test,test,N0CALL,,SYSOP
+ENDPORT
 
-def _read_log(instance: LinbpqInstance) -> str:
-    return instance.stdout_path.read_text(errors="replace")
+PORT
+ ID=AXIP
+ DRIVER=BPQAXIP
+ QUALITY=200
+ MINQUAL=1
+ CONFIG
+ UDP $axip_port
+ MAP N0NBR 127.0.0.1 UDP 19999
+ENDPORT
+
+ROUTES:
+N0NBR,200,2
+***
+"""
+)
 
 
 def test_savenodes_persists_across_reboot(tmp_path: Path):
-    # First boot: nothing on disk, the warning should appear.
-    with LinbpqInstance(tmp_path) as first:
-        log_first = _read_log(first)
-        assert NOT_FOUND_MSG in log_first, (
-            "first boot should warn about missing BPQNODES.dat; log was:\n"
-            f"{log_first[:2000]}"
-        )
+    """Add a NODES entry, persist with SAVENODES, reboot in the same
+    work dir, confirm the entry is back in the NODES table.
 
-        # Become sysop and save.
+    Uses a static ROUTES: neighbour on port 2 so ``NODES ADD`` can
+    associate the destination with a real route — that combination
+    is what SAVENODES persists and the next boot loads.
+
+    Public-interface only: no log-grep, no BPQNODES.dat existence
+    check.  The ``NODES`` command output before vs. after reboot is
+    the entire contract.
+    """
+    # First boot.
+    with LinbpqInstance(tmp_path, config_template=_PERSIST_CFG) as first:
         with TelnetClient("127.0.0.1", first.telnet_port) as client:
             client.login("test", "test")
             client.run_command("PASSWORD")
-            response = client.run_command("SAVENODES")
-        assert b"Command requires SYSOP" not in response, (
-            f"SAVENODES rejected — sysop unlock failed: {response!r}"
-        )
 
-    saved = tmp_path / "BPQNODES.dat"
-    assert saved.exists(), "SAVENODES did not write BPQNODES.dat"
-    # An empty file is fine here — with no inbound NET/ROM frames the
-    # routing table is empty.  What matters is that the file was created
-    # and that the next boot loads it (asserted below).
+            # Add a sentinel destination on the configured neighbour.
+            add = client.run_command("NODES ADD PRSIST:N0XYZ 200 N0NBR 2")
+            assert b"Node Added" in add, (
+                f"NODES ADD did not confirm: {add!r}"
+            )
 
-    # Second boot in the same directory: the warning should NOT appear.
-    # Note: ``LinbpqInstance(tmp_path)`` reuses the same dir.  New
-    # instance gets new ports; that's fine — we're testing data-dir
-    # persistence, not network state.
-    with LinbpqInstance(tmp_path) as second:
-        log_second = _read_log(second)
-    assert NOT_FOUND_MSG not in log_second, (
-        "second boot still warned about missing BPQNODES.dat — "
-        "load path broken; log was:\n"
-        f"{log_second[:2000]}"
+            populated = client.run_command("NODES")
+            assert b"PRSIST" in populated and b"N0XYZ" in populated, (
+                f"NODES ADD did not register sentinel: {populated!r}"
+            )
+
+            save = client.run_command("SAVENODES")
+            assert b"Ok" in save, f"SAVENODES did not return Ok: {save!r}"
+
+    # Second boot in the same directory; new daemon, new ports.
+    with LinbpqInstance(tmp_path, config_template=_PERSIST_CFG) as second:
+        with TelnetClient("127.0.0.1", second.telnet_port) as client:
+            client.login("test", "test")
+            after_reboot = client.run_command("NODES")
+
+    assert b"PRSIST" in after_reboot and b"N0XYZ" in after_reboot, (
+        f"NODES sentinel did not survive reboot — persistence broken: "
+        f"{after_reboot!r}"
     )
 
 
@@ -104,14 +139,9 @@ def test_bbs_message_persists_across_reboot(tmp_path: Path):
             client.write_line("/EX")
             client.read_until(b"Message: 1 Bid:", timeout=10)
 
-    # The Mail/ directory and the message databases should have been
-    # written by the time first.stop() returns.
-    mail_dir = tmp_path / "Mail"
-    assert mail_dir.is_dir(), f"Mail dir missing under {tmp_path}"
-    msg_files = list(mail_dir.glob("m_*.mes"))
-    assert msg_files, f"no .mes files written under {mail_dir}"
-
     # Round 2: fresh instance, same dir.  Read message 1.
+    # Skip internal-storage assertions here — the public-interface
+    # read-back below proves both write and load paths.
     second = LinbpqInstance(
         tmp_path,
         config_template=MAIL_CONFIG,

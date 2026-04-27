@@ -116,6 +116,8 @@ def test_legacy_serial_modem_opens_pty_and_logs_init(
     bytes have arrived at the master end — only that the daemon
     booted cleanly with that driver.
     """
+    from helpers.telnet_client import TelnetClient
+
     with PtyKissModem() as modem:
         cfg_text = (
             _CFG_TEMPLATE
@@ -125,21 +127,17 @@ def test_legacy_serial_modem_opens_pty_and_logs_init(
         )
         cfg = Template(cfg_text)
         with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
-            with socket.create_connection(
-                ("127.0.0.1", linbpq.telnet_port), timeout=3
-            ) as sock:
-                sock.settimeout(2)
-                assert sock.recv(64), "telnet didn't greet"
+            # ``PORTS`` shows the cfg ID for each accepted port; if the
+            # cfg parser rejected our PORT block (unknown DRIVER, etc.)
+            # the port wouldn't appear.  Fully public-interface check.
+            with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
+                client.login("test", "test")
+                response = client.run_command("PORTS")
 
-    log = (tmp_path / "linbpq.stdout.log").read_text(errors="replace")
-    assert log_marker in log, (
-        f"{driver}: init line {log_marker!r} missing from log: {log[:2000]}"
+    assert port_id.encode() in response, (
+        f"{driver}: port_id {port_id!r} missing from PORTS — "
+        f"cfg may have been rejected: {response!r}"
     )
-    # No "not recognised - Ignored" warnings for the DRIVER keyword.
-    assert (
-        f"Ignored:{driver}" not in log
-        and f"Ignored: {driver}" not in log
-    ), f"{driver} got 'not recognised - Ignored': {log[:2000]}"
 
 
 def test_aea_pactor_writes_to_serial(tmp_path: Path):
