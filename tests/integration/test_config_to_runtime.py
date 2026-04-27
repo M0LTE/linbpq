@@ -213,6 +213,10 @@ def test_cfg_per_port_scaled_round_trip(
 PER_PORT_ACCEPTED_ONLY = [
     pytest.param("SLOTTIME=100", id="SLOTTIME"),
     pytest.param("NODESPACLEN=200", id="NODESPACLEN"),
+    pytest.param(
+        "M0LTEMapInfo=RF,144.9375,QPSK,1800,3600,Mixed",
+        id="M0LTEMapInfo",
+    ),
 ]
 
 

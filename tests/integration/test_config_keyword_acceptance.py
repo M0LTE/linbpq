@@ -81,6 +81,74 @@ def test_top_level_keyword_accepted(tmp_path: Path, cfg_line: str):
     ), f"{keyword} got 'not recognised - Ignored': {log[:2000]}"
 
 
+def test_idmsg_block_parses_cleanly(tmp_path: Path):
+    """``IDMSG:`` ... ``***`` multi-line block with ``IDINTERVAL`` is
+    accepted; daemon serves telnet.  Runtime emission isn't verified
+    here — the IDTIMER decrements once per minute and starts at 2,
+    so observing an actual ID frame takes 2+ minutes.  Deferred to
+    a long-runtime fixture batch."""
+    cfg = Template(
+        """\
+SIMPLE=1
+NODECALL=N0CALL
+NODEALIAS=TEST
+LOCATOR=NONE
+IDINTERVAL=15
+
+IDMSG:
+N0CALL ID Test
+Multi-line ID body
+***
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ MAXSESSIONS=10
+ USER=test,test,N0CALL,,SYSOP
+ENDPORT
+"""
+    )
+    with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+        _assert_boots_clean(linbpq)
+    log = (tmp_path / "linbpq.stdout.log").read_text(errors="replace")
+    assert "Ignored" not in log, f"IDMSG block rejected: {log[:2000]}"
+
+
+def test_btext_block_parses_cleanly(tmp_path: Path):
+    """``BTEXT:`` ... ``***`` multi-line block with ``BTINTERVAL`` is
+    accepted; daemon serves telnet.  Same emission-deferral as IDMSG."""
+    cfg = Template(
+        """\
+SIMPLE=1
+NODECALL=N0CALL
+NODEALIAS=TEST
+LOCATOR=NONE
+BTINTERVAL=5
+
+BTEXT:
+!5126.84N/00101.61WBeacon test
+***
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ MAXSESSIONS=10
+ USER=test,test,N0CALL,,SYSOP
+ENDPORT
+"""
+    )
+    with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+        _assert_boots_clean(linbpq)
+    log = (tmp_path / "linbpq.stdout.log").read_text(errors="replace")
+    assert "Ignored" not in log, f"BTEXT block rejected: {log[:2000]}"
+
+
 def test_ipgw_enablesnmp_accepted(tmp_path: Path):
     """``ENABLESNMP`` inside the IPGATEWAY block is accepted."""
     cfg = _cfg_with_top_level("", ipgw_extras="ENABLESNMP")

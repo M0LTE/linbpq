@@ -96,6 +96,81 @@ def test_block_level_ctext_delivered_after_login(tmp_path: Path):
     )
 
 
+def test_logging_produces_telnet_log_file(tmp_path: Path):
+    """``LOGGING=1`` in the Telnet CONFIG block produces a
+    ``logs/Telnet_<YYMMDD>.log`` file recording connection events
+    (incoming connect, user, accepted, disconnect)."""
+    cfg = _telnet_cfg_with(" LOGGING=1")
+    with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+        # Make a quick connection so there's something to log.
+        with socket.create_connection(("127.0.0.1", linbpq.telnet_port), timeout=3) as sock:
+            _read_until(sock, b"user:")
+            sock.sendall(b"test\r")
+            _read_until(sock, b"password:")
+            sock.sendall(b"test\r")
+            _read_until(sock, b"Telnet Server\r\n\r\n", timeout=3)
+            sock.sendall(b"BYE\r")
+            time.sleep(0.5)
+
+        # Telnet log file is named Telnet_<YYMMDD>.log under logs/.
+        logs_dir = tmp_path / "logs"
+        log_files = list(logs_dir.glob("Telnet_*.log"))
+        assert log_files, (
+            f"no Telnet_*.log under {logs_dir}; "
+            f"contents: {list(logs_dir.iterdir()) if logs_dir.exists() else 'no logs dir'}"
+        )
+
+        contents = log_files[0].read_text(errors="replace")
+    assert "Incoming Connect" in contents, (
+        f"connect not logged: {contents!r}"
+    )
+    assert "User=test" in contents, f"user not logged: {contents!r}"
+    assert "Call Accepted" in contents, f"accept not logged: {contents!r}"
+
+
+def test_cms_accepted_cleanly(tmp_path: Path):
+    """``CMS=1`` enables the Winlink CMS connection.  Full
+    behavioural validation needs a Winlink CMS server simulator
+    (out of scope for the gap-analysis closeout); this canary
+    just confirms the cfg parser accepts the keyword.
+
+    Also tests CMSCALL / CMSPASS / CMSLOC / CMSSERVER are all
+    accepted alongside.
+    """
+    cfg = _telnet_cfg_with(
+        " CMS=1\n"
+        " CMSCALL=N0CALL\n"
+        " CMSPASS=password123\n"
+        " CMSLOC=IO91WJ\n"
+        " CMSSERVER=cms.winlink.org"
+    )
+    with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+        with socket.create_connection(("127.0.0.1", linbpq.telnet_port), timeout=3) as sock:
+            data = _read_until(sock, b"user:", timeout=3)
+            assert b"user:" in data
+    log = (tmp_path / "linbpq.stdout.log").read_text(errors="replace")
+    for keyword in ("CMS", "CMSCALL", "CMSPASS", "CMSLOC", "CMSSERVER"):
+        assert (
+            f"Ignored:{keyword}" not in log
+            and f"Ignored: {keyword}" not in log
+        ), f"{keyword} got 'not recognised - Ignored': {log[:2000]}"
+
+
+def test_relayappl_accepted_cleanly(tmp_path: Path):
+    """``RELAYAPPL=<APP>`` declares the application FBB-style relay
+    connections should land in.  Accepted-cleanly canary; behaviour
+    needs an FBB connection + configured BBS to validate fully."""
+    cfg = _telnet_cfg_with(" RELAYAPPL=BBS")
+    with LinbpqInstance(tmp_path, config_template=cfg) as linbpq:
+        with socket.create_connection(("127.0.0.1", linbpq.telnet_port), timeout=3) as sock:
+            data = _read_until(sock, b"user:", timeout=3)
+            assert b"user:" in data
+    log = (tmp_path / "linbpq.stdout.log").read_text(errors="replace")
+    assert "Ignored:RELAYAPPL" not in log and "Ignored: RELAYAPPL" not in log, (
+        f"RELAYAPPL got 'not recognised - Ignored': {log[:2000]}"
+    )
+
+
 def test_secure_telnet_disconnect_on_close_localnet_accepted_cleanly(tmp_path: Path):
     """SECURETELNET / DisconnectOnClose / LOCALNET are accepted by
     the cfg parser; daemon boots and serves telnet normally.
