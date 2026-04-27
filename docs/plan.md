@@ -106,6 +106,34 @@ covered; missing:)
 - Multi-`UDP` ports per block (one block listening on several UDP ports)
 - `MAP ... B` (broadcast flag on individual map entries)
 
+## Coverage target: every command in `docs/node-commands.md`
+
+`docs/node-commands.md` is the reference for the node-prompt
+command surface (`COMMANDS[]` in `Cmd.c`).  The standing target is
+that **every entry in that document has at least one integration
+test** — even if the test only locks in a "rejected with this
+specific error" invariant.  The doc is the spec; tests prove the
+binary matches.
+
+When adding tests, prefer to land them in test files grouped by
+theme rather than per-command (e.g.
+`test_telnet_readonly.py` already covers VERSION / NODES / ROUTES /
+LINKS / USERS / STATS / MHEARD / `?` / STREAMS as parametrised
+rows).  When closing a coverage gap from `node-commands.md`, leave
+a comment in the test pointing at the section anchor so a reader
+can find the spec quickly.
+
+A future task on this plan: do an audit pass — walk every entry
+in `docs/node-commands.md`, list which have direct test coverage,
+which are covered by side-effect, and which are uncovered;
+prioritise the uncovered ones by user impact.
+
+Until that audit lands, the directive is: when you add a new test
+that exercises a node-prompt command, check whether the doc's
+entry needs updating (empirical findings sometimes diverge from
+the AI-generated wording — see e.g. the `BYE` clarification
+landed earlier).
+
 ## Spec references
 
 When writing tests that need to construct or parse wire frames,
