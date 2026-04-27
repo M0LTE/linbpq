@@ -529,16 +529,22 @@ inconsistency in `config.c:1619`.
 locks in the working topology: SENDNODES on both sides, ~3s wait,
 then NODES tables list the peer and `C N0BBB` (no port) connects
 via NET/ROM uplink.
-- **Two real BBS instances forwarding to each other**: needs a
-  multi-line ConnectScript that dials the peer's BBS application
-  through AX/IP, plus mutual ``BBSUsers`` / ``BBSForwarding`` cfg.
-  The single-instance fake-partner coverage (below) exercises the
-  FBB wire protocol; running it against two real BPQMail daemons
-  is the next layer.  Estimated ~200-400 LoC, half a day, with
-  ConnectScript syntax/timing as the main schedule risk.  Lower
-  marginal value than the fake-partner coverage already in
-  ``test_bbs_forwarding.py`` since most protocol behaviour is
-  already exercised both sides — left for later.
+- ~~**Two real BBS instances forwarding to each other**~~ — done in
+  ``test_two_instance_bbs_forwarding.py``.  ConnectScript ``["C 2
+  N0BBB", "BBS"]`` (connect to NODECALL on AXIP port, then enter
+  the BBS application) drives a successful FBB exchange between
+  two real BPQMail daemons over AX/IP-UDP — A's user posts a P
+  message addressed @ a partner BBS, A's forwarding scheduler
+  fires (FwdInterval=2 s), the script dials B, SIDs are exchanged,
+  the message is FC-proposed, accepted, B2-compressed body lands,
+  and B uncompresses + stores under ``Mail/m_*.mes`` with the
+  expected header (MID, From, To, Subject, Body).  ~36 s wall-clock.
+
+  The fake-FBB-partner harness in ``test_bbs_forwarding.py`` +
+  ``helpers/fbb_partner.py`` is kept alongside — it remains the
+  right tool for fine-grained protocol behaviour (per-flag SID
+  variants, spec-violation handling, mode fallbacks etc.) and is
+  reusable from other projects.
 
 **FBB inter-BBS forwarding** (issue #4) coverage landed as
 ``test_bbs_forwarding.py`` plus ``helpers/fbb_partner.py`` (a

@@ -155,6 +155,8 @@ def render_bpqmail_cfg(
     out.append("  MailForInterval = 0;")
     out.append("  MaxTXSize = 99999;")
     out.append("  MaxRXSize = 99999;")
+    out.append("  Log_BBS = 1;")
+    out.append("  Log_TCP = 1;")
     out.append('  Version = "6,0,25,23";')
     out.append("};")
     out.append("")
@@ -162,8 +164,12 @@ def render_bpqmail_cfg(
     # Partners
     out.append("BBSForwarding:\n{")
     for i, p in enumerate(partners, 1):
-        # libconfig forbids dashes in keys — partners with SSID get a leading *.
-        key = p.call if p.call[0].isalpha() and "-" not in p.call else f"_{p.call.replace('-', '_')}"
+        # libconfig names: must start with letter or underscore;
+        # subsequent chars can include hyphens (so SSID-bearing
+        # calls like ``N0BBB-1`` are fine as keys).  BPQMail's own
+        # writer prefixes ``*`` for digit-first calls
+        # (BBSUtilities.c:10059-10072); we follow the same rule.
+        key = f"*{p.call}" if not p.call[0].isalpha() else p.call
         out.append(f"  {key}:")
         out.append("  {")
         out.append(f"    TOCalls = {_multistring(p.to_calls)};")
@@ -191,15 +197,16 @@ def render_bpqmail_cfg(
     out.append("")
 
     # Users — partner BBS records carry F_BBS=0x10 plus a BBSNumber.
+    # Same key-naming rule as BBSForwarding above.
     out.append("BBSUsers:\n{")
     for i, p in enumerate(partners, 1):
-        key = p.call if p.call[0].isalpha() and "-" not in p.call else f"_{p.call.replace('-', '_')}"
+        key = f"*{p.call}" if not p.call[0].isalpha() else p.call
         record = _user_record_string(
             name="BBS", flags=0x10, bbs_number=i
         )
         out.append(f"  {key} = {_libconfig_string(record)};")
     for call, record in extra_users:
-        key = call if call[0].isalpha() and "-" not in call else f"_{call.replace('-', '_')}"
+        key = f"*{call}" if not call[0].isalpha() else call
         out.append(f"  {key} = {_libconfig_string(record)};")
     out.append("};")
     out.append("")
