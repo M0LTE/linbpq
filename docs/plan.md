@@ -569,7 +569,11 @@ via NET/ROM uplink.
   through AX/IP, plus mutual ``BBSUsers`` / ``BBSForwarding`` cfg.
   The single-instance fake-partner coverage (below) exercises the
   FBB wire protocol; running it against two real BPQMail daemons
-  is the next layer.
+  is the next layer.  Estimated ~200-400 LoC, half a day, with
+  ConnectScript syntax/timing as the main schedule risk.  Lower
+  marginal value than the fake-partner coverage already in
+  ``test_bbs_forwarding.py`` since most protocol behaviour is
+  already exercised both sides — left for later.
 
 **FBB inter-BBS forwarding** (issue #4) coverage landed as
 ``test_bbs_forwarding.py`` plus ``helpers/fbb_partner.py`` (a
