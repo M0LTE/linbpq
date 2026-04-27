@@ -44,9 +44,9 @@ def _http_get(port: int, path: str, timeout: float = 3.0) -> tuple[bytes, bytes]
     return status_line, body
 
 
-# Pages discovered in the linbpq web admin.  Each is reachable from
-# the navigation menu of any other admin page.
-ADMIN_PAGES = [
+# Pages reachable from the standard nav bar — each ships the
+# common "BPQ32 Node N0CALL" wrapper plus the menu links.
+ADMIN_PAGES_WITH_NAV = [
     "/Node/NodeIndex.html",
     "/Node/Status.html",
     "/Node/About.html",
@@ -58,10 +58,21 @@ ADMIN_PAGES = [
     "/Node/Users.html",
     "/Node/Stats.html",
     "/Node/MH.html",
+    "/Node/MailMgmt.html",
 ]
 
 
-@pytest.mark.parametrize("path", ADMIN_PAGES)
+# Other pages served by the admin HTTP server; these don't carry the
+# common nav-bar wrapper but should still 200 and not be empty.
+# /Node/Streams is the popup-window stream-status page with its own
+# minimal HTML; /Node/EditCfg.html is the config-editor textarea.
+ADMIN_PAGES_BARE = [
+    "/Node/Streams",
+    "/Node/EditCfg.html",
+]
+
+
+@pytest.mark.parametrize("path", ADMIN_PAGES_WITH_NAV)
 def test_admin_page_renders(linbpq, path):
     status, body = _http_get(linbpq.http_port, path)
     assert b"200" in status, f"{path}: unexpected status {status!r}"
@@ -75,6 +86,15 @@ def test_admin_page_renders(linbpq, path):
     assert b"/Node/Nodes.html" in body, (
         f"{path}: nav menu missing 'Nodes' link"
     )
+
+
+@pytest.mark.parametrize("path", ADMIN_PAGES_BARE)
+def test_admin_bare_page_renders(linbpq, path):
+    """Non-nav pages just need to 200 with non-empty HTML."""
+    status, body = _http_get(linbpq.http_port, path)
+    assert b"200" in status, f"{path}: unexpected status {status!r}"
+    assert len(body) > 0, f"{path}: empty body"
+    assert b"<" in body, f"{path}: not HTML: {body[:80]!r}"
 
 
 def test_unknown_static_asset_404s(linbpq):
