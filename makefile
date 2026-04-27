@@ -83,6 +83,15 @@ clean :
 	rm *.d
 	rm linbpq.bin $(OBJS)
 
-test:
-	$(MAKE) -C tests run
+# Integration tests run inside docker for reproducibility across
+# Linux / WSL / Windows-with-Docker / macOS. See docs/plan.md.
+DOCKER_TEST_IMAGE = linbpq-test
 
+test:
+	docker build -f docker/Dockerfile.test -t $(DOCKER_TEST_IMAGE) .
+	docker run --rm $(DOCKER_TEST_IMAGE)
+
+# Native runner — fast inner loop on Linux when you already have
+# python3, pytest and the libs installed. The harness reads $LINBPQ_BIN.
+test-native:
+	cd tests/integration && LINBPQ_BIN=$(CURDIR)/linbpq.bin python3 -m pytest
