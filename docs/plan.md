@@ -156,11 +156,14 @@ phases prove out. Mark progress by updating the table in this file.
 \*Phase 2 footnote: AX/IP-over-UDP and KISS-TCP both now have
 coverage. AX/IP-UDP gets its own `DRIVER=BPQAXIP` `PORT` block in
 the default config plus a canary that the UDP socket binds and
-garbage doesn't crash the daemon. KISS-TCP is the *outbound* form
-(linbpq as client to a remote softmodem like Direwolf or
-[m0lte/kissproxy](https://github.com/m0lte/kissproxy)); a tiny
-Python TCP listener stands in as the fake softmodem and the test
-asserts linbpq's outbound connection is established.
+garbage doesn't crash the daemon. KISS-TCP is the *outbound* form —
+linbpq as client to a peer over TCP. The peer is typically a
+softmodem (Direwolf, UZ7HO) exposing a KISS-TCP listener, or a
+serial-to-TCP bridge such as
+[m0lte/kissproxy](https://github.com/m0lte/kissproxy) which forwards
+a real USB KISS modem (e.g. NinoTNC) onto TCP. A tiny Python TCP
+listener stands in as that peer and the test asserts linbpq's
+outbound connection is established.
 
 \*Phase 3 footnote: covered the read-only commands, per-session settings
 round-trip (PACLEN / IDLETIME / L4T1), sysop gating (rejection +

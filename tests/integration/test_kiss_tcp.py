@@ -1,13 +1,13 @@
 """Phase 2 deferral — linbpq connects out as a KISS-TCP client.
 
 linbpq doesn't expose a KISS-TCP server itself; rather it acts as a
-client connecting to a remote softmodem (Direwolf / UZ7HO / kissproxy).
-The wire side we test is the *outbound* TCP connection: configure
-linbpq with a ``TYPE=ASYNC PROTOCOL=KISS IPADDR TCPPORT`` PORT block
-pointing at a tiny Python listener and verify the daemon connects.
+client connecting out over TCP to a KISS source.  The peer can be a
+softmodem with a TCP listener (Direwolf, UZ7HO) or a serial-to-TCP
+bridge (m0lte/kissproxy, exposing e.g. a NinoTNC over TCP).
 
-Reference: m0lte/kissproxy is a production example of the kind of
-server linbpq talks to in this mode.
+The wire side we test is the *outbound* TCP connection: configure
+linbpq with ``TYPE=ASYNC PROTOCOL=KISS IPADDR TCPPORT`` pointing at
+a tiny Python listener and verify the daemon connects.
 """
 
 from __future__ import annotations

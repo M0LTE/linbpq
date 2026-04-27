@@ -1,14 +1,19 @@
 """A minimal KISS-over-TCP server fixture for tests.
 
 linbpq's ``TYPE=ASYNC PROTOCOL=KISS IPADDR TCPPORT`` configuration is
-the way it talks to remote KISS modems / softmodems (e.g. Direwolf,
-UZ7HO, kissproxy).  This helper stands up a tiny TCP listener that
-accepts one client and records connection state, just enough to
-verify linbpq connects out as expected without depending on a real
-softmodem.
+the way it talks to a remote KISS source over TCP.  The peer at the
+TCP end can be either:
 
-Inspired by m0lte/kissproxy (the actual production peer linbpq
-typically connects to).
+- A softmodem that exposes its own KISS-TCP listener (Direwolf,
+  UZ7HO SoundModem).
+- A serial-to-TCP bridge such as
+  [m0lte/kissproxy](https://github.com/m0lte/kissproxy), which
+  forwards a real USB KISS modem (e.g. NinoTNC) onto a TCP socket so
+  multiple clients can monitor / share it.
+
+This helper stands up a tiny TCP listener — just enough to verify
+linbpq connects out as a client, without depending on a real
+modem or bridge.
 """
 
 from __future__ import annotations
