@@ -305,8 +305,15 @@ After a successful attach you can issue the radio-side connect (e.g.
 
 Source: `BYECMD` in `Cmd.c:1156`.
 
-Disconnects the current session. Any cross-linked partner session is
-also closed.
+Disconnects the current node session. Any cross-linked partner
+session is also closed.
+
+On a Telnet client, the underlying TCP socket is *kept* — the user
+sees `*** Disconnected from Stream N` followed by
+`Disconnected from Node - Telnet Session kept`, and the connection
+stays alive for further use without re-prompting (you can keep
+issuing commands; they execute against the same telnet session).
+To fully close, the client must close the TCP socket itself.
 
 <a id="password"></a>
 ### `PASSWORD` *(abbr: 8)*
