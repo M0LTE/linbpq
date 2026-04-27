@@ -154,6 +154,28 @@ test docstrings for spec links and per-feature notes.
   scaling we haven't modelled; tests skipped with docstring
   notes rather than pinning a fragile invariant.
 
+## Standing target: drive tests through public interfaces only
+
+Some tests reach for an internal implementation detail to assert
+on — reading a private struct field, grepping a debug-log line,
+inspecting an internal cfg-file rewrite — when an equivalent
+public-interface check would do.  Internal-detail assertions go
+red on routine refactors that don't change observable behaviour;
+they're brittle and they leak implementation into the test suite.
+
+Standing task: sweep through `tests/integration/`, identify each
+place a test relies on internals, and rewrite to use only what a
+real client would observe — telnet output, JSON API responses,
+HTTP body content, AGW frames, KISS frames, file presence/content
+under the work directory.  Where the public surface really is
+inadequate (e.g. observing log-line side effects because no
+runtime command exposes the state), call it out in the test
+docstring rather than silently coupling.
+
+The goal is that a non-trivial refactor of `BBSUtilities.c` /
+`config.c` / etc. doesn't break tests as long as the wire
+behaviour is preserved.
+
 ## Coverage target: every command in `docs/node-commands.md`
 
 `docs/node-commands.md` is the reference for the node-prompt
