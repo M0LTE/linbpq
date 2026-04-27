@@ -424,7 +424,7 @@ LINKS                          list active L2 links
 LINKS RESET <dest> <src> <port>  (sysop) DISC and tear down a link
 ```
 
-Output line example: `M0LTE -7G8BPQ S=5 P=1 T=0 V=2.2 Q=0`. Where the
+Output line example: `M0LTE-7 G8BPQ S=5 P=1 T=0 V=2.2 Q=0`. Where the
 queue size `Q` exceeds 16, internal debug fields (frame slots, NS, OWS)
 are appended automatically to aid diagnosis.
 
