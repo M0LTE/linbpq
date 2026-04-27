@@ -83,3 +83,6 @@ clean :
 	rm *.d
 	rm linbpq.bin $(OBJS)
 
+test:
+	$(MAKE) -C tests run
+

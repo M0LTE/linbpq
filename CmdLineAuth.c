@@ -7,28 +7,24 @@
 #define _USE_32BIT_TIME_T
 
 #include <stdio.h>
-
 #include <time.h>
-#include <stdio.h>
+#include <string.h>
 
 #include "md5.c"
 
 
-VOID CreateOneTimePassword(char * KeyPhrase)
+int GetOneTimePasswordCode(const char * KeyPhrase, time_t Now)
 {
 	// Create a time dependent One Time Password from the KeyPhrase
-
-	time_t NOW = time(NULL);
 	unsigned char Hash[16];
 	char Password[20];
 	char Key[1000];
 	int i, chr;
 	long long Val;
-	int PassCode;
 
-	NOW = NOW/30;							// Only Change every 30 secs
+	Now = Now/30;							// Only Change every 30 secs
 
-	sprintf(Key, "%s%x", KeyPhrase, NOW);
+	sprintf(Key, "%s%x", KeyPhrase, (unsigned int)Now);
 
 	md5(Key, Hash);
 
@@ -43,7 +39,13 @@ VOID CreateOneTimePassword(char * KeyPhrase)
 	Password[16] = 0;
 
 	memcpy(&Val, Password, 8);
-	PassCode = Val % 1000000;
+	return Val % 1000000;
+}
+
+VOID CreateOneTimePassword(char * KeyPhrase)
+{
+	int PassCode = GetOneTimePasswordCode(KeyPhrase, time(NULL));
+
 	printf("Passcode is %06d\n", PassCode);
 
 	return;

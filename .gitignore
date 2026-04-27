@@ -28,6 +28,9 @@ linbpq.bin
 *.idb
 *.pdb
 
+# Generated test binaries
+tests/unit/*_test
+
 # Core dumps
 core
 
