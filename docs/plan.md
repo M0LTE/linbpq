@@ -19,6 +19,51 @@ Where a test depends on the buggy behaviour for now, leave a comment
 in the test pointing at the issue number so the test is easy to
 upgrade once the bug is fixed.
 
+## Documentation rewrite (separate stream)
+
+Sibling to the test work: the upstream BPQ documentation lives at
+<https://www.cantab.net/users/john.wiseman/Documents/> as a sprawl
+of HTM files (`BPQ32 Documents.htm`, `BPQCFGFile.html`,
+`BPQAXIP Configuration.htm`, `MailServer.html`, `ChatServer.html`,
+`LinBPQGuides.html`, etc.).  The content is authoritative but the
+format makes it hard to navigate, search, link to source, or
+fact-check against the binary.
+
+Goal: rewrite this material in our own repo as Markdown, organised
+around the user's actual journey, fact-checked against the source
+and against this test suite, and published as a static site with
+[MkDocs Material](https://squidfunk.github.io/mkdocs-material/).
+
+Plan (rough — refine as we go):
+
+1. **Fetch + inventory.**  Pull every linked document from John's
+   site, record canonical-source URLs, and build a flat index of
+   what exists, what overlaps, and what's stale.
+2. **Reorganise the IA.**  Group by audience and task — getting
+   started, configuration reference, protocols / interfaces,
+   subsystems (BBS / Chat / APRS), troubleshooting — rather than
+   the as-found jumble.  Cross-link instead of duplicating.
+3. **Rewrite to Markdown.**  Per page: convert HTML, modernise
+   the prose, keep the technical content faithful.  Fact-check
+   each non-trivial statement against `linbpq.bin` or the
+   integration suite.  Where a doc claim disagrees with the
+   binary, file or link to a `M0LTE/linbpq` issue and capture
+   the empirical truth.
+4. **MkDocs Material site.**  Land `mkdocs.yml`, theme config,
+   navigation, search.  Build into `site/`; publish via GitHub
+   Pages off `gh-pages` (or similar).  Include AI-generated /
+   review-needed banners in line with the warning already on
+   `docs/node-commands.md`.
+5. **CI.**  `mkdocs build --strict` in a workflow alongside the
+   integration suite so dead links and stale config land red.
+6. **Keep upstream credit.**  Link prominently to John Wiseman's
+   originals; this is a re-presentation, not a fork.
+
+This is its own stream of work — orthogonal to the regression
+suite — but valuable because the test suite gives us a
+fact-checking oracle: "does this claim match what the binary does?"
+is now a runnable question.
+
 ## Goal
 
 A regression test suite around the `linbpq` daemon that gives high confidence
@@ -164,7 +209,7 @@ Phase 1 once the harness produces useful output.
 |     5 | Persistence round-trip — boot, mutate, shut down, reboot, verify state restored                                          | started |
 |     6 | Two-instance scenarios via AX/IP UDP — NET/ROM discovery, cross-instance connect, message forwarding                     | started |
 |     7 | Configuration matrix — minimal / full / edge configs, parse-or-reject assertions                                         | started |
-|     8 | PTY-based modem simulators for KISS HF, ARDOP, VARA, KAM, etc.                                                           | todo   |
+|     8 | PTY-based serial-transport tests + modem simulators for KISS-on-serial, ARDOP, VARA, KAM-Pactor, FLDigi, etc.            | todo   |
 
 Phases 0–3 hold most of the value and are achievable in reasonable
 time. Phases 6 and 8 are real engineering; do not commit until earlier
@@ -236,6 +281,18 @@ Still deferred:
 Several entries in `docs/node-commands.md` were re-checked against the
 binary while writing these tests; corrections landed in a separate
 follow-up commit.
+
+\*Phase 8 footnote: scope extends beyond modem-protocol simulators.
+**KISS-over-serial** (`TYPE=ASYNC PROTOCOL=KISS COMPORT=<tty>`) has
+zero coverage today: the KISS-TCP tests exercise the same KISS
+framing logic but ride a TCP socket, leaving `SerialPort.c`'s
+TTY-open / termios-setup / COMPORT-config paths untested.  A PTY
+approach (`os.openpty()` → linbpq opens the slave node as a serial
+device → Python drives the master end) mirrors the existing
+KISS-TCP pattern and is the natural first step for Phase 8.  The
+modem-specific protocols (ARDOP, VARA, KAM-Pactor, FLDigi,
+HSMODEM, WinRPR) each then need their own simulator on top of the
+PTY transport.
 
 ## Repository layout
 
