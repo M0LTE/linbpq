@@ -1292,12 +1292,29 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Improvments to INP3 (4, 5)
 //	Add Node API /api/tcpqueues (5)
 //	Add sending link events to OARC API (disabled by default) (6)
+//	Add option to write monitor output to a file (6)
 //	Fix possible program error in Telnet_Connected (7)
 //	Close links when program is closed down (7)
 //	Fix possible problem with deleting routes when using both NODES and INP3 routing on same link (7)
 //	Add Paula's Netromx (allows connects to different applications using Node call) (8)
 //	Add Netrom over TCP (8)
 //	Fix FRMR caused by sending SREJ when no frames outstanding (8)
+//	Fix some issues with NetromX connects and Route Selection when running INP3 and NODES routing (9)
+//	Fix connecting to a netrom node with c p node command (10)
+//	Add validation of INP3 RTT messages and various INP3 fixes (12)
+//	Change NetromX connect syntax to Service@Node to fix passing commands to local applications (12)
+//	Add config file option to enable writing monitor data to a file at startup (13)
+//	Add option to use V2.0 on a route (14)
+//	Don't reset NS on RR R(F) following I(P) just on RR poll following timeout. Can get problems with delayed RR R(F) (reverted) (14)
+//	Ignore packets that would cause an FRMR and respond to FRMR with DM (14)
+//	Add option to send periodic INP3 RIF refresh (15)
+//  Add RHP and STREAMS nodes commands (16)
+//	Fix possible crash in telnet connected to application processing (16)
+//	Fix NodeAPI /tcpqueues output for local telnet sessions (16)
+//	Fix handling of disconnects when using RHP (17) 
+//	Fix propagating unreachable in INP3 (18)
+//	Add STOPROUTE and STARTROUTE commands (21)
+
 
 
 #define CKernel
@@ -1517,6 +1534,7 @@ VOID PMClose();
 VOID MySetWindowText(HWND hWnd, char * Msg);
 BOOL CreateMonitorWindow(char * MonSize);
 VOID FormatTime3(char * Time, time_t cTime);
+void * zalloc(int len);
 
 char EXCEPTMSG[80] = "";
 
@@ -1538,7 +1556,6 @@ extern char ReportDest[7];
 
 extern UCHAR ConfigDirectory[260];
 
-extern uint64_t INP3timeLoadedMS;
 
 VOID __cdecl Debugprintf(const char * format, ...);
 VOID __cdecl Consoleprintf(const char * format, ...);
@@ -2479,8 +2496,6 @@ FirstInit()
 		EnumProcessesPtr = (FARPROCX)GetProcAddress(ExtDriver,"EnumProcesses");
 	}
 
-	INP3timeLoadedMS = GetTickCount();
-
 	srand(time(NULL));
 	
 	INITIALISEPORTS();
@@ -2555,7 +2570,7 @@ FirstInit()
 	return 0;
 }
 
-Check_Timer()
+int Check_Timer()
 {
 	if (Closing)
 		return 0;
@@ -2820,7 +2835,13 @@ BOOL APIENTRY DllMain(HANDLE hInst, DWORD ul_reason_being_called, LPVOID lpReser
 			MessageBox(NULL,"NODES Table .c and .asm mismatch - fix and rebuild", "BPQ32", MB_OK);
 			return 0;
 		}
-	
+
+		if (sizeof(struct NR_DEST_ROUTE_ENTRY) != sizeof(struct INP3_DEST_ROUTE_ENTRY))
+		{
+			MessageBox(NULL,"Route Entry mismatch - fix and rebuild", "BPQ32", MB_OK);
+			return 0;
+		}
+
 		GetSemaphore(&Semaphore, 4);
 
 		BPQHOSTVECPTR = &BPQHOSTVECTOR[0];
@@ -3886,7 +3907,10 @@ BOOL UpdateNodesForApp(int Appl)
 
 		NUMBEROFNODES++;
 		APPL->NODEPOINTER = DEST;
-		
+
+		if (DEST->RouteLastTT == 0)
+			DEST->RouteLastTT = (uint16_t *)zalloc(MAXNEIGHBOURS * sizeof(uint16_t));
+
 		memmove (DEST->DEST_CALL,APPL->APPLCALL,13);
 
 		DEST->DEST_STATE=0x80;	// SPECIAL ENTRY
@@ -4218,13 +4242,12 @@ int APIENTRY Restart()
 
 	hProc =  OpenProcess(PROCESS_TERMINATE | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, TimerInst);
 
-		if (hProc)
-		{
-			TerminateProcess(hProc, 0);
-			CloseHandle(hProc);
-		}
+	if (hProc)
+	{
+		TerminateProcess(hProc, 0);
+		CloseHandle(hProc);
+	}
 
-	
 	return 0;
 }
 

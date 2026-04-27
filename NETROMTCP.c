@@ -59,6 +59,10 @@ BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE);
 VOID NETROMMSG(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG);
 int BPQTRACE(MESSAGE * Msg, BOOL TOAPRS);
 VOID L3LINKCLOSED(struct _LINKTABLE * LINK, int Reason);
+void NetromTCPTrace(struct _MESSAGE * Message, char * Dirn);
+void NETROMCloseTCP(struct ROUTE * Route);
+
+extern SOCKET NodeAPISocket;
 
 struct NRTCPMsg
 {
@@ -95,11 +99,11 @@ struct ConnectionInfo * AllocateNRTCPRec()
 			Info = NRTCPInfo[i] = (struct NRTCPSTRUCT *)zalloc(sizeof(struct NRTCPSTRUCT));
 			Info->sockptr = (struct ConnectionInfo *)zalloc(sizeof(struct ConnectionInfo));
 			Info->LINK = (struct _LINKTABLE *)zalloc(sizeof(struct _LINKTABLE));
-			Info->sockptr->Number = i;
 		}
 		else 
 			Info = NRTCPInfo[i];
 
+		Info->sockptr->Number = i;
 		sockptr = Info->sockptr;
 
 		if (sockptr->SocketActive == FALSE)
@@ -121,6 +125,7 @@ void checkNRTCPSockets(int portNo)
 	SOCKET maxsock;
 	int retval;
 	int i;
+	time_t Now = time(NULL);
 
 	struct timeval timeout;
 	fd_set readfd, writefd, exceptfd;
@@ -146,9 +151,23 @@ void checkNRTCPSockets(int portNo)
 		if (sockptr->SocketActive == 0)
 			continue;
 
+		if (sockptr->Connected && (Now - sockptr->LastReceiveTime) > 600)
+		{
+			struct NRTCPSTRUCT * Info = NRTCPInfo[sockptr->Number];
+			
+			if (Info)
+				Debugprintf("NETROMTCP link to %s idle for too long, closing", Info->Call);
+			else
+				Debugprintf("NETROMTCP link idle for too long, closing");
+			
+			NETROMConnectionLost(sockptr);
+			continue;
+		}
+
+
 		if (sockptr->Connecting)
 		{
-				// look for complete or failed
+			// look for complete or failed
 
 			FD_SET(sockptr->socket, &writefd);
 			FD_SET(sockptr->socket, &exceptfd);
@@ -210,38 +229,30 @@ int NETROMOpenConnection(struct ROUTE * Route)
 {
 	struct NRTCPSTRUCT * Info;
 	struct ConnectionInfo * sockptr;
+	char farCall[10];
 
-	Debugprintf("Opening NRTCP Connection");
+	farCall[ConvFromAX25(Route->NEIGHBOUR_CALL, farCall)] = 0;
 
-	if (Route->TCPSession)
-	{
-		//	SESSION ALREADY EXISTS
 
-		sockptr = Route->TCPSession->sockptr;
-		
-		if (sockptr->Connected || sockptr->Connecting)
-			return TRUE;
+	sockptr = AllocateNRTCPRec();
 
-		// previous connect failed
-	}
-	else
-	{
-		sockptr = AllocateNRTCPRec();
+	if (sockptr == NULL)
+		return 0;
 
-		if (sockptr == NULL)
-			return 0;
+	Debugprintf("Opening NRTCP Connection to %s index %d", farCall, sockptr->Number);
 
-		Info = Route->TCPSession = NRTCPInfo[sockptr->Number];
-		memcpy(Info->Call, MYNETROMCALL, 10);
-		Route->NEIGHBOUR_LINK = Info->LINK;
+	Info = Route->TCPSession = NRTCPInfo[sockptr->Number];
+	memcpy(Info->Call, farCall, 10);
+	Route->NEIGHBOUR_LINK = Info->LINK;
 
-		Info->Route = Route;
-		Info->LINK->NEIGHBOUR = Route;
-		Info->LINK->LINKPORT = GetPortTableEntryFromPortNum(Route->NEIGHBOUR_PORT);
-	}
+	Info->Route = Route;
+	Info->LINK->NEIGHBOUR = Route;
+	Info->LINK->LINKPORT = GetPortTableEntryFromPortNum(Route->NEIGHBOUR_PORT);
+	memcpy(Route->NEIGHBOUR_LINK->LINKCALL, Route->NEIGHBOUR_CALL, 7);
+
+	Route->NEIGHBOUR_LINK = Route->TCPSession->LINK;		// Just in case!
 
 	return NETROMTCPConnect(Route, sockptr);
-
 }
 
 void NETROMTCPResolve()
@@ -294,6 +305,14 @@ int NETROMTCPConnect(struct ROUTE * Route, struct ConnectionInfo * sockptr)
 	char PortString[20];
 	struct addrinfo * res = Route->TCPAddress;
 	int Port = Route->TCPPort;
+	struct sockaddr_in my_addr;
+    socklen_t len = sizeof(my_addr);
+	struct NRTCPSTRUCT * Info = NRTCPInfo[sockptr->Number];
+
+    // Get my ip address and port
+
+    memset(&my_addr, 0, sizeof(my_addr));
+    getsockname(sockptr->socket, (struct sockaddr *) &my_addr, &len);
 
 	sprintf(PortString, "%d", Port);
 
@@ -326,6 +345,7 @@ int NETROMTCPConnect(struct ROUTE * Route, struct ConnectionInfo * sockptr)
 		//
 		
 		sockptr->Connected = TRUE;
+		sockptr->LastReceiveTime = time(NULL);
 		return TRUE;
 	}
 	else
@@ -335,8 +355,15 @@ int NETROMTCPConnect(struct ROUTE * Route, struct ConnectionInfo * sockptr)
 		if (err == 10035 || err == 115 || err == 36)		//EWOULDBLOCK
 		{
 			//	Connect in Progress
-			
+	
 			sockptr->Connecting = TRUE;
+			
+			// Get my ip address and port
+			memset(&my_addr, 0, sizeof(my_addr));
+			getsockname(sockptr->socket, (struct sockaddr *) &my_addr, &len);
+			Route->localport = htons(my_addr.sin_port);
+
+			Debugprintf("NRTCP Connection in progress %s local port %d", Info->Call, Route->localport);
 			return TRUE;
 		}
 		else
@@ -359,18 +386,32 @@ void NETROMConnectionAccepted(struct ConnectionInfo * sockptr)
 {
 	// Not sure we can do much here until first message arrives with callsign
 
+	struct sockaddr_in my_addr;
+    socklen_t len = sizeof(my_addr);
+
+    // Get my ip address and port
+
+    memset(&my_addr, 0, sizeof(my_addr));
+//    getsockname(sockptr->socket, (struct sockaddr *) &my_addr, &len);
+
+	Debugprintf("INP3 Accept() Local port %d", htons(sockptr->sin.sin_port));
+
 	sockptr->Connected = TRUE;
-	Debugprintf("NRTCP Connection Accepted");
+	sockptr->LastReceiveTime = time(NULL);
+//	Debugprintf("NRTCP Connection Accepted");
 }
 
 void NETROMConnected(struct ConnectionInfo * sockptr, SOCKET sock, struct NRTCPSTRUCT * Info)
 {
 	// Connection Complete
 
-	Debugprintf("NRTCP Connected");
+//	Debugprintf("NRTCP Connected");
+
+	Debugprintf("NRTCP Connection Complete %s Local port %d", Info->Call, Info->Route->localport);
 
 	sockptr->Connecting = FALSE;
 	sockptr->Connected = TRUE;
+	sockptr->LastReceiveTime = time(NULL);
 
 	Info->LINK->L2STATE = 5;
 
@@ -403,6 +444,8 @@ int DataSocket_ReadNETROM(struct ConnectionInfo * sockptr, SOCKET sock, struct N
 		return 0;
 	}
 
+	sockptr->LastReceiveTime = time(NULL);
+
 	sockptr->InputLen += len;
 
 	// Process data
@@ -422,8 +465,6 @@ checkLen:
 
 		// This must be an incoming connection as Call is set before calling so need to find route record and set things up.
 
-		Debugprintf("New NRTCP Connection from %s", Msg->Call);
-
 		memcpy(Info->Call, Msg->Call, 10);
 
 		ConvToAX25(Msg->Call, axCall);
@@ -437,7 +478,19 @@ checkLen:
 			Info->LINK->LINKPORT = GetPortTableEntryFromPortNum(portNo);
 			Route->TCPSession = Info;
 			Info->LINK->L2STATE = 5;
-		
+			memcpy(Route->NEIGHBOUR_LINK->LINKCALL, axCall, 7);
+			Route->localport = htons(sockptr->sin.sin_port);
+
+			if(Route->Stopped)
+			{
+				Debugprintf("Neighbour %s port %d Route stopped - closing connection", Msg->Call, portNo);
+				closesocket(sockptr->socket);
+				sockptr->SocketActive = FALSE;
+				memset(sockptr, 0, sizeof(struct ConnectionInfo)); 
+				Info->Call[0] = 0;
+				return 0;
+			}
+
 			if (Info->Route->INP3Node)
 				SendRTTMsg(Info->Route);
 		}
@@ -452,10 +505,15 @@ checkLen:
 		}
 	}
 
-
 	if (memcmp(Info->Call, Msg->Call, 10) != 0)
 	{
-		// something wrong - maybe connection reused
+		Debugprintf("NRTCP Mismatch - closing connection");
+	
+		closesocket(sockptr->socket);
+		sockptr->SocketActive = FALSE;
+		memset(sockptr, 0, sizeof(struct ConnectionInfo)); 
+		Info->Call[0] = 0;
+		return 0;
 	}
 
 	// Format as if come from an ax.25 link
@@ -491,8 +549,14 @@ checkLen:
 		time(&Buffer->Timestamp);
 
 		BPQTRACE(Buffer, FALSE);
+		
+		if(NodeAPISocket)
+			NetromTCPTrace(Buffer, "rcvd");
+
 		ReleaseBuffer(Buffer);
 	}
+
+	Info->Route->NEIGHBOUR_LINK = Info->LINK;		// Just in case!
 
 	NETROMMSG(Info->LINK, L3Msg);
 
@@ -516,6 +580,9 @@ VOID TCPNETROMSend(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame)
 	int DataLen = Frame->LENGTH - (MSGHDDRLEN + 1); // Not including PID
 	int Ret;
 	PMESSAGE Buffer;
+	struct sockaddr_in my_addr;
+    socklen_t len = sizeof(my_addr);
+	struct ConnectionInfo * sockptr;
 
 	Msg.Length = DataLen + 13;				// include PID
 	memcpy(Msg.Call, MYNETROMCALL, 10);
@@ -524,6 +591,47 @@ VOID TCPNETROMSend(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame)
 
 	if (Route->TCPSession == 0)
 		return;
+
+	sockptr = Route->TCPSession->sockptr;
+
+    // Get other port
+
+	if (strcmp(Route->TCPHost, "0.0.0.0") == 0)
+	{
+		// incoming
+
+//		Debugprintf("INP3 Remote port %d", htons(sockptr->sin.sin_port));	
+	
+		if (Route->localport != htons(sockptr->sin.sin_port))
+		{
+			// Route is linked to wrong session. Close it
+
+	//		Route->TCPSession = 0;
+	//		Route->NEIGHBOUR_LINK = 0;
+			return;
+		}
+	}
+	else
+	{
+		// outgoing
+
+		memset(&my_addr, 0, sizeof(my_addr));
+
+		getsockname(sockptr->socket, (struct sockaddr *) &my_addr, &len);
+//		Debugprintf("INP3 Local port %d", htons(my_addr.sin_port));
+
+		if (Route->localport != htons(my_addr.sin_port))
+		{
+			// Route is linked to wrong session. Close it
+
+	//		if (sockptr->Connecting == 0)
+	//		{
+	//			Route->TCPSession = 0;
+	//			Route->NEIGHBOUR_LINK = 0;
+	//		}
+			return;
+		}
+	}
 
 	Ret = send(Route->TCPSession->sockptr->socket, (char *)&Msg, DataLen + 13, 0);
 
@@ -535,9 +643,9 @@ VOID TCPNETROMSend(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame)
 	{
 		Buffer->CHAIN = 0;
 		Buffer->CTL = 0;
-		Buffer->PORT = Route->NEIGHBOUR_PORT | 128;		// TX Flag
+		Buffer->PORT = Route->NEIGHBOUR_PORT;
 
-		ConvToAX25(Route->TCPSession->Call, Buffer->DEST);
+		memcpy(Buffer->DEST, Route->NEIGHBOUR_CALL, 7);
 		ConvToAX25(MYNETROMCALL, Buffer->ORIGIN);
 
 		memcpy(Buffer->L2DATA, &Frame->L3SRCE[0], DataLen);
@@ -546,7 +654,13 @@ VOID TCPNETROMSend(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame)
 		Buffer->LENGTH = DataLen + 15 + MSGHDDRLEN;
 		time(&Buffer->Timestamp);
 
+		if(NodeAPISocket)
+			NetromTCPTrace(Buffer, "sent");
+
+		Buffer->PORT = Route->NEIGHBOUR_PORT | 128;		// TX Flag
 		BPQTRACE(Buffer, FALSE);
+
+
 		ReleaseBuffer(Buffer);
 	}
 
@@ -566,20 +680,39 @@ void NETROMConnectionLost(struct ConnectionInfo * sockptr)
 	{
 		Route = Info->Route;
 
-		if (sockptr->Connected)
-			L3LINKCLOSED(Info->LINK, LINKLOST);
-
-		if (sockptr->Connecting)
-			L3LINKCLOSED(Info->LINK, SETUPFAILED);
-
 		if (Route)
+		{
+			if (sockptr->Connecting)
+				TellINP3LinkSetupFailed(Route);
+			else
+				TellINP3LinkGone(Route);
+
+			Route->NEIGHBOUR_LINK = 0;
 			Route->TCPSession = 0;
+			Route->localport = 0;
+		}
 
 		Info->Call[0] = 0;
+		Info->LINK->L2STATE = 0;
 	}
 
 	sockptr->SocketActive = FALSE;
 
 	memset(sockptr, 0, sizeof(struct ConnectionInfo)); 
 }
+
+void NETROMCloseTCP(struct ROUTE * Route)
+{
+	if (Route->TCPSession)
+	{	
+		struct ConnectionInfo * sockptr = Route->TCPSession->sockptr;
+		NETROMConnectionLost(sockptr);
+	}
+	else
+	{
+		Route->NEIGHBOUR_LINK = 0;
+	}
+}
+
+
 

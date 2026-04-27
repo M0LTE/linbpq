@@ -87,8 +87,6 @@ void CloseAllLinks();
 void hookNodeClosing(char * Reason);
 void NETROMTCPResolve();
 
-extern uint64_t INP3timeLoadedMS;
-
 BOOL IncludesMail = FALSE;
 BOOL IncludesChat = FALSE;
 
@@ -861,15 +859,12 @@ int main(int argc, char * argv[])
 	if (!isatty(STDOUT_FILENO) || !isatty(STDIN_FILENO))
 		Redirected = 1;
 
-	 INP3timeLoadedMS = GetTickCount();
-
 #endif
 
 	 printf("G8BPQ AX25 Packet Switch System Version %s %s\n", TextVerstring, Datestring);
 	 printf("%s\n", VerCopyright);
 
 	 srand(time(NULL));
-
 
 	 // look for optarg format parameters
 

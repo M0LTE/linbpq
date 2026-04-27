@@ -76,6 +76,7 @@ char * FormatMH(PMHSTRUC MH, char Format);
 void WriteConnectLog(char * fromCall, char * toCall, UCHAR * Mode);
 void SendDataToPktMap();
 void NETROMTCPResolve();
+VOID FindLostBuffers();
 
 extern BOOL LogAllConnects;
 extern BOOL M0LTEMap;
@@ -394,15 +395,53 @@ BOK1:
 	return 0;
 }
 
+
+void CheckFreeQueue(char * File, int Line)
+{
+	void ** pointer;
+	int n = 0;
+	void ** debug;
+	PMESSAGE Test;
+	
+	pointer = FREE_Q;
+	debug = &FREE_Q;
+
+	while (pointer)
+	{
+		// Validate pointer to make sure it is in pool - it may be a duff address if Q is corrupt 
+
+		Test = (PMESSAGE)pointer;
+
+		if (Test->GuardZone || (uintptr_t)pointer < (uintptr_t)BUFFERPOOL || (uintptr_t)pointer > (uintptr_t)ENDBUFFERPOOL)
+		{
+			// Not pointing to a buffer . debug points to the buffer that this is chained from
+
+			Debugprintf("CheckFree Queue Pool Corruption n = %d, ptr %p prev %p from %s Line %d", n, pointer, debug, File, Line);
+		}
+
+		debug = pointer;
+		pointer = pointer[0];
+		n++;
+
+		if (n > 1000)
+		{
+			Debugprintf("CheckFreeQueue Loop searching free chain - pointer = %p %p from %s Line %d", debug, pointer, File, Line);
+			FindLostBuffers();
+			WriteMiniDump();
+			Restart();
+		}
+	}
+}
+
 int _C_Q_ADD(VOID *PQ, VOID *PBUFF, char * File, int Line)
 {
 	void ** Q;
 	void ** BUFF = PBUFF;
 	void ** next;
 	PMESSAGE Test;
-
-
 	int n = 0;
+
+	CheckFreeQueue(File, Line);
 
 //	PQ may not be word aligned, so copy as bytes (for ARM5)
 
@@ -531,6 +570,8 @@ VOID * _GetBuff(char * File, int Line)
 	char * fptr = 0;
 	unsigned char * byteaddr;
 
+	CheckFreeQueue(File, Line);
+
 	Temp = Q_REM(&FREE_Q);
 
 //	FindLostBuffers();
@@ -564,6 +605,15 @@ VOID * _GetBuff(char * File, int Line)
 		Msg->Process = (short)GetCurrentProcessId();
 		Msg->Linkptr = NULL;
 		Msg->Padding[0] = 0;		// Used for modem status info 
+	}
+	else if (QCOUNT != 0)
+	{
+		// Queue must be corrupt
+
+		Debugprintf("Fatal - Getbuff returned NULL and Q not empty - exit");
+		FindLostBuffers();
+		WriteMiniDump();
+		Restart();
 	}
 	else
 		Debugprintf("Warning - Getbuff returned NULL");

@@ -184,7 +184,13 @@ typedef struct _TRANSPORTENTRY
 	int NRRID;
 	time_t NRRTime;
 
+	time_t ConnectTime;
+	char Direction[16];		// In or Out
+
 	int Service;			// For Paula's Connnect to Service
+	int apiSeq;				// for OARC event reporting
+	time_t lastStatusSentTime;
+
 
 } TRANSPORTENTRY;
 
@@ -252,6 +258,10 @@ typedef struct ROUTE
 	int TCPPort;
 	struct NRTCPSTRUCT * TCPSession;	
 	struct addrinfo * TCPAddress;		// Resolved Address
+	int localport;						// for consistancy check
+	int recNum;				// This entry's index it Routes table
+	int noV2point2;			// Set to force V2.0 connect. Can be set in config or dynamically learned
+	int Stopped;			// Set by STOPROUTE command 
 
 } *PROUTE;
 
@@ -259,10 +269,8 @@ typedef struct ROUTE
 
 #define GotRTTRequest 1		// Other end has sent us a RTT Packet
 #define GotRTTResponse 2	// Other end has sent us a RTT Response
-#define GotRIF 4			// Other end has sent RIF, so is probably an INP3 Node
-							//	(could just be monitoring RTT for some reason
-#define SentRTTRequest 8
-#define SentOurRIF 16		// Set when we have sent a rif for our Call and any ApplCalls
+#define SentRTTRequest 4
+#define SentOurRIF 8		// Set when we have sent a rif for our Call and any ApplCalls
 							//  (only sent when we have seen both a request and response)
 
 #pragma pack(1)
@@ -474,18 +482,16 @@ typedef struct _APPLCALLS
 typedef struct NR_DEST_ROUTE_ENTRY
 {
 	struct ROUTE * ROUT_NEIGHBOUR;	// POINTER TO NEXT NODE IN PATH
-	UCHAR ROUT_QUALITY;		// QUALITY
+	UCHAR ROUT_QUALITY;				// QUALITY
 	UCHAR ROUT_OBSCOUNT;
 	UCHAR ROUT_LOCKED;
-	UCHAR Padding[4];		// So Entries are the same length
 } *PNR_DEST_ROUTE_ENTRY;
 
 typedef struct INP3_DEST_ROUTE_ENTRY
 {
 	struct ROUTE * ROUT_NEIGHBOUR;	// POINTER TO NEXT NODE IN PATH
-	USHORT LastRTT;					// Last Value Reported
-	USHORT RTT;						// Current	
-	USHORT SRTT;					// Smoothed RTT
+	USHORT STT;						// Current time to dest	from here (was called RTT but is one way not round trip.
+									// Is actually a smoothed value as is calculated from smoothed link times)
 	UCHAR Hops;
 } *PDEST_ROUTE_ENTRY;
 
@@ -510,7 +516,9 @@ typedef struct DEST_LIST
 	void * DEST_Q;				// QUEUE OF FRAMES FOR THIS DESTINATION
 
 	int DEST_RTT;				// SMOOTHED ROUND TRIP TIMER
-	int DEST_COUNT;				//  FRAMES SENT
+	int DEST_COUNT;				// FRAMES SENT
+
+	uint16_t * RouteLastTT;		// Last time sent should be saved for each neighbour. Area is mallod'ed as needed
 
 } dest_list;
 
@@ -737,6 +745,9 @@ typedef struct PORTCONTROL
 	UCHAR * BUSY;				// % Active (Normally DCD active or TX)
 
 	int Hardware;				// TNC H_TYPE. Copied here for access from application context
+	int isRF;					// For API reporting. -1  is unspecified
+	int SENDRIFTIMER;
+	time_t LastRIFTime;
 
 
 }	PORTCONTROLX, *PPORTCONTROL;
@@ -1004,6 +1015,7 @@ typedef struct _LINKTABLE
 
 	char ApplName[16];
 	time_t lastStatusSentTime;
+	int apiSeq;						// for OARC event reporting
 
 } LINKTABLE;
 

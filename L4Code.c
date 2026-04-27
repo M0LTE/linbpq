@@ -73,6 +73,7 @@ void OutgoingL4ConnectionEvent(TRANSPORTENTRY * L4);
 void IncomingL4ConnectionEvent(TRANSPORTENTRY * L4);
 void L4DisconnectEvent(TRANSPORTENTRY * L4, char * Direction, char * Reason);
 VOID TCPNETROMSend(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame);
+void L4StatusSeport(TRANSPORTENTRY * L4);
 
 static UINT APPLMASK;
 
@@ -88,6 +89,8 @@ extern int L4CompPaclen;
 extern int L2Compress;
 extern int L2CompMaxframe;
 extern int L2CompPaclen;
+
+int sessionStatusInterval = 300;		// 5 mins
 
 // L4 Flags Values
 
@@ -1128,6 +1131,7 @@ VOID L4TimerProc()
 	TRANSPORTENTRY * L4 = L4TABLE;
 	TRANSPORTENTRY * Partner;
 	int MaxLinks = MAXLINKS;
+	time_t Now = time(NULL);
 
 	while (n--)
 	{
@@ -1136,6 +1140,12 @@ VOID L4TimerProc()
 			L4++;
 			continue;
 		}
+	
+		// Check for Status report time
+
+		if (L4->lastStatusSentTime && (Now - L4->lastStatusSentTime) > sessionStatusInterval)
+			L4StatusSeport(L4);
+
 		
 		//	CHECK FOR L4BUSY SET AND NO LONGER BUSY
 
@@ -1919,18 +1929,33 @@ void L3SWAPADDRESSES(L3MESSAGEBUFFER * L3MSG)
 
 void SendConNAK(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 {
+	struct TNCINFO * TNC;
+
 	L3MSG->L4FLAGS = L4CACK | L4BUSY;			// REJECT
 	L3MSG->L4DATA[0] = 0;						// WINDOW
 
 	L3SWAPADDRESSES(L3MSG);	
 	L3MSG->L3TTL = L3LIVES;
 
-	C_Q_ADD(&LINK->TX_Q, L3MSG);
+	TNC = LINK->LINKPORT->TNC;
+
+	if (LINK->NEIGHBOUR && LINK->NEIGHBOUR->TCPPort)
+	{
+		TCPNETROMSend(LINK->NEIGHBOUR, L3MSG);
+		ReleaseBuffer(L3MSG);
+	}
+	else if (TNC && TNC->NetRomMode)
+		SendVARANetromMsg(TNC, L3MSG);
+	else
+		C_Q_ADD(&LINK->TX_Q, L3MSG);
+
 }
 
 VOID SendL4RESET(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 {
 	// Paula's extension
+
+	struct TNCINFO * TNC;
 
 	L3MSG->L4RXNO = L3MSG->L4ID;
 	L3MSG->L4TXNO = L3MSG->L4INDEX;
@@ -1941,7 +1966,19 @@ VOID SendL4RESET(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 	L3MSG->L3TTL = L3LIVES;
 
 	L3MSG->LENGTH = (int)(&L3MSG->L4DATA[0] - (UCHAR *)L3MSG);
-	C_Q_ADD(&LINK->TX_Q, L3MSG);
+
+	TNC = LINK->LINKPORT->TNC;
+
+	if (LINK->NEIGHBOUR && LINK->NEIGHBOUR->TCPPort)
+	{
+		TCPNETROMSend(LINK->NEIGHBOUR, L3MSG);
+		ReleaseBuffer(L3MSG);
+	}
+	else if (TNC && TNC->NetRomMode)
+		SendVARANetromMsg(TNC, L3MSG);
+	else
+		C_Q_ADD(&LINK->TX_Q, L3MSG);
+
 }
 
 
@@ -2260,6 +2297,14 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 			ReleaseBuffer(L3MSG);
 			return;
 		}
+
+		// if connect to service don't send connected to node messsage as service will send own message
+
+//		if (L4->Service)
+//		{
+//			ReleaseBuffer(L3MSG);
+//			return;
+//		}
 
 		Msg = (PDATAMESSAGE)L3MSG;					// reuse input buffer
 

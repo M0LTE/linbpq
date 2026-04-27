@@ -310,7 +310,9 @@ static char *keywords[] =
 "LogL4Connects", "LogAllConnects", "SAVEMH", "ENABLEADIFLOG", "ENABLEEVENTS", "SAVEAPRSMSGS", 
 "EnableM0LTEMap", "MQTT", "MQTT_HOST", "MQTT_PORT", "MQTT_USER", "MQTT_PASS",
 "L4Compress", "L4CompMaxframe", "L4CompPaclen", "L2Compress", "L2CompMaxframe",
-"L2CompPaclen", "PREFERINP3ROUTES", "OnlyVer2point0", "DEBUGINP3", "ENABLEOARCAPI"
+"L2CompPaclen", "PREFERINP3ROUTES", "OnlyVer2point0", "DEBUGINP3", "ENABLEOARCAPI", "MONTOFILE",
+"RIFInterval"
+
 };           /* parameter keywords */
 
 static void * offset[] =
@@ -334,7 +336,8 @@ static void * offset[] =
 &xxcfg.C_LogL4Connects, &xxcfg.C_LogAllConnects, &xxcfg.C_SaveMH, &xxcfg.C_ADIF, &xxcfg.C_EVENTS, &xxcfg.C_SaveAPRSMsgs,
 &xxcfg.C_M0LTEMap, &xxcfg.C_MQTT, &xxcfg.C_MQTT_HOST, &xxcfg.C_MQTT_PORT, &xxcfg.C_MQTT_USER, &xxcfg.C_MQTT_PASS,
 &xxcfg.C_L4Compress, &xxcfg.C_L4CompMaxframe, &xxcfg.C_L4CompPaclen, &xxcfg.C_L2Compress, &xxcfg.C_L2CompMaxframe, 
-&xxcfg.C_L2CompPaclen, &xxcfg.C_PREFERINP3ROUTES, &xxcfg.C_OnlyVer2point0,  &xxcfg.C_DEBUGINP3, &xxcfg.C_OARCAPI};		/* offset for corresponding data in config file */
+&xxcfg.C_L2CompPaclen, &xxcfg.C_PREFERINP3ROUTES, &xxcfg.C_OnlyVer2point0,  &xxcfg.C_DEBUGINP3, &xxcfg.C_OARCAPI, &xxcfg.C_MONTOFILE,
+&xxcfg.C_RIFInterval};		/* offset for corresponding data in config file */
 
 static int routine[] = 
 {
@@ -357,7 +360,8 @@ static int routine[] =
 2, 2, 1, 2, 2, 2,
 2, 2, 0, 1, 20, 20,
 1, 1, 1, 1, 1, 
-1, 1, 1, 1, 1};			// Routine to process param
+1, 1, 1, 1, 1, 1,
+1};			// Routine to process param
 
 int PARAMLIM = sizeof(routine)/sizeof(int);
 //int NUMBEROFKEYWORDS = sizeof(routine)/sizeof(int);
@@ -379,7 +383,8 @@ static char *pkeywords[] =
 "BCALL", "DIGIMASK", "NOKEEPALIVES", "COMPORT", "DRIVER", "WL2KREPORT", "UIONLY",
 "UDPPORT", "IPADDR", "I2CBUS", "I2CDEVICE", "UDPTXPORT", "UDPRXPORT", "NONORMALIZE",
 "IGNOREUNLOCKEDROUTES", "INP3ONLY", "TCPPORT", "RIGPORT", "PERMITTEDAPPLS", "HIDE",
-"SMARTID", "KISSCOMMAND", "SendtoM0LTEMap", "PortFreq", "M0LTEMapInfo", "QTSMPort", "ALLOWINP3", "ENABLEINP3"};         /* parameter keywords */
+"SMARTID", "KISSCOMMAND", "SendtoM0LTEMap", "PortFreq", "M0LTEMapInfo", "QTSMPort", 
+"ALLOWINP3", "ENABLEINP3", "isRF"};         /* parameter keywords */
 
 static void * poffset[] =
 {
@@ -393,7 +398,8 @@ static void * poffset[] =
 &xxp.BCALL, &xxp.DIGIMASK, &xxp.DefaultNoKeepAlives, &xxp.IOADDR, &xxp.DLLNAME, &xxp.WL2K, &xxp.UIONLY,
 &xxp.IOADDR, &xxp.IPADDR, &xxp.INTLEVEL, &xxp.IOADDR, &xxp.IOADDR, &xxp.ListenPort, &xxp.NoNormalize,
 &xxp.IGNOREUNLOCKED, &xxp.INP3ONLY, &xxp.TCPPORT, &xxp.RIGPORT, &xxp.PERMITTEDAPPLS, &xxp.Hide,
-&xxp.SmartID, &xxp.KissParams, &xxp.SendtoM0LTEMap, &xxp.PortFreq, &xxp.M0LTEMapInfo, &xxp.QtSMPort, &xxp.AllowINP3, &xxp.EnableINP3};	/* offset for corresponding data in config file */
+&xxp.SmartID, &xxp.KissParams, &xxp.SendtoM0LTEMap, &xxp.PortFreq, &xxp.M0LTEMapInfo, &xxp.QtSMPort, 
+&xxp.AllowINP3, &xxp.EnableINP3, &xxp.isRF};	/* offset for corresponding data in config file */
 
 static int proutine[] = 
 {
@@ -407,7 +413,8 @@ static int proutine[] =
 0, 1, 2, 18, 15, 16, 2,
 1, 17, 1, 1, 1, 1, 2,
 2, 2, 1, 1, 19, 2,
-1, 20, 1, 21, 22, 1, 1, 1};							/* routine to process parameter */
+1, 20, 1, 21, 22, 1, 
+1, 1, 1};							/* routine to process parameter */
 
 int PPARAMLIM = sizeof(proutine)/sizeof(int);
 
@@ -557,7 +564,6 @@ BOOL ProcessConfig()
 	   heading = 1;
 	}
 
-
 	paramok[6]=1;          /* dont need BUFFERS */
 	paramok[8]=1;          /* dont need TRANSDELAY */
 	paramok[13]=1;			// NodeAlias 
@@ -607,35 +613,35 @@ BOOL ProcessConfig()
 		paramok[45+i]=1;	/* or APPLCALLS, APPLALIASS APPLQUAL */
 
 	paramok[69]=1;			// BText optional
-	paramok[70]=1;			// IPGateway optional
+	paramok[70]=1;			// NETROMCALL optional
 	paramok[71]=1;			// C_IS_CHAT optional
-
 	paramok[72]=1;			// MAXRTT optional
-	paramok[73]=1;			// MAXHOPS optional
-	paramok[74]=1;			// LogL4Connects optional
-	paramok[75]=1;			// LogAllConnects optional
-	paramok[76]=1;			// SAVEMH optional
-	paramok[77]=1;			// ENABLEADIFLOG optional
-	paramok[78]=1;			// EnableEvents optional
-	paramok[79]=1;			// SaveAPRSMsgs optional
-	paramok[79]=1;			// SaveAPRSMsgs optional
-	paramok[80]=1;			// EnableM0LTEMap optional
-	paramok[81]=1;			// MQTT Params
+	paramok[73]=1;			// MAXTT optional
+	paramok[74]=1;			// MAXHOPS optional
+	paramok[75]=1;			// LogL4Connects optional
+	paramok[76]=1;			// LogAllConnects optional
+	paramok[77]=1;			// SAVEMH optional
+	paramok[78]=1;			// ENABLEADIFLOG optional
+	paramok[79]=1;			// EnableEvents optional
+	paramok[80]=1;			// SaveAPRSMsgs optional
+	paramok[81]=1;			// EnableM0LTEMap optional
 	paramok[82]=1;			// MQTT Params
 	paramok[83]=1;			// MQTT Params
 	paramok[84]=1;			// MQTT Params
 	paramok[85]=1;			// MQTT Params
-	paramok[86]=1;			// L4Compress
-	paramok[87]=1;			// L4Compress Maxframe
-	paramok[88]=1;			// L4Compress Paclen
-	paramok[89]=1;			// L2Compress
-	paramok[90]=1;			// L2Compress Maxframe
-	paramok[91]=1;			// L2Compress Paclen
-	paramok[92]=1;			// PREFERINP3ROUTES
-	paramok[93]=1;			// ONLYVer2point0
-	paramok[94]=1;			// DEBUGINP3
-	paramok[95]=1;			// EnableOARCAPI
-	paramok[96]=1;			// OARCAPI
+	paramok[86]=1;			// MQTT Params
+	paramok[87]=1;			// L4Compress
+	paramok[88]=1;			// L4Compress Maxframe
+	paramok[89]=1;			// L4Compress Paclen
+	paramok[90]=1;			// L2Compress
+	paramok[91]=1;			// L2Compress Maxframe
+	paramok[92]=1;			// L2Compress Paclen
+	paramok[93]=1;			// PREFERINP3ROUTES
+	paramok[94]=1;			// ONLYVer2point0
+	paramok[95]=1;			// DEBUGINP3
+	paramok[96]=1;			// EnableOARCAPI
+	paramok[97]=1;			// MONTOFILE
+	paramok[98]=1;			// RIFInterval
 
 
 	for (i=0; i < PARAMLIM; i++)
@@ -648,7 +654,7 @@ BOOL ProcessConfig()
 				Consoleprintf("The following parameters were not correctly specified");
 				heading = 1;
 			}
-			Consoleprintf(keywords[i]);
+			Consoleprintf("%s", keywords[i]);
 		}
 	}
 
@@ -1677,7 +1683,15 @@ int routes(int i)
 					char * val = strtok_s(NULL, " ,=", &context);
 
 					if (val)
-						Route->farQual = atoi(val);
+						Route->nokeepalives = atoi(val);
+				}
+
+				else if (strcmp(ptr, "NOV2.2") == 0)
+				{
+					char * val = strtok_s(NULL, " ,=", &context);
+
+					if (val)
+						Route->noV2point2 = atoi(val);
 				}
 
 
@@ -1820,6 +1834,7 @@ int ports(int i)
 	}
 
 	xxp.SendtoM0LTEMap = 1;			// Default to enabled
+	xxp.isRF = -1;					// Default to undefined
 
 	while (endport == 0 && !feof(fp1))
 	{
@@ -3065,12 +3080,38 @@ int simple(int i)
 
 	/* Set PARAMOK flags on all values that are defaulted */
 
-	for (i=0; i < PARAMLIM; i++)
-	   paramok[i]=1;
-
 	paramok[15] = 0;		// Must have callsign 
 	paramok[45] = 0;		// Dont Have Appl1Call
 	paramok[53] = 0;		// or APPL1ALIAS
+
+	// Set defined flag on defaulted params
+
+	paramok[0] = 1;	// OBSINIT
+	paramok[1] = 1;	// OBSMIN
+	paramok[2] = 1;	// NODESINTERVAL
+	paramok[3] = 1;	// L3TIMETOLIVE
+	paramok[4] = 1;	// L4RETRIES
+	paramok[5] = 1;	// L4TIMEOUT
+	paramok[7] = 1;	// PACLEN
+	paramok[9] = 1;	// T3
+	paramok[10] = 1;	// IDLETIME
+	paramok[11] = 1;	// BBS
+	paramok[12] = 1;	// NODE
+	paramok[18] = 1;	// IDMSG:
+	paramok[19] = 1;	// INFOMSG:
+	paramok[22] = 1;	// MAXLINKS
+	paramok[23] = 1;	// MAXNODES
+	paramok[24] = 1;	// MAXROUTES
+	paramok[25] = 1;	// MAXCIRCUITS
+	paramok[26] = 1;	// IDINTERVAL
+	paramok[27] = 1;	// MINQUAL
+	paramok[28] = 1;	// HIDENODES
+	paramok[29] = 1;	// L4DELAY
+	paramok[30] = 1;	// L4WINDOW
+	paramok[31] = 1;	// BTINTERVAL
+	paramok[36] = 1;	// CTEXT:
+	paramok[39] = 1;	// ENABLE_LINKED
+	paramok[41] = 1;	// FULL_CTEXT
 
 	return(1);
 }

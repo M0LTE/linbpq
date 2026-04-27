@@ -38,6 +38,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "cheaders.h"
 #include "tncinfo.h"
 #include "mqtt.h"
+#include "kiss.h"
 
 VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer);
 VOID ProcessIframe(struct _LINKTABLE * LINK, PDATAMESSAGE Buffer);
@@ -57,6 +58,7 @@ VOID L2SENDCOMMAND(struct _LINKTABLE * LINK, int CMD);
 void WritePacketLogThread(void * param);
 void hookNodeStarted();
 void hookNodeRunning();
+void DeleteLogFiles(int Age);
 void APIL2Trace(struct _MESSAGE * Message, char * Dirn);
 
 #include "configstructs.h"
@@ -70,10 +72,14 @@ extern int nodeStartedSent;
 extern SOCKADDR_IN UDPreportdest;
 extern char NodeAPIServer[80];
 extern int NodeAPIPort;
+extern int RIFInterval;
 
 time_t LastNodeStatus = 0;
 
 int nodeStatusTimer = 20 * 60;		// 20 mins
+
+	
+int LogAge = 10;
 
 struct PORTCONFIG * PortRec;
 
@@ -674,6 +680,7 @@ BOOL Start()
 	struct CMDX * CMD;
 	int PortSlot = 1;
 	uintptr_t int3;
+	int index = 0;						// Entry No. in ROUTES
 
 	unsigned char * ptr2 = 0, * ptr3, * ptr4;
 	USHORT * CWPTR;
@@ -843,6 +850,10 @@ BOOL Start()
 	MAXLINKS = cfg->C_MAXLINKS;
 	MAXDESTS = cfg->C_MAXDESTS;
 	MAXNEIGHBOURS = cfg->C_MAXNEIGHBOURS;
+	
+	if (MAXNEIGHBOURS == 0)
+		MAXNEIGHBOURS = 1;
+
 	MAXCIRCUITS = cfg->C_MAXCIRCUITS;
 	HIDENODES = cfg->C_HIDENODES;
 
@@ -881,10 +892,13 @@ BOOL Start()
 
 	PREFERINP3ROUTES = cfg->C_PREFERINP3ROUTES;
 
-	if (cfg->C_DEBUGINP3)
-		DEBUGINP3 = 0;
+	DEBUGINP3 = cfg->C_DEBUGINP3;
 
 	EnableOARCAPI = cfg->C_OARCAPI;
+
+	MONTOFILEFLAG = cfg->C_MONTOFILE;
+
+	RIFInterval = cfg->C_RIFInterval;
 
 	if (cfg->C_OnlyVer2point0)
 		SUPPORT2point2 = 0;
@@ -1017,6 +1031,7 @@ BOOL Start()
 		PORT->INP3ONLY = PortRec->INP3ONLY;
 		PORT->ALLOWINP3 = PortRec->AllowINP3;
 		PORT->ENABLEINP3 = PortRec->EnableINP3;
+		PORT->isRF = PortRec->isRF;
 
 		PORT->PORTWINDOW = (UCHAR)PortRec->MAXFRAME;
 
@@ -1359,6 +1374,7 @@ BOOL Start()
 		char * VIA;
 		char axcall[8];
 		
+
 		ConvToAX25(Rcfg->call, ROUTE->NEIGHBOUR_CALL);
 
 		// if VIA convert digis
@@ -1403,6 +1419,9 @@ BOOL Start()
 			ROUTE->NoKeepAlive = 0;			// Cant have INP3 and NOKEEPALIVES
 		}
 
+		if (Rcfg->noV2point2)
+			ROUTE->noV2point2 = 1;
+
 		ROUTE->NBOUR_MAXFRAME = Rcfg->pwind & 0x3f;
 
 		FRACK = Rcfg->pfrack;
@@ -1420,6 +1439,8 @@ BOOL Start()
 			ROUTE->TCPAddress = (struct addrinfo *)zalloc(sizeof(struct addrinfo));
 			ROUTE->TCPAddress->ai_addr = (struct sockaddr *) zalloc(sizeof(struct sockaddr));
 		}
+
+		ROUTE->recNum = index++;
 		
 		Rcfg++;
 		ROUTE++;
@@ -1544,6 +1565,9 @@ BOOL Start()
 		DEST->DEST_STATE = 0x80;	// SPECIAL ENTRY
 		DEST->NRROUTE[0].ROUT_QUALITY = 255;
 		DEST->NRROUTE[0].ROUT_OBSCOUNT = 255;
+		if (DEST->RouteLastTT == 0)
+			DEST->RouteLastTT = (uint16_t *)zalloc(MAXNEIGHBOURS * sizeof(uint16_t));
+
 		DEST++;
 		NUMBEROFNODES++;
 	}
@@ -1564,6 +1588,9 @@ BOOL Start()
 				DEST->NRROUTE[0].ROUT_QUALITY = (UCHAR)APPL->APPLQUAL;
 				DEST->NRROUTE[0].ROUT_OBSCOUNT = 255;
 				APPL->NODEPOINTER = DEST;
+				if (DEST->RouteLastTT == 0)
+					DEST->RouteLastTT = (uint16_t *)zalloc(MAXNEIGHBOURS * sizeof(uint16_t));
+
 
 				DEST++;
 
@@ -1579,6 +1606,11 @@ BOOL Start()
 
 	if (AUTOSAVEMH)
 		ReadMH();			// Only if AutoSave configured
+
+	// Tidy Log Files
+	
+	DeleteLogFiles(LogAge);
+
 
 	//	set up stream number in BPQHOSTVECTOR
 
@@ -1654,14 +1686,19 @@ BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE)
 {
 	struct ROUTE * ROUTE = NEIGHBOURS;
 	struct ROUTE * FIRSTSPARE = NULL;
-	int n = MAXNEIGHBOURS;
 	char Normcall[10];
+	int n;
 
-	while (n--)
+	for (n = 0;  n < MAXNEIGHBOURS; n++)
 	{
 		if (ROUTE->NEIGHBOUR_CALL[0] == 0)		// Spare
+		{
 			if (FIRSTSPARE == NULL)
+			{
 				FIRSTSPARE = ROUTE;
+				ROUTE->recNum = n;
+			}
+		}
 
 		if (ROUTE->NEIGHBOUR_PORT != Port)
 		{
@@ -1669,7 +1706,6 @@ BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE)
 			continue;
 		}
 
-			
 		Normcall[ConvFromAX25(ROUTE->NEIGHBOUR_CALL, Normcall)] = 0;
 
 		if (CompareCalls(ROUTE->NEIGHBOUR_CALL, Call))
@@ -1683,6 +1719,7 @@ BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE)
 	//	ENTRY NOT FOUND - FIRSTSPARE HAS FIRST FREE ENTRY, OR ZERO IF TABLE FULL
 
 	*REQROUTE = FIRSTSPARE;
+
 	return FALSE;
 }
 
@@ -2089,6 +2126,9 @@ VOID ReadNodes()
 
 			memcpy(DEST->DEST_CALL, axcall, 7);
 			memcpy(DEST->DEST_ALIAS, FULLALIAS, 6);
+			if (DEST->RouteLastTT == 0)
+				DEST->RouteLastTT = (uint16_t *)zalloc(MAXNEIGHBOURS * sizeof(uint16_t));
+
 
 			NUMBEROFNODES++;
 RouteLoop:
@@ -2396,7 +2436,7 @@ L2Packet:
 			if (MQTT && PORT->PROTOCOL == 0)
 				MQTTKISSRX(Buffer);
 
-			if(NodeAPISocket &&PORT->PROTOCOL == 0)
+			if(NodeAPISocket && PORT->PROTOCOL == 0)
 				APIL2Trace(Message, "rcvd");
 			
 			// Bridge if requested
@@ -2768,6 +2808,7 @@ VOID INITIALISEPORTS()
 {
 	char INITMSG[80];
 	struct PORTCONTROL * PORT = PORTTABLE;
+	struct PORTCONTROL * SAVEPORT;
 	
 	while (PORT)
 	{
@@ -2775,7 +2816,68 @@ VOID INITIALISEPORTS()
 		WritetoConsoleLocal(INITMSG);
 
 		PORT->PORTINITCODE(PORT);
-		PORT = PORT->PORTPOINTER;
+		SAVEPORT=PORT;
+
+		// See if it is an RF port
+
+		if (PORT->isRF == -1)			// Not set
+		{
+			// Try to determine if RF
+
+			if (PORT->PORTTYPE == 0)
+			{
+				struct KISSINFO * KISS = (struct KISSINFO *)PORT;
+				NPASYINFO Port;
+
+				if (KISS->FIRSTPORT && KISS->FIRSTPORT != KISS)
+				{
+					// Not first port on device
+
+					PORT = (struct PORTCONTROL *)KISS->FIRSTPORT;
+				}
+
+				Port = KISSInfo[PORT->PORTNUMBER];
+
+				if (Port)
+				{
+					// KISS like
+
+					if (PORT->PORTIPADDR.s_addr || PORT->KISSSLAVE)
+					{
+						// KISS over UDP or TCP
+
+						if (PORT->KISSTCP)
+							PORT->isRF = 1;				// Assume TCP is RF (software modem)
+						else
+							PORT->isRF = 0;				// Assuem UDP is Internet
+					}
+					else
+						PORT->isRF = 1;		// Serial port
+				}		
+			}
+			else if (PORT->PORTTYPE == 14)		// Loopback 
+				PORT->isRF = 0;
+
+			else if (PORT->PORTTYPE == 16)		// External
+			{
+				if (PORT->PROTOCOL == 10)		// 'HF' Port
+				{
+					struct TNCINFO * TNC = TNCInfo[PORT->PORTNUMBER];
+
+					if (TNC && TNC->Hardware == H_TELNET)
+						PORT->isRF = 0;
+					else
+						PORT->isRF = 1;		// ARDOP etc
+				}
+				else
+				{
+					// External but not HF - AXIP, BPQETHER VKISS, ??
+
+					PORT->isRF = 0;
+				}
+			}
+		}
+		PORT = SAVEPORT->PORTPOINTER;
 	}
 }
 

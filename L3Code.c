@@ -403,7 +403,9 @@ VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT)
 		memset(DEST, 0, sizeof(struct DEST_LIST));
 
 		memcpy(DEST->DEST_CALL, Msg->ORIGIN, 7);
-	
+		if (DEST->RouteLastTT == 0)
+			DEST->RouteLastTT = (uint16_t *)zalloc(MAXNEIGHBOURS * sizeof(uint16_t));
+
 		NUMBEROFNODES++;
 	}
 
@@ -582,6 +584,9 @@ VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT)
 
 			memset(DEST, 0, sizeof(struct DEST_LIST));
 			memcpy(DEST->DEST_CALL, ptr1, 7);
+			if (DEST->RouteLastTT == 0)
+				DEST->RouteLastTT = (uint16_t *)zalloc(MAXNEIGHBOURS * sizeof(uint16_t));
+
 			NUMBEROFNODES++;
 		}
 
@@ -620,7 +625,7 @@ VOID PROCROUTES(struct DEST_LIST * DEST, struct ROUTE * ROUTE, int Qual)
 	if (DEST->DEST_STATE & 0x80)			// BBS ENTRY
 		return;
 
-	for (Index = 0; Index < 4; Index++)
+	for (Index = 0; Index < 3; Index++)
 	{
 		if (DEST->NRROUTE[Index].ROUT_NEIGHBOUR == ROUTE)
 		{
@@ -691,6 +696,7 @@ UpdatateThisEntry:
 	//	TEST AND SEE IF ANYTHING NASTY HAPPENS
 	//	IT DID - THIS IS ALSO CALLED BY CHECKL3TABLES. TRY RESETING
 	//	OBS, BUT NOT QUALITY 
+
 
 	if ((DEST->NRROUTE[Index].ROUT_OBSCOUNT & 0x80) == 0)
 		DEST->NRROUTE[Index].ROUT_OBSCOUNT = OBSINIT;	// SET OBSOLESCENCE COUNT
@@ -1368,6 +1374,10 @@ VOID REMOVENODE(dest_list * DEST)
 		}
 		L4++;
 	}
+	
+	if (DEST->RouteLastTT)
+		free(DEST->RouteLastTT);
+
 	memset(DEST, 0, sizeof(struct DEST_LIST));	
 	NUMBEROFNODES--;
 }
@@ -1432,7 +1442,8 @@ VOID L3TRYNEXTDEST(struct ROUTE * ROUTE)
 					{
 						// not Locked
 
-						DEST->NRROUTE[ActiveRoute].ROUT_OBSCOUNT--;
+						if (ActiveRoute < 3)				// Not INP3 Route
+							DEST->NRROUTE[ActiveRoute].ROUT_OBSCOUNT--;
 
 						// if ROUTE HAS EXPIRED - WE SHOULD CLEAR IT, AND MOVE OTHERS (IF ANY) UP
 					}
@@ -1521,7 +1532,10 @@ struct DEST_LIST * CHECKL3TABLES(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * Msg
 #endif
 
 	memcpy(DEST->DEST_CALL, Msg->L3SRCE, 7);
-	
+
+	if (DEST->RouteLastTT == 0)
+		DEST->RouteLastTT = (uint16_t *)zalloc(MAXNEIGHBOURS * sizeof(uint16_t));
+
 	NUMBEROFNODES++;
 
 	//	MAKE SURE NEIGHBOUR IS DEFINED FOR DESTINATION
@@ -1563,7 +1577,10 @@ struct DEST_LIST * CHECKL3TABLES(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * Msg
 	if (DEST->DEST_ROUTE)
 	{
 		int Index = DEST->DEST_ROUTE -1;
-		
+
+		if (Index > 2)				// INP3 Route
+			return DEST;
+
 		if (DEST->NRROUTE[Index].ROUT_OBSCOUNT & 0x80)		// Locked:
 			return DEST;
 
@@ -1591,6 +1608,9 @@ VOID REFRESHROUTE(TRANSPORTENTRY * Session)
 		return;					// NONE ACTIVE???
 
 	Index--;
+
+	if (Index > 2)				// INP3 Route
+		return;
 
 	if (DEST->NRROUTE[Index].ROUT_OBSCOUNT & 0x80)
 		return;					// Locked

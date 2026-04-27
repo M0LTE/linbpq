@@ -147,9 +147,15 @@ char IndexNoAPRS[] = "<meta http-equiv=\"refresh\" content=\"0;url=/Node/NodeInd
 char Tail[] = "</body></html>";
 
 char RouteHddr[] = "<h2 align=center>Routes</h2><table align=center border=2 style=font-family:monospace bgcolor=white>"
-"<tr><th>Port</th><th>Call</th><th>Quality</th><th>Node Count</th><th>Frame Count</th><th>Retries</th><th>Percent</th><th>Maxframe</th><th>Frack</th><th>Last Heard</th><th>Queued</th><th>Rem Qual</th></tr>";
+"<tr><th>Port</th><th>Call</th><th>Quality</th><th>Node Count</th><th>Frame Count</th><th>Retries</th><th>Percent</th><th>Maxframe</th>"
+"<th>Frack</th><th>Last Heard</th><th>Queued</th><th>Rem Qual</th><th>SRTT</th><th>Rem SRTT</th></tr>";
 
-char RouteLine[] = "<tr><td>%s%d</td><td>%s%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d%</td><td>%d</td><td>%d</td><td>%02d:%02d</td><td>%d</td><td>%d</td></tr>";
+char RouteLine[] = "<tr><td>%s%d</td><td>%s%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d%</td><td>%d</td><td>%d</td>"
+"<td>%02d:%02d<td>%d</td><td>%d</td></td><td></td><td></td></tr>";
+
+char RouteLineINP3[] = "<tr><td>%s%d</td><td>%s%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d%</td><td>%d</td><td>%d</td>"
+"<td>%02d:%02d</td><td>%d</td><td>%d</td><td>%4.2fs</td><td>%4.2fs</td></tr>";
+
 char xNodeHddr[] = "<align=center><form align=center method=get action=/Node/Nodes.html>"
 "<table align=center  bgcolor=white>"
 "<tr><td><input type=submit class='btn' name=a value=\"Nodes Sorted by Alias\"></td><td>"
@@ -1390,23 +1396,23 @@ int SetupNodeMenu(char * Buff, int LOCAL)
 	char SigninBit[] = "<td><a href=/Node/Signon.html>SYSOP Signin</a></td>";
 
 	char NodeTail[] = 
-		"<td><a href=/Node/EditCfg.html>Edit Config</a></td>"
-		"<td><div onmouseover=myShow() class='dropdown'>"
-		"<button class=\"dropbtn\">View Logs</button>"
-		"<div id=\"myDropdown\" class=\"dropdown-content\">"
-		"<form id = doDate form action='/node/ShowLog.html'><label>"
-		"Select Date: <input type='date' name='date' id=e>"
-		"<script>"
-		"document.getElementById('e').value = new Date().toISOString().substring(0, 10);"
-		"</script></label>"
-		"<input type=submit class='btn' name='BBS' value='BBS Log'></br>"
-		"<input type=submit class='btn' name='Debug' value='BBS Debug Log'></br>"
-		"<input type=submit class='btn' name='Telnet' value='Telnet Log'></br>"
-		"<input type=submit class='btn' name='CMS' value='CMS Log'></br>"
-		"<input type=submit class='btn' name='Chat' value='Chat Log'></br>"
-		"</form></div>"
-		"</div>"		
-		"</td></tr></table>";
+		"<td><a href=/Node/EditCfg.html>Edit Config</a></td>\
+		<td><div onmouseover=myShow() class='dropdown'>\
+		<button class=\"dropbtn\">View Logs</button>\
+		<div id=\"myDropdown\" class=\"dropdown-content\">\
+		<form id = doDate form action='/node/ShowLog.html'><label>\
+		Select Date: <input type='date' name='date' id=e>\
+		<script>\
+		document.getElementById('e').value = new Date().toISOString().substring(0, 10);\
+		</script></label>\
+		<input type=submit class='btn' name='BBS' value='BBS Log'></br>\
+		<input type=submit class='btn' name='Debug' value='BBS Debug Log'></br>\
+		<input type=submit class='btn' name='Telnet' value='Telnet Log'></br>\
+		<input type=submit class='btn' name='CMS' value='CMS Log'></br>\
+		<input type=submit class='btn' name='Chat' value='Chat Log'></br>\
+		</form></div>\
+		</div>\
+		</td></tr></table>";
 
 
 	Len = sprintf(Buff, NodeMenuHeader, Mycall);
@@ -1560,10 +1566,9 @@ VOID SaveConfigFile(SOCKET sock , char * MsgPtr, char * Rest, int LOCAL)
 		}
 
 		ReplyLen = sprintf(Reply, "<html><script>alert(\"%s\");window.close();</script></html>", Mess);
-		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
+		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen);
 		send(sock, Header, HeaderLen, 0);
 		send(sock, Reply, ReplyLen, 0);
-		send(sock, Tail, (int)strlen(Tail), 0);
 	}
 	return;
 }
@@ -3942,9 +3947,21 @@ doHeader:
 						else
 							Percent = 0;
 
-						ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], RouteLine, Active, Routes->NEIGHBOUR_PORT, Normcall, locked, 
-							Routes->NEIGHBOUR_QUAL,	NodeCount, Iframes, Retries, Percent, Routes->NBOUR_MAXFRAME, Routes->NBOUR_FRACK,
-							Routes->NEIGHBOUR_TIME >> 8, Routes->NEIGHBOUR_TIME & 0xff, Queued, Routes->OtherendsRouteQual);
+						if (Routes->INP3Node)		// INP3 Enabled?
+						{
+							double srtt = Routes->SRTT/100.0;
+							double nsrtt = Routes->NeighbourSRTT/100.0;
+	
+							ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], RouteLineINP3, Active, Routes->NEIGHBOUR_PORT, Normcall, locked, 
+								Routes->NEIGHBOUR_QUAL,	NodeCount, Iframes, Retries, Percent, Routes->NBOUR_MAXFRAME, Routes->NBOUR_FRACK,
+								Routes->NEIGHBOUR_TIME >> 8, Routes->NEIGHBOUR_TIME & 0xff, Queued, Routes->OtherendsRouteQual, srtt, nsrtt);
+						}
+						else
+						{
+							ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], RouteLine, Active, Routes->NEIGHBOUR_PORT, Normcall, locked, 
+								Routes->NEIGHBOUR_QUAL,	NodeCount, Iframes, Retries, Percent, Routes->NBOUR_MAXFRAME, Routes->NBOUR_FRACK,
+								Routes->NEIGHBOUR_TIME >> 8, Routes->NEIGHBOUR_TIME & 0xff, Queued, Routes->OtherendsRouteQual);
+						}
 					}
 					Routes+=1;
 				}
@@ -4302,7 +4319,7 @@ int StatusProc(char * Buff)
 	Len += sprintf(&Buff[Len], "<th>&nbsp;MON&nbsp;</th><th>&nbsp;App&nbsp;</th><th>&nbsp;Flg&nbsp;</th>");
 	Len += sprintf(&Buff[Len], "<th>Callsign&nbsp;&nbsp;</th><th width=200px>Program</th></tr><tr>");
 
-	for (i=1;i<65; i++)
+	for (i=1; i <=BPQHOSTSTREAMS; i++)
 	{		
 		callsign[0]=0;
 
