@@ -423,7 +423,7 @@ Phase 1 once the harness produces useful output.
 |     5 | Persistence round-trip — boot, mutate, shut down, reboot, verify state restored                                          | done\* |
 |     6 | Two-instance scenarios via AX/IP UDP — NET/ROM discovery, cross-instance connect, message forwarding                     | done\* |
 |     7 | Configuration matrix — minimal / full / edge configs, parse-or-reject assertions                                         | done\* |
-|     8 | PTY-based serial-transport tests + modem simulators for KISS-on-serial, ARDOP, VARA, KAM-Pactor, FLDigi, etc.            | started |
+|     8 | PTY-based serial-transport tests + modem simulators for KISS-on-serial, ARDOP, VARA, KAM-Pactor, FLDigi, etc.            | done\* |
 
 Phases 0–3 hold most of the value and are achievable in reasonable
 time. Phases 6 and 8 are real engineering; do not commit until earlier
@@ -563,17 +563,50 @@ Still deferred:
 - **`isRF` / `ISRF`** — informational; no observable runtime
   effect to test against.
 
-\*Phase 8 footnote: scope extends beyond modem-protocol simulators.
-**KISS-over-serial** is now done: the
+\*Phase 8 footnote: serial transport plus the major modem
+drivers all have integration coverage now.
+
+**KISS-over-serial**: the
 [Multi-Drop KISS spec](https://github.com/packethacking/ax25spec/blob/master/doc/multi-drop-kiss-operation.md)
 ACKMODE wire format, basic RX/TX over PTY, and a cross-protocol
 PTY → AGW-monitor flow are all locked in (``test_kiss_serial.py``,
-``helpers/pty_kiss_modem.py``).  The PtyKissModem helper is
-reusable for any future serial-transport modem.
+``helpers/pty_kiss_modem.py``).
 
-Modem-specific protocols on top of the PTY transport (ARDOP,
-VARA, KAM-Pactor, FLDigi, HSMODEM, WinRPR) each need their own
-simulator and remain Phase 8 open work.
+**Modem drivers** — each driver now has dial-out + recognisable
+post-connect-byte coverage:
+
+- **VARA** (``test_vara.py`` + ``helpers/vara_modem.py``): two
+  adjacent TCP sockets (port + port+1) accept linbpq's connect;
+  INIT script with ``MYCALL`` and ``LISTEN ON`` lands on the
+  control socket; cfg-block keywords like ``BW2300`` get
+  forwarded to the TNC verbatim.
+- **ARDOP** (``test_ardop.py``): same wire shape as VARA — reuses
+  the VaraModem helper.  Locks in the post-INIT-script
+  ``LISTEN TRUE`` (vs VARA's ``LISTEN ON``).
+- **FLDigi/FLARQ** (``test_fldigi.py`` + ``helpers/fldigi_modem.py``):
+  two non-adjacent sockets (ARQ at ``port``, XML-RPC at
+  ``port + 40``).  Cfg requires ``ARQMODE`` to disable default
+  KISS/UDP path.  XML-RPC poll fires every second post-connect
+  (visible as ``POST /RPC2 HTTP/1.1`` on the control socket).
+- **KAM-Pactor** (``test_kam_pactor.py``): serial via PTY;
+  driver opens the slave node and starts the term-mode
+  initialisation state machine — observable as a CR probe / 
+  the ``\xC0Q\xC0`` timeout retry on the master end.
+- **HSMODEM** (``test_hsmodem.py`` + ``helpers/udp_listener.py``):
+  UDP-attached.  Linbpq sends a 260-byte poll datagram (first
+  byte 0x3c, NodeCall in payload) every ~2s to the configured
+  ``ADDR`` port; lock that in.  Found
+  [issue #6](https://github.com/M0LTE/linbpq/issues/6) — the
+  driver SIGSEGVs without ``CAPTURE`` / ``PLAYBACK`` set
+  (``SendPoll`` ``strcpy``s NULL).
+- **WinRPR** (``test_winrpr.py``): single-socket TCP dial-out
+  canary — the SCS-Tracker reply protocol isn't simulated, so
+  we only confirm the connect lands.
+
+Still open: AEAPactor, MULTIPSK, SCSPactor, SCSTracker, HALDriver
+each need their own simulator (variants of the serial / TCP
+patterns we already have) — none are required by GB7RDG's cfg or
+M0LTE's deployment, so they're lower priority.
 
 ## Repository layout
 
