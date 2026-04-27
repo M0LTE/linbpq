@@ -150,9 +150,12 @@ test docstrings for spec links and per-feature notes.
   `conftest.py`'s `pytest_collection_modifyitems` sorts the
   marker to the front of the xdist queue so it runs in parallel
   with the rest of the suite, not at the end.
-- **OBJECT / APRSPath details** — keywords inside the APRSDIGI
-  block parse cleanly but the resulting object beacons aren't
-  observed on any port.
+- ~~**OBJECT / APRSPath details**~~ — done in
+  `test_long_runtime_aprs_object.py`.  Single ``OBJECT`` line in an
+  APRSDIGI block fires its first UI beacon at ~30 s
+  (APRSCode.c:1811: ``Timer = ObjectCount * 10 + 30``); test reads
+  KISS frames from a PTY-backed RF port, asserts the body and the
+  AX.25 destination ``APBPQ1`` (default ``APRSDest``).
 - **`FRACK` / `RESPTIME` per-port round-trips** — non-trivial
   scaling we haven't modelled; tests skipped with docstring
   notes rather than pinning a fragile invariant.
