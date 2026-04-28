@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<html><body align=center background='/background.jpg'><script>function myFunction() {var x = document.getElementById('Sel').value;var Key = "%s";var param = "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=no,resizable=no,titlebar=no,toobar=no";window.open("/WebMail/DoSelect" + '?' + Key + '&' + x,'_self');}</script><div align=center>%s<br><br><table border=1 cellpadding=2 bgcolor=white><tr><td><select size=%d id='Sel' size=10 onclick=myFunction()>

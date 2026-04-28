@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<html><body align=center background='/background.jpg'><script>function myFunction() {var x = document.getElementById('Sel').value;var Key = "%s";var param = "toolbar=yes,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,titlebar=yes,toobar=yes";window.open("/WebMail/GetDownLoad" + '?' + Key + '&' + x,'_self', param);}</script><div align=center>Note files over 100K long can't be downloaded<br><br><table border=1 cellpadding=2 bgcolor=white><tr><td><select size=%d id='Sel' size=10 onclick=myFunction()>

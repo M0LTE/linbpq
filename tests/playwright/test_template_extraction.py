@@ -132,6 +132,19 @@ EXTRACTED_TEMPLATES = (
     ("Page.txt",             1, "HTTPcode.c::SendRigWebPage local Page[]"),
     ("RigLine.txt",          1, "HTTPcode.c::SendRigWebPage local RigLine[]"),
     ("RigCtlTail.txt",       1, "HTTPcode.c::SendRigWebPage local Tail[] (renamed RigCtlTail)"),
+    # --- Phase 5: WebMail.c ---
+    ("WebMailSignon.txt",    1, "WebMail.c::WebMailSignon[]"),
+    ("MsgInputPage.txt",     1, "WebMail.c::MsgInputPage[]"),
+    ("CheckFormMsgPage.txt", 1, "WebMail.c::CheckFormMsgPage[]"),
+    ("XMLHeader.txt",        1, "WebMail.c::XMLHeader[]"),
+    ("XMLLine.txt",          1, "WebMail.c::XMLLine[]"),
+    ("XMLTrailer.txt",       1, "WebMail.c::XMLTrailer[]"),
+    ("WebSockPage.txt",      1, "WebMail.c::WebSockPage[]"),
+    ("MoveListPopup.txt",    1, "WebMail.c::ProcessWebMailMessage popuphddr (renamed)"),
+    ("TemplateSelectPopup.txt", 1, "WebMail.c::SendTemplateSelectScreen popuphddr (renamed)"),
+    ("NewGroup.txt",         1, "WebMail.c::SendTemplateSelectScreen NewGroup[]"),
+    ("SelectPromptPopup.txt", 1, "WebMail.c::DoSelectPrompt popuphddr (renamed)"),
+    ("AttachmentListPopup.txt", 1, "WebMail.c::getAttachmentList popuphddr (renamed)"),
 )
 
 

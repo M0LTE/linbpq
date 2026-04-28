@@ -37,6 +37,7 @@ int APIENTRY SessionControl(int stream, int command, int param);
 int SetupNodeMenu(char * Buff);
 VOID SetMultiStringValue(char ** values, char * Multi);
 char * GetTemplateFromFile(int Version, char * FN);
+void LoadTemplates_WebMail(void);
 VOID FormatTime(char * Time, time_t cTime);
 struct MsgInfo * GetMsgFromNumber(int msgno);
 BOOL CheckUserMsg(struct MsgInfo * Msg, char * Call, BOOL SYSOP);
@@ -118,65 +119,23 @@ struct HtmlFormDir
 
 char FormDirList[4][MAX_PATH] = {"Standard_Templates", "Standard Templates", "Local_Templates"};
 
-static char PassError[] = "<p align=center>Sorry, User or Password is invalid - please try again</p>";
-static char BusyError[] = "<p align=center>Sorry, No sessions available - please try later</p>";
+// (Previously had unused ``static char PassError[] / BusyError[]``
+// duplicates of the BBSHTMLConfig.c versions; removed during HTML
+// extraction sweep — grep confirmed no callers in this file.)
 
 extern char * MailSignon;  // moved from inline array — see BBSHTMLConfig.c
 
-char WebMailSignon[] = "<html><head><title>BPQ32 Mail Server Access</title></head><body background='/background.jpg'>"
-	"<h3 align=center>BPQ32 Mail Server %s Access</h3>"
-	"<h3 align=center>Please enter Callsign and Password to access WebMail</h3>"
-	"<form method=post action=/WebMail/Signon>"
-	"<table align=center  bgcolor=white>"
-	"<tr><td>User</td><td><input type=text name=user tabindex=1 size=20 maxlength=50 /></td></tr>" 
-	"<tr><td>Password</td><td><input type=password name=password tabindex=2 size=20 maxlength=50 /></td></tr></table>"  
-	"<p align=center><input type=submit class='btn' value=Submit /><input type=submit class='btn' value=Cancel name=Cancel /></form>";
 
-static char MsgInputPage[] = "<html><head><meta content=\"text/html; charset=UTF-8\" http-equiv=\"content-type\">"
-	"<title></title><script src='/WebMail/webscript.js'></script>"
-	"<style type=\"text/css\">"
-	"input.btn:active {background:black;color:white;} "
-	"submit.btn:active {background:black;color:white;} "
-	"</style>"
-	"</head>"
-	"<body background=/background.jpg onload='initialize(185)' onresize='initialize(185)'>"
-	"<h3 align=center>Webmail Interface - Message Input Form</h3>"
-	"<form align=center id=myform style=\"font-family: monospace; \" method=post action=/WebMail/EMSave\?%s enctype=multipart/form-data>"
-	"<div style='text-align: center;'><div style='display: inline-block;'><span style='display:block; text-align: left;'>"
-	"To &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input size=60 id='To' name='To' value='%s'>%s<br>"
-	"Subject <input size=60 id='Subj' name='Subj' value=\"%s\"> &nbsp; &nbsp; &nbsp;"
-//	"<button onclick='document.getElementById('getFile').click()'>Attach Files</button>"
-//	"<input type='file' id='getFile' name='myFile[]' multiple style='display:none'><br>"
-	"<label for='myfile'>Attachments </label><input type='file'   name='myFile[]' multiple>"
-	"<br>Type &nbsp;&nbsp;&nbsp;"
-	"<select tabindex=1 size=1 name=Type><option value=P>P</option>"
-	"<option value=B>B</option><option value=T>T</option></select>"
-	" BID <input name=BID><br><label for='myfile2'>Header &nbsp;</label>"
-	"<input type='file' name='myFile2[]' style='width: 220px'>"
-	"<label for='myfile3'> Footer </label><input type='file' name='myFile3[]'>"
-	"</span></div>"
-	"<textarea id='main' name=Msg style='overflow:auto;'>%s</textarea><br>"
-	"<input name=Send value=Send type=submit class='btn'> <input name=Cancel value=Cancel type=submit class='btn'></div></form>";
+static char * WebMailSignon = NULL;
 
-static char CheckFormMsgPage[] = "<html><head><meta content=\"text/html; charset=UTF-8\" http-equiv=\"content-type\">"
-	"<title></title><script src='/WebMail/webscript.js'></script></head>"
-	"<body background=/background.jpg onload='initialize(210)' onresize='initialize(210)'>"
-	"<h3 align=center>Webmail Forms Interface - Check Message</h3>"
-	"<form align=center id=myform style=\"font-family: monospace; \"method=post action=/WebMail/FormMsgSave\?%s>"
 
-	"<div style='text-align: center;'><div style='display: inline-block;'><span style='display:block; text-align: left;'>"
-	"To &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input size=60 id='To' name='To' value='%s'><br>"
-	"CC &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input size=60 id='CC' name='CC' value='%s'><br>"
-	"Subject <input size=60 id='Subj' name='Subj' value='%s'>"
-//"<input type='file' name='myFile' multiple>"
-	"<br>Type &nbsp;&nbsp;&nbsp;"
-	"<select tabindex=1 size=1 name=Type><option value=P %s>P</option>"
-	"<option value=B %s>B</option><option value=T %s>T</option></select>"
-	" BID <input name=BID value='%s'><br><br>"
-	"</span></div>"
 
-	"<textarea id='main' name=Msg style='overflow:auto;'>%s</textarea><br>"
-	"<input name=Send value=Send type=submit class='btn'><input name=Cancel value=Cancel type=submit class='btn'></div></form>";
+static char * MsgInputPage = NULL;
+
+
+
+static char * CheckFormMsgPage = NULL;
+
 
 
 extern char * WebMailTemplate;
@@ -1427,6 +1386,8 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 	int ReplyLen;
 	char Appl = 'M';
 
+	LoadTemplates_WebMail();
+
 	// Webmail doesn't use the normal Mail Key.
 
 	// webscript.js doesn't need a key
@@ -1935,86 +1896,10 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 
 		char Page[4096];
 
-		char WebSockPage[] =
-			"<!-- Version 6 8/11/2018 -->\r\n"
-			"<!DOCTYPE html> \r\n"
-			"<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\"> \r\n"
-			"<head> \r\n"
-			"<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"/> \r\n"
-			"<style type=\"text/css\">\r\n"
-			"pre {margin-left: 4px;white-space: pre} \r\n"
-			"#main{width:700px;position:absolute;left:0px;border:2px solid;background-color: #ffffff;}\r\n"
-			"</style>\r\n"
-			"<script src=\"/WebMail/webscript.js\"></script>\r\n"
 
-			"<script type = \"text/javascript\">\r\n"
-			"var ws;"
-			"function Init()"
-			"{"
-			" if (\"WebSocket\" in window)"
-			" {"
-			"   // open a web socket. Get address from URL\r\n"
-			"	var text = window.location.href;"
-			"	var result = text.substring(7);"
-			"	var myArray = result.split('/', 1);"
-			"   ws = new WebSocket('ws://' + myArray[0] + '/WMRefresh&%s');\r\n"
+  static char * WebSockPage = NULL;
+  if (!WebSockPage) WebSockPage = GetTemplateFromFile(1, "WebSockPage.txt");
 
-			"   ws.onopen = function() {\r\n"
-
-			"   // Web Socket is connected\r\n"
-
-			"	const div = document.getElementById('main');\r\n"
-			"	div.innerHTML = 'Websock Connected'\r\n"
-			"   ws.send('WMRefresh&%s');"
-			"    };\r\n"
-
-			"   ws.onmessage = function (evt)"
-			"   {"
-			"     var received_msg = evt.data;\r\n"
-			"	  const div = document.getElementById('main');\r\n"
-			"	  div.innerHTML = received_msg\r\n"
-			"     };"
-
-			"   ws.onclose = function()"
-			"   {"
-
-			"    // websocket is closed.\r\n"
-			"	 const div = document.getElementById('main');\r\n"
-			"	 div.innerHTML = 'Websock Connection Lost';\r\n"
-			"    };"
-			"  initialize(120);"
-			" }"
-			" else"
-			" {"
-			"  // The browser doesn't support WebSocket\r\n"
-			"	const div = document.getElementById('main');\r\n"
-			"	div.innerHTML = 'WebSocket not supported by your Browser - AutoRefresh not availble'\r\n"
-			" }"
-			"}"
-
-			"</script>\r\n"
-			"<title>WebMail</title> \r\n"
-			"</head>\r\n"
-
-			"<body background=/background.jpg onload=Init() onresize=initialize(120)>\r\n"
-			"<h3 align=center> %s Webmail Interface - User %s - Message List</h3>\r\n"
-			"<table align=center border=1 cellpadding=2 bgcolor=white><tr>\r\n"
-			"\r\n"
-			"<td><a href=/WebMail/WMB?%s>Bulls</a></td>\r\n"
-			"<td><a href=/WebMail/WMP?%s>Personal</a></td>\r\n"
-			"<td><a href=/WebMail/WMT?%s>NTS</a></td>\r\n"
-			"<td><a href=/WebMail/WMALL?%s>All Types</a></td>\r\n"
-			"<td><a href=/WebMail/WMMine?%s>Mine</a></td>\r\n"
-			"<td><a href=/WebMail/WMfromMe?%s>My Sent</a></td>\r\n"
-			"<td><a href=/WebMail/WMtoMe?%s>My Rxed</a></td>\r\n"
-			"<td><a href=/WebMail/WMAuto?%s>Auto Refresh</a></td>\r\n"
-			"<td><a href=\"#\" onclick=\"newmsg('%s'); return false;\">Send Message</a></td>\r\n"
-			"<td><a href=/WebMail/WMLogout?%s>Logout</a></td>\r\n"
-			"<td><a href=/>Node Menu</a></td></tr></table>\r\n"
-			"<br>\r\n"
-
-			"<div align=left id=main style=overflow:scroll;>Waiting for data...</div>\r\n"
-			"</body></html>\r\n";
 
 		sprintf(Page, WebSockPage, Key, Key ,BBSName, Session->User->Call, Key, Key, Key, Key, Key, Key, Key, Key, Key, Key);
 
@@ -2369,18 +2254,10 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 		int SubDirNo = 0;
 		char popup[10000]; 
 
-		char popuphddr[] = 
-			
-			"<html><body align=center background='/background.jpg'>"
-			"<script>function myFunction() {var x = document.getElementById(\"mySelect\").value;"
-			"var Key = \"%s\";"
-			"var param = \"toolbar=yes,location=yes,directories=yes,status=yes,menubar,=scrollbars=yes,resizable=yes,titlebar=yes,toobar=yes\";"
-			"window.open(\"/WebMail/GetPage/\" + x + \"?\" + Key,\"_self\",param);"
-			"}</script>"
-			"<p align=center>"
-			"Select Required Template from %s<br><br>"
-			"<select size=15 id=\"mySelect\" onclick=\"myFunction()\">"
-			"<option value=-1>No Page Selected";
+
+  static char * MoveListPopup = NULL;
+  if (!MoveListPopup) MoveListPopup = GetTemplateFromFile(1, "MoveListPopup.txt");
+
 			
 		struct HtmlFormDir * Dir;
 		int i;
@@ -2405,9 +2282,9 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 		Dir = HtmlFormDirs[DirNo];
 
 		if (SubDir)
-			len = sprintf(popup, popuphddr, Key, Dir->Dirs[SubDirNo]->DirName);
+			len = sprintf(popup, MoveListPopup, Key, Dir->Dirs[SubDirNo]->DirName);
 		else
-			len = sprintf(popup, popuphddr, Key, Dir->DirName);
+			len = sprintf(popup, MoveListPopup, Key, Dir->DirName);
 
 		if (SubDir)
 		{
@@ -2471,28 +2348,15 @@ VOID SendTemplateSelectScreen(struct HTTPConnectionInfo * Session, char *Params,
 {
 	// Save any supplied message fields and Send HTML Template dropdown list
 
-	char popuphddr[] = 
-			
-		"<html><body align=center background='/background.jpg'>"
-		"<script>"
-		"function myFunction(val) {var x = document.getElementById(val).value;"
-		"var Key = \"%s\";"
-		"var param = \"toolbar=yes,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,titlebar=yes,toobar=yes\";"
-		"window.open(\"/WebMail/GetList/\" + x + \"?\" + Key,\"_self\",param);"
-		"}"
-		"</script>"
-		"<p align=center>"
-		" Select Required Template Folder from List<br><br>"
-		"<table border=1 cellpadding=2 bgcolor=white>"
-		"<tr>"
-		"<th>Standard Templates</th>"
-		"<th>Local Templates</th>"
-		"</tr>"
-		"<tr><td width=50%%><select size=15 id=\"Sel1\" onclick=\"myFunction('Sel1')\">";
 
-	char NewGroup [] =
-		"</select></td><td width=50%% align=center>"
-		"<select size=15 id=Sel2 onclick=\"myFunction('Sel2')\">";
+ static char * TemplateSelectPopup = NULL;
+ if (!TemplateSelectPopup) TemplateSelectPopup = GetTemplateFromFile(1, "TemplateSelectPopup.txt");
+
+
+
+ static char * NewGroup = NULL;
+ if (!NewGroup) NewGroup = GetTemplateFromFile(1, "NewGroup.txt");
+
 
 	char popup[10000];
 	struct HtmlFormDir * Dir;
@@ -2548,7 +2412,7 @@ VOID SendTemplateSelectScreen(struct HTTPConnectionInfo * Session, char *Params,
 
 	// Also to active fields in case not changed by form
 
-	len = sprintf(popup, popuphddr, Session->Key);
+	len = sprintf(popup, TemplateSelectPopup, Session->Key);
 
 	LastGroup = HtmlFormDirs[0]->FormSet;		// Save so we know when changes
 
@@ -4980,33 +4844,30 @@ void ProcessFormInput(struct HTTPConnectionInfo * Session, char * input, char * 
 
 // XML Template Stuff
 
-char XMLHeader [] = 
-	"<?xml version=\"1.0\"?>\r\n"
-	"<RMS_Express_Form>\r\n"
-	" <form_parameters>\r\n"
-	" <xml_file_version>%s</xml_file_version>\r\n"
-	" <rms_express_version>%s</rms_express_version>\r\n"
-	" <submission_datetime>%s</submission_datetime>\r\n"
-	" <senders_callsign>%s</senders_callsign>\r\n"
-	" <grid_square>%s</grid_square>\r\n"
-	" <display_form>%s</display_form>\r\n"
-	" <reply_template>%s</reply_template>\r\n"
-	" </form_parameters>\r\n"
-	"<variables>\r\n"
-	" <msgto>%s</msgto>\r\n"
-    " <msgcc>%s</msgcc>\r\n"
-    " <msgsender>%s</msgsender>\r\n"
-    " <msgsubject>%s</msgsubject>\r\n"
-    " <msgbody>%s</msgbody>\r\n"
-    " <msgp2p>%s</msgp2p>\r\n"
-    " <msgisreply>%s</msgisreply>\r\n"
-    " <msgisforward>%s</msgisforward>\r\n"
-    " <msgisacknowledgement>%s</msgisacknowledgement>\r\n";
+
+static char * XMLHeader = NULL;
 
 
-char XMLLine[] = " <%s>%s</%s>\r\n";
 
-char XMLTrailer[] = "</variables>\r\n</RMS_Express_Form>\r\n";
+
+static char * XMLLine = NULL;
+
+
+
+static char * XMLTrailer = NULL;
+
+
+void LoadTemplates_WebMail(void)
+{
+	// Generated — load every file-scope template once.
+	if (!WebMailSignon) WebMailSignon = GetTemplateFromFile(1, "WebMailSignon.txt");
+	if (!MsgInputPage) MsgInputPage = GetTemplateFromFile(1, "MsgInputPage.txt");
+	if (!CheckFormMsgPage) CheckFormMsgPage = GetTemplateFromFile(1, "CheckFormMsgPage.txt");
+	if (!XMLHeader) XMLHeader = GetTemplateFromFile(1, "XMLHeader.txt");
+	if (!XMLLine) XMLLine = GetTemplateFromFile(1, "XMLLine.txt");
+	if (!XMLTrailer) XMLTrailer = GetTemplateFromFile(1, "XMLTrailer.txt");
+}
+
 
 char * doXMLTransparency(char * string)
 {
@@ -5650,19 +5511,10 @@ BOOL DoSelectPrompt(struct HTTPConnectionInfo * Session, char * Select)
 {
 	// Send a Popup window to select value. Reply handling code will update template then reenter ParsetxtTemplate
 
-	char popuphddr[] = 
-			
-		"<html><body align=center background='/background.jpg'>"
-		"<script>"
-		"function myFunction() {var x = document.getElementById('Sel').value;"
-		"var Key = \"%s\";"
-		"var param = \"toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=no,resizable=no,titlebar=no,toobar=no\";"
-		"window.open(\"/WebMail/DoSelect\" + '?' + Key + '&' + x,'_self');"
-		"}"
-		"</script>"
-		"<div align=center>%s<br><br>"
-		"<table border=1 cellpadding=2 bgcolor=white>"
-		"<tr><td><select size=%d id='Sel' size=10 onclick=myFunction()>";
+
+ static char * SelectPromptPopup = NULL;
+ if (!SelectPromptPopup) SelectPromptPopup = GetTemplateFromFile(1, "SelectPromptPopup.txt");
+
 	
 
 	char popup[10000];
@@ -5740,7 +5592,7 @@ BOOL DoSelectPrompt(struct HTTPConnectionInfo * Session, char * Select)
 		ptr = ptr1;
 	}
 
-	len = sprintf(popup, popuphddr, Session->Key, prompt, vars + 1);
+	len = sprintf(popup, SelectPromptPopup, Session->Key, prompt, vars + 1);
 
 	for (i = 0; i < vars; i++)
 	{
@@ -6293,26 +6145,17 @@ VOID DownloadAttachments(struct HTTPConnectionInfo * Session, char * Reply, int 
 
 VOID getAttachmentList(struct HTTPConnectionInfo * Session, char * Reply, int * RLen, char * Rest)
 {
-	char popuphddr[] = 
-			
-		"<html><body align=center background='/background.jpg'>"
-		"<script>"
-		"function myFunction() {var x = document.getElementById('Sel').value;"
-		"var Key = \"%s\";"
-		"var param = \"toolbar=yes,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,titlebar=yes,toobar=yes\";"
-		"window.open(\"/WebMail/GetDownLoad\" + '?' + Key + '&' + x,'_self', param);"
-		"}"
-		"</script>"
-		"<div align=center>Note files over 100K long can't be downloaded<br><br>"
-		"<table border=1 cellpadding=2 bgcolor=white>"
-		"<tr><td><select size=%d id='Sel' size=10 onclick=myFunction()>";
+
+ static char * AttachmentListPopup = NULL;
+ if (!AttachmentListPopup) AttachmentListPopup = GetTemplateFromFile(1, "AttachmentListPopup.txt");
+
 
 	char popup[10000];
 	int i;
 	WebMailInfo * WebMail = Session->WebMail;
 	int len;
 
-	len = sprintf(popup, popuphddr, Session->Key, WebMail->Files);
+	len = sprintf(popup, AttachmentListPopup, Session->Key, WebMail->Files);
 
 	for (i = 0; i < WebMail->Files; i++)
 	{

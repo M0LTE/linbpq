@@ -1,0 +1,49 @@
+<!-- Version 1 -->
+<!-- Version 6 8/11/2018 -->
+<!DOCTYPE html> 
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"> 
+<head> 
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/> 
+<style type="text/css">
+pre {margin-left: 4px;white-space: pre} 
+#main{width:700px;position:absolute;left:0px;border:2px solid;background-color: #ffffff;}
+</style>
+<script src="/WebMail/webscript.js"></script>
+<script type = "text/javascript">
+var ws;function Init(){ if ("WebSocket" in window) {   // open a web socket. Get address from URL
+	var text = window.location.href;	var result = text.substring(7);	var myArray = result.split('/', 1);   ws = new WebSocket('ws://' + myArray[0] + '/WMRefresh&%s');
+   ws.onopen = function() {
+   // Web Socket is connected
+	const div = document.getElementById('main');
+	div.innerHTML = 'Websock Connected'
+   ws.send('WMRefresh&%s');    };
+   ws.onmessage = function (evt)   {     var received_msg = evt.data;
+	  const div = document.getElementById('main');
+	  div.innerHTML = received_msg
+     };   ws.onclose = function()   {    // websocket is closed.
+	 const div = document.getElementById('main');
+	 div.innerHTML = 'Websock Connection Lost';
+    };  initialize(120); } else {  // The browser doesn't support WebSocket
+	const div = document.getElementById('main');
+	div.innerHTML = 'WebSocket not supported by your Browser - AutoRefresh not availble'
+ }}</script>
+<title>WebMail</title> 
+</head>
+<body background=/background.jpg onload=Init() onresize=initialize(120)>
+<h3 align=center> %s Webmail Interface - User %s - Message List</h3>
+<table align=center border=1 cellpadding=2 bgcolor=white><tr>
+
+<td><a href=/WebMail/WMB?%s>Bulls</a></td>
+<td><a href=/WebMail/WMP?%s>Personal</a></td>
+<td><a href=/WebMail/WMT?%s>NTS</a></td>
+<td><a href=/WebMail/WMALL?%s>All Types</a></td>
+<td><a href=/WebMail/WMMine?%s>Mine</a></td>
+<td><a href=/WebMail/WMfromMe?%s>My Sent</a></td>
+<td><a href=/WebMail/WMtoMe?%s>My Rxed</a></td>
+<td><a href=/WebMail/WMAuto?%s>Auto Refresh</a></td>
+<td><a href="#" onclick="newmsg('%s'); return false;">Send Message</a></td>
+<td><a href=/WebMail/WMLogout?%s>Logout</a></td>
+<td><a href=/>Node Menu</a></td></tr></table>
+<br>
+<div align=left id=main style=overflow:scroll;>Waiting for data...</div>
+</body></html>

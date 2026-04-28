@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<html><body align=center background='/background.jpg'><script>function myFunction() {var x = document.getElementById("mySelect").value;var Key = "%s";var param = "toolbar=yes,location=yes,directories=yes,status=yes,menubar,=scrollbars=yes,resizable=yes,titlebar=yes,toobar=yes";window.open("/WebMail/GetPage/" + x + "?" + Key,"_self",param);}</script><p align=center>Select Required Template from %s<br><br><select size=15 id="mySelect" onclick="myFunction()"><option value=-1>No Page Selected

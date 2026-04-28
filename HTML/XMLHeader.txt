@@ -1,0 +1,22 @@
+<!-- Version 1 -->
+<?xml version="1.0"?>
+<RMS_Express_Form>
+ <form_parameters>
+ <xml_file_version>%s</xml_file_version>
+ <rms_express_version>%s</rms_express_version>
+ <submission_datetime>%s</submission_datetime>
+ <senders_callsign>%s</senders_callsign>
+ <grid_square>%s</grid_square>
+ <display_form>%s</display_form>
+ <reply_template>%s</reply_template>
+ </form_parameters>
+<variables>
+ <msgto>%s</msgto>
+ <msgcc>%s</msgcc>
+ <msgsender>%s</msgsender>
+ <msgsubject>%s</msgsubject>
+ <msgbody>%s</msgbody>
+ <msgp2p>%s</msgp2p>
+ <msgisreply>%s</msgisreply>
+ <msgisforward>%s</msgisforward>
+ <msgisacknowledgement>%s</msgisacknowledgement>

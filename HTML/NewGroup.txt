@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+</select></td><td width=50%% align=center><select size=15 id=Sel2 onclick="myFunction('Sel2')">
