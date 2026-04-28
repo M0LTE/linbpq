@@ -171,3 +171,106 @@ def webmail_signon(port: int, mail_key: str) -> str:
     if match:
         return match.group(1).decode("ascii")
     return mail_key
+
+
+def add_bbs_user(port: int, key: str, callsign: str) -> None:
+    """Seed a BBS user via ``POST /Mail/UserSave`` with
+    ``Add=<callsign>``.  Requires an active mail session key.
+    Idempotent — re-adding an existing call is a no-op server-side.
+    """
+    status, body = http_post(
+        port,
+        f"/Mail/UserSave?{key}",
+        f"Add={callsign}".encode("ascii"),
+    )
+    if not status_ok(status):
+        raise RuntimeError(
+            f"add_bbs_user({callsign}) failed: {status!r}: {body[:200]!r}"
+        )
+
+
+def fetch_user_list(port: int, key: str) -> list[str]:
+    """``POST /Mail/UserList.txt`` — returns the BBS user list as
+    a list of callsigns.  The endpoint replies with a ``|``-
+    separated list followed by an HTML version trailer.
+    """
+    status, body = http_post(port, f"/Mail/UserList.txt?{key}", b"")
+    if not status_ok(status):
+        raise RuntimeError(
+            f"fetch_user_list failed: {status!r}: {body[:200]!r}"
+        )
+    # Body looks like: ``CALL1|CALL2|CALL3|...|<!-- Version 1 -->\n</body></html>``
+    # Strip the HTML trailer; the remainder is pipe-separated calls.
+    text = body.split(b"<!--", 1)[0].rstrip(b"|").decode("ascii", "replace")
+    return [c for c in text.split("|") if c]
+
+
+def send_bbs_message_via_telnet(
+    telnet_port: int,
+    sender_user: str,
+    sender_pass: str,
+    *,
+    to: str,
+    subject: str,
+    body_lines: list[str],
+    timeout: float = 1.5,
+) -> None:
+    """Connect to the BBS via telnet, log in, send a message
+    using ``S TO:RECIPIENT``, and disconnect cleanly.
+
+    Used by the seeded fixture to populate the BBS message store
+    without poking at file formats directly.
+
+    The whole sequence runs with short read timeouts and sleep-
+    based pacing; on a normal local boot the full exchange takes
+    well under a second.  If the BBS prompts diverge from what we
+    expect, the helper still completes — it just doesn't know
+    whether the message went through.
+    """
+    import socket
+    import time
+
+    sock = socket.create_connection(("127.0.0.1", telnet_port), timeout=timeout)
+    try:
+        sock.settimeout(0.3)
+
+        def _drain() -> bytes:
+            buf = b""
+            try:
+                while True:
+                    chunk = sock.recv(8192)
+                    if not chunk:
+                        break
+                    buf += chunk
+            except (TimeoutError, socket.timeout):
+                pass
+            return buf
+
+        def _send(line: str) -> None:
+            sock.sendall(line.encode("ascii") + b"\r")
+            time.sleep(0.1)
+            _drain()
+
+        # Login.  Just blast credentials at the prompt — telnet
+        # negotiation usually settles after the first read.
+        _drain()
+        _send(sender_user)
+        _send(sender_pass)
+        _drain()
+        # Switch to BBS app — first prompt asks for a name (single
+        # word).  Any single-word name works; "Test" is fine.
+        _send("BBS")
+        _send("Test")
+        # Send-message sequence: S <recipient> → "Enter Title:" →
+        # title → "Enter Message Text..." → body → /EX terminator.
+        _send(f"S {to}")
+        _send(subject)
+        for line in body_lines:
+            _send(line)
+        _send("/EX")
+        _send("B")  # Bye
+    finally:
+        try:
+            sock.close()
+        except OSError:
+            pass
