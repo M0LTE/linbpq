@@ -323,6 +323,18 @@ class LinbpqInstance:
     def start(self, ready_timeout: float = 10.0) -> None:
         self.config_path.write_text(self.render_config())
 
+        # Copy the repo's HTML/ template directory into the work
+        # dir so GetTemplateFromFile (HTMLCommonCode.c) resolves
+        # the extracted templates.  Without this, every web-UI
+        # response degrades to "File is missing" stubs.
+        repo_html = Path(LINBPQ_BIN).resolve().parent / "HTML"
+        if repo_html.is_dir():
+            target = self.work_dir / "HTML"
+            target.mkdir(exist_ok=True)
+            for src in repo_html.iterdir():
+                if src.is_file():
+                    (target / src.name).write_bytes(src.read_bytes())
+
         log_fh = self.stdout_path.open("wb")
         self.proc = subprocess.Popen(
             [LINBPQ_BIN, *self.extra_args],

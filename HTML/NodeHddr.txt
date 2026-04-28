@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<center><form method=get action=/Node/Nodes.html><input type=submit class='btn' name=a value="Nodes Sorted by Alias"><input type=submit class='btn' name=c value="Nodes Sorted by Call"><input type=submit class='btn' name=t value="Nodes with traffic"></form></center><h2 align=center>Nodes %s</h2><table style=font-family:monospace align=center border=2 bgcolor=white><tr>

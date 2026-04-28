@@ -67,6 +67,8 @@ unsigned char * Compressit(unsigned char * In, int Len, int * OutLen);
 char * stristr (char *ch1, char *ch2);
 int GetAPRSIcon(unsigned char * _REPLYBUFFER, char * NodeURL);
 char * GetStandardPage(char * FN, int * Len);
+char * GetTemplateFromFile(int Version, char * FN);
+static void LoadTemplates_HTTPcode(void);
 BOOL SHA1PasswordHash(char * String, char * Hash);
 char * byte_base64_encode(char *str, int len);
 int APIProcessHTTPMessage(char * response, char * Method, char * URL, char * request,	BOOL LOCAL, BOOL COOKIE);
@@ -130,13 +132,13 @@ char Mycall[10];
 char MAILPipeFileName[] = "\\\\.\\pipe\\BPQMAILWebPipe";
 char CHATPipeFileName[] = "\\\\.\\pipe\\BPQCHATWebPipe";
 
-char Index[] = "<html><head><title>%s's BPQ32 Web Server</title></head><body><P align=center>"
-"<table border=2 cellpadding=2 cellspacing=2 bgcolor=white>"
-"<tr><td align=center><a href=/Node/NodeMenu.html>Node Pages</a></td>"
-"<td align=center><a href=/aprs>APRS Pages</a></td></tr></table></body></html>";
 
-char IndexNoAPRS[] = "<meta http-equiv=\"refresh\" content=\"0;url=/Node/NodeIndex.html\">"
-"<html><head></head><body></body></html>";
+static char * Index = NULL;
+
+
+
+static char * IndexNoAPRS = NULL;
+
 
 //char APRSBit[] = "<td><a href=../aprs>APRS Pages</a></td>";
 
@@ -144,75 +146,70 @@ char IndexNoAPRS[] = "<meta http-equiv=\"refresh\" content=\"0;url=/Node/NodeInd
 //				 "<td><a href=/Webmail>WebMail</a></td>";
 //char ChatBit[] = "<td><a href=../Chat/Header>Chat Mgmt</a></td>";
 
-char Tail[] = "</body></html>";
-
-char RouteHddr[] = "<h2 align=center>Routes</h2><table align=center border=2 style=font-family:monospace bgcolor=white>"
-"<tr><th>Port</th><th>Call</th><th>Quality</th><th>Node Count</th><th>Frame Count</th><th>Retries</th><th>Percent</th><th>Maxframe</th>"
-"<th>Frack</th><th>Last Heard</th><th>Queued</th><th>Rem Qual</th><th>SRTT</th><th>Rem SRTT</th></tr>";
-
-char RouteLine[] = "<tr><td>%s%d</td><td>%s%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d%</td><td>%d</td><td>%d</td>"
-"<td>%02d:%02d<td>%d</td><td>%d</td></td><td></td><td></td></tr>";
-
-char RouteLineINP3[] = "<tr><td>%s%d</td><td>%s%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d%</td><td>%d</td><td>%d</td>"
-"<td>%02d:%02d</td><td>%d</td><td>%d</td><td>%4.2fs</td><td>%4.2fs</td></tr>";
-
-char xNodeHddr[] = "<align=center><form align=center method=get action=/Node/Nodes.html>"
-"<table align=center  bgcolor=white>"
-"<tr><td><input type=submit class='btn' name=a value=\"Nodes Sorted by Alias\"></td><td>"
-"<input type=submit class='btn' name=c value=\"Nodes Sorted by Call\"></td><td>"
-"<input type=submit class='btn' name=t value=\"Nodes with traffic\"></td></tr></form></table>"
-"<h2 align=center>Nodes %s</h2><table style=font-family:monospace align=center border=2 bgcolor=white><tr>";
-
-char NodeHddr[] = "<center><form method=get action=/Node/Nodes.html>"
-"<input type=submit class='btn' name=a value=\"Nodes Sorted by Alias\">"
-"<input type=submit class='btn' name=c value=\"Nodes Sorted by Call\">"
-"<input type=submit class='btn' name=t value=\"Nodes with traffic\"></form></center>"
-"<h2 align=center>Nodes %s</h2><table style=font-family:monospace align=center border=2 bgcolor=white><tr>";
-
-char NodeLine[] = "<td><a href=NodeDetail?%s>%s:%s</td>";
+char * Tail = NULL;
 
 
-char StatsHddr[] = "<h2 align=center>Node Stats</h2><table align=center cellpadding=2 bgcolor=white>"
-"<col width=250 /><col width=80 /><col width=80 /><col width=80 /><col width=80 /><col width=80 />";
-
-char PortStatsHddr[] = "<h2 align=center>Stats for Port %d</h2><table align=center border=2 cellpadding=2 bgcolor=white>";
-
-char PortStatsLine[] = "<tr><td> %s </td><td> %d </td></tr>";
+static char * RouteHddr = NULL;
 
 
-char Beacons[] = "<h2 align=center>Beacon Configuration for Port %d</h2><h3 align=center>You need to be signed in to save changes</h3><table align=center border=2 cellpadding=2 bgcolor=white>"
-"<form method=post action=BeaconAction>"
-"<table align=center  bgcolor=white>"
-"<tr><td>Send Interval (Minutes)</td><td><input type=text name=Every tabindex=1 size=5 value=%d></td></tr>" 
-"<tr><td>To</td><td><input name=Dest style=\"text-transform:uppercase;\" tabindex=2 size=5 value=%s></td></tr>"  
-"<tr><td>Path</td><td><input type=text name=Path style=\"text-transform:uppercase;\" size=50 maxlength=50 value=%s></td></tr>"
-"<tr><td>Send From File</td><td><input type=text name=File size=50 maxlength=50  value=%s></td></tr>"
-"<tr><td>Text</td><td><textarea name=\"Text\" cols=40 rows=5>%s</textarea></td></tr>"
-"</table>" 
-"<input type=hidden name=Port value=%d>"
 
-"<p align=center><input type=submit class='btn' value=Save><input type=submit class='btn' value=Test name=Test>"
-"</form>";
+static char * RouteLine = NULL;
 
 
-char LinkHddr[] = "<h2 align=center>Links</h2><table align=center border=2 bgcolor=white>"
-"<tr><th>Far Call</th><th>Our Call</th><th>Port</th><th>ax.25 state</th><th>Link Type</th><th>ax.25 Version</th></tr>";
 
-char LinkLine[] = "<tr><td>%s</td><td>%s</td><td>%d</td><td>%s</td><td>%s</td><td align=center >%d</td></tr>";
+static char * RouteLineINP3 = NULL;
 
-char UserHddr[] = "<h2 align=center>Sessions</h2><table align=center border=2 cellpadding=2 bgcolor=white>";
 
-char UserLine[] = "<tr><td>%s</td><td>%s</td><td>%s</td></tr>";
 
-char TermSignon[] = "<html><head><title>BPQ32 Node %s Terminal Access</title></head><body background=\"/background.jpg\">"
-"<h2 align=center>BPQ32 Node %s Terminal Access</h2>"
-"<h3 align=center>Please enter username and password to access the node</h3>"
-"<form method=post action=TermSignon>"
-"<table align=center  bgcolor=white>"
-"<tr><td>User</td><td><input type=text name=user tabindex=1 size=20 maxlength=50 /></td></tr>" 
-"<tr><td>Password</td><td><input type=password name=password tabindex=2 size=20 maxlength=50 /></td></tr></table>"  
-"<p align=center><input type=submit class='btn' value=Submit><input type=submit class='btn' value=Cancel name=Cancel>"
-"<input type=hidden name=Appl value=\"%s\"  id=Pass></form>";
+static char * xNodeHddr = NULL;
+
+
+
+static char * NodeHddr = NULL;
+
+
+
+static char * NodeLine = NULL;
+
+
+
+
+static char * StatsHddr = NULL;
+
+
+
+static char * PortStatsHddr = NULL;
+
+
+
+static char * PortStatsLine = NULL;
+
+
+
+
+static char * Beacons = NULL;
+
+
+
+
+static char * LinkHddr = NULL;
+
+
+
+static char * LinkLine = NULL;
+
+
+
+static char * UserHddr = NULL;
+
+
+
+static char * UserLine = NULL;
+
+
+
+static char * TermSignon = NULL;
+
 
 
 // PassError / BusyError moved to HTML/PassError.txt + HTML/BusyError.txt;
@@ -221,103 +218,57 @@ extern char * PassError;
 extern char * BusyError;
 extern void LoadTemplates_BBSHTMLConfig(void);
 
-char LostSession[] = "<html><body>Sorry, Session had been lost - refresh page to sign in again";
-char NoSessions[] = "<html><body>Sorry, No Sessions available - refresh page to try again";
 
-char TermPage[] = "<!DOCTYPE html><html><meta http-equiv=Content-Type content='text/html; charset=UTF-8' />"
-"<head><title>BPQ32 Node %s</title></head>"
-"<script>function resize(){"
-"var w=window,d=document,e=d.documentElement,g=d.getElementsByTagName('body')[0];"
-"x=w.innerWidth;"
-"y=w.innerHeight;"
-"var txt=document.getElementById('txt');"
-"txt.style.height = y - 150 + 'px';}</script>"
-"<body onload='resize()' onresize='resize()'>"
-"<h3 align=center>BPQ32 Node %s</h3>"
-"<form method=post action=/Node/TermClose?%s>"
-"<p align=center><input type=submit class='btn' value='Close and return to Node Page' /></form>"
-"<iframe style='display:block;' id=txt frameborder=2 marginwidth=0  marginheight=0 src=OutputScreen.html?%s width=100%%></iframe>"
-"<iframe style='display:block;' frameborder=0 marginwidth=0 marginheight=3 src=InputLine.html?%s width=100%% height=45px></iframe>"
-"</body>";
+static char * LostSession = NULL;
 
-char TermOutput[] = "<!DOCTYPE html><html><head>"
-"<meta http-equiv=cache-control content=no-cache>"
-"<meta http-equiv=pragma content=no-cache>"
-"<meta http-equiv=expires content=0>" 
-"<meta http-equiv=refresh content=2>"
-"<script type=\"text/javascript\">\r\n"
-"function ScrollOutput()\r\n"
-"{window.scrollBy(0,document.body.scrollHeight)}</script>"
-"</head><body id=Text>"
-"<div style=\"font-family:monospace;%s>\"";
+
+static char * NoSessions = NULL;
+
+
+
+static char * TermPage = NULL;
+
+
+
+static char * TermOutput = NULL;
+
 
 
 // font-family:monospace;background-color:black;color:lawngreen;font-size:12px
 
-char TermOutputTail[] = "</div><script type=\"text/javascript\">\r\nsetTimeout(ScrollOutput, 1)</script></body></html>";
 
-/*
-char InputLine[] = "<html><head></head><body onload='resize()' onresize='resize()'>"
-"<form name=inputform method=post action=/TermInput?%s>"
-"<script>document.inputform.input.focus();"
-"function resize(){"
-"var w=window,d=document,e=d.documentElement,g=d.getElementsByTagName('body')[0];"
-"x=w.innerWidth;y=w.innerHeight;"
-"var inp=document.getElementById('inp');"
-"inp.style.width =  x + 'px';}</script>"
-"<input id=inp type=text width=100%% name=input /></form>";
-*/
-char InputLine[] = "<!DOCTYPE html><html><head></head><body onload='resize()' onresize='resize()'>"
-"<form name=inputform method=post action=/TermInput?%s>"
-"<input style=\"font-family:monospace;%s>\" id=inp type=text text width=100%% name=input />"
-"<script>document.inputform.input.focus();"
-"function resize(){"
-"var w=window,d=document,e=d.documentElement,g=d.getElementsByTagName('body')[0];"
-"x=w.innerWidth;y=w.innerHeight;"
-"var inp=document.getElementById('inp');"
-"inp.style.width=x-20+'px';}</script></form>";
-
-static char NodeSignon[] = "<html><head><title>BPQ32 Node SYSOP Access</title></head><body background=\"/background.jpg\">"
-"<h3 align=center>BPQ32 Node %s SYSOP Access</h3>"
-"<h3 align=center>This page sets Cookies. Don't continue if you object to this</h3>"
-"<h3 align=center>Please enter Callsign and Password to access the Node</h3>"
-"<form method=post action=/Node/Signon?Node>"
-"<table align=center  bgcolor=white>"
-"<tr><td>User</td><td><input type=text name=user tabindex=1 size=20 maxlength=50 /></td></tr>" 
-"<tr><td>Password</td><td><input type=password name=password tabindex=2 size=20 maxlength=50 /></td></tr></table>"  
-"<p align=center><input type=submit class='btn' value=Submit /><input type=submit class='btn' value=Cancel name=Cancel /></form>";
+static char * TermOutputTail = NULL;
 
 
-static char MailSignon[] = "<html><head><title>BPQ32 Mail Server Access</title></head><body background=\"/background.jpg\">"
-"<h3 align=center>BPQ32 Mail Server %s Access</h3>"
-"<h3 align=center>Please enter Callsign and Password to access the BBS</h3>"
-"<form method=post action=/Mail/Signon?Mail>"
-"<table align=center  bgcolor=white>"
-"<tr><td>User</td><td><input type=text name=user tabindex=1 size=20 maxlength=50 /></td></tr>" 
-"<tr><td>Password</td><td><input type=password name=password tabindex=2 size=20 maxlength=50 /></td></tr></table>"  
-"<p align=center><input type=submit class='btn' value=Submit /><input type=submit class='btn' value=Cancel name=Cancel /></form>";
+// (Older variant of InputLine kept here as a comment for years —
+//  removed during HTML extraction sweep; the active definition
+//  follows.)
 
-static char ChatSignon[] = "<html><head><title>BPQ32 Chat Server Access</title></head><body background=\"/background.jpg\">"
-"<h3 align=center>BPQ32 Chat Server %s Access</h3>"
-"<h3 align=center>Please enter Callsign and Password to access the Chat Server</h3>"
-"<form method=post action=/Chat/Signon?Chat>"
-"<table align=center  bgcolor=white>"
-"<tr><td>User</td><td><input type=text name=user tabindex=1 size=20 maxlength=50 /></td></tr>" 
-"<tr><td>Password</td><td><input type=password name=password tabindex=2 size=20 maxlength=50 /></td></tr></table>"  
-"<p align=center><input type=submit class='btn' value=Submit /><input type=submit class='btn' value=Cancel name=Cancel /></form>";
+static char * InputLine = NULL;
 
 
-static char MailLostSession[] = "<html><body>"
-"<form style=\"font-family: monospace; text-align: center;\" method=post action=/Mail/Lost?%s>"
-"Sorry, Session had been lost<br><br>&nbsp;&nbsp;&nbsp;&nbsp;"
-"<input name=Submit value=Restart type=submit class='btn'> <input type=submit class='btn' value=Exit name=Cancel><br></form>";
+
+static char * NodeSignon = NULL;
 
 
-static char ConfigEditPage[] = "<html><head><meta content=\"text/html; charset=ISO-8859-1\" http-equiv=\"content-type\">"
-"<title>Edit Config</title></head><body background=/background.jpg>"
-"<form style=\"font-family: monospace;  text-align: center;\"method=post action=CFGSave?%s>"
-"<textarea cols=100 rows=25 name=Msg>%s</textarea><br><br>"
-"<input name=Save value=Save type=submit class='btn'><input name=Cancel value=Cancel type=submit class='btn'><br></form>";
+
+
+static char * MailSignon = NULL;
+
+
+
+static char * ChatSignon = NULL;
+
+
+
+
+static char * MailLostSession = NULL;
+
+
+
+
+static char * ConfigEditPage = NULL;
+
 
 static char EXCEPTMSG[80] = "";
 
@@ -863,6 +814,7 @@ int ProcessTermSignon(struct TNCINFO * TNC, SOCKET sock, char * MsgPtr, int MsgL
 	struct TCPINFO * TCP = TNC->TCPInfo;
 
 	LoadTemplates_BBSHTMLConfig();
+	LoadTemplates_HTTPcode();
 
 	if (input)
 	{
@@ -1326,54 +1278,9 @@ int SetupNodeMenu(char * Buff, int LOCAL)
 	struct TNCINFO * TNC;
 	int top = 0, left = 0;
 
-	char NodeMenuHeader[] = "<html id=body><head><title>%s's BPQ32 Web Server</title>"
-	"<style type=\"text/css\">"
-	// The container <div> - needed to position the dropdown content
-	".dropdown {position: relative; display: inline-block;}"
-	// Dropdown Content (Hidden by Default)
-	".dropdown-content {display: none; position: absolute; left: -100px; background-color: #f1f1f1;"
-	" min-width: 120px; border: 1px solid; padding: 4px; z-index: 1;}"
-	// Links inside the dropdown
-	".dropdown-content a {color: black; padding: 2px 2px; display: block;}"
-	// Change color of dropdown links on hover 
-	".dropdown-content a:hover {background-color: #ddd}"
-	// Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button)
-	".show {display:block;}"
-	"input.btn:active {background:black;color:white;} "
-	"submit.btn:active {background:black;color:white;} "
-	"</style>"
 
-	"<script>\r\n"
-
-
-// Close the dropdown menu if the user clicks outside of it
-	"window.onclick = function(event) {console.log(event.target.id);"
-	" if (event.target.id == 'body') {"
-	"  var dropdowns = document.getElementsByClassName('dropdown-content');"
-	"  var i;\r\n"
-	" for (i = 0; i < dropdowns.length; i++) {"
-    "  var openDropdown = dropdowns[i];"
-    "  if (openDropdown.classList.contains('show')) {"
-	"   openDropdown.classList.remove('show');"
-    "  }}}}\r\n"
-
-	"function myShow() {document.getElementById('myDropdown').classList.add('show');}"
-//	"function myHide() {"
-//	" if (event.target.matches('.HTMLBodyElement'))"
-//	"{document.getElementById('myDropdown').classList.remove('show');}}"
-
-
-	"function dev_win(URL,w,h,top,left){"
-		"var ww = \"width=\" + w;"
-		"var xx = \",height=\" + h;"
-		"var yy = \",top=\" + top;"
-		"var zz = \",left=\" + left;"
-		"var param = \"toolbar=no, location=no, directories=no, status=no, "
-		"menubar=no, scrollbars=no, resizable=no, titlebar=no, toobar=no, \" + ww + xx + yy + zz;"
-		"window.open(URL,\"_blank\",param);"
-		"}\r\n"
-	
-	"function open_win(){";
+ static char * NodeMenuHeader = NULL;
+	if (!NodeMenuHeader) NodeMenuHeader = GetTemplateFromFile(1, "NodeMenuHeader.txt");
 
 	char NodeMenuLine[] = "dev_win(\"/Node/Port?%d\",%d,%d,%d,%d);";
 
@@ -1388,35 +1295,25 @@ int SetupNodeMenu(char * Buff, int LOCAL)
 		"<td><a href=/Node/Stats.html>Stats</a></td>"
 		"<td><a href=/Node/Terminal.html>Terminal</a></td>%s%s%s%s%s%s";
 
-	char DriverBit[] = "<td><a href=\"javascript:open_win();\">Driver Windows</a></td>"
-		"<td><a href=javascript:dev_win(\"/Node/Streams\",820,700,200,200);>Stream Status</a></td>";
 
-	char APRSBit[] = "<td><a href=../aprs>APRS Pages</a></td>";
+ static char * DriverBit = NULL;
+	if (!DriverBit) DriverBit = GetTemplateFromFile(1, "DriverBit.txt");
 
-	char MailBit[] = "<td><a href=../Mail/Header>Mail Mgmt</a></td>"
-		"<td><a href=/Webmail>WebMail</a></td>";
+ static char * APRSBit = NULL;
+	if (!APRSBit) APRSBit = GetTemplateFromFile(1, "APRSBit.txt");
 
-	char ChatBit[] = "<td><a href=../Chat/Header>Chat Mgmt</a></td>";
-	char SigninBit[] = "<td><a href=/Node/Signon.html>SYSOP Signin</a></td>";
+ static char * MailBit = NULL;
+	if (!MailBit) MailBit = GetTemplateFromFile(1, "MailBit.txt");
 
-	char NodeTail[] = 
-		"<td><a href=/Node/EditCfg.html>Edit Config</a></td>\
-		<td><div onmouseover=myShow() class='dropdown'>\
-		<button class=\"dropbtn\">View Logs</button>\
-		<div id=\"myDropdown\" class=\"dropdown-content\">\
-		<form id = doDate form action='/node/ShowLog.html'><label>\
-		Select Date: <input type='date' name='date' id=e>\
-		<script>\
-		document.getElementById('e').value = new Date().toISOString().substring(0, 10);\
-		</script></label>\
-		<input type=submit class='btn' name='BBS' value='BBS Log'></br>\
-		<input type=submit class='btn' name='Debug' value='BBS Debug Log'></br>\
-		<input type=submit class='btn' name='Telnet' value='Telnet Log'></br>\
-		<input type=submit class='btn' name='CMS' value='CMS Log'></br>\
-		<input type=submit class='btn' name='Chat' value='Chat Log'></br>\
-		</form></div>\
-		</div>\
-		</td></tr></table>";
+ static char * ChatBit = NULL;
+	if (!ChatBit) ChatBit = GetTemplateFromFile(1, "ChatBit.txt");
+
+ static char * SigninBit = NULL;
+	if (!SigninBit) SigninBit = GetTemplateFromFile(1, "SigninBit.txt");
+
+ static char * NodeTail = NULL;
+	if (!NodeTail) NodeTail = GetTemplateFromFile(1, "NodeTail.txt");
+
 
 
 	Len = sprintf(Buff, NodeMenuHeader, Mycall);
@@ -1609,6 +1506,47 @@ unsigned char * Compressit(unsigned char * In, int Len, int * OutLen)
 }
 
 
+static void LoadTemplates_HTTPcode(void)
+{
+	// Loads every file-scope template once on first call.  Function-
+	// local templates (NodeMenuHeader, DriverBit, APRSBit, MailBit,
+	// ChatBit, SigninBit, NodeTail, PortsHddr, PortLine*, and the
+	// four function-local arrays inside RigControl/ShowLog/AXIP)
+	// load themselves on first use via inline lazy-load — they have
+	// to be function-local because their declarations live inside
+	// the functions that use them.
+	if (!Index) Index = GetTemplateFromFile(1, "Index.txt");
+	if (!IndexNoAPRS) IndexNoAPRS = GetTemplateFromFile(1, "IndexNoAPRS.txt");
+	if (!RouteHddr) RouteHddr = GetTemplateFromFile(1, "RouteHddr.txt");
+	if (!RouteLine) RouteLine = GetTemplateFromFile(1, "RouteLine.txt");
+	if (!RouteLineINP3) RouteLineINP3 = GetTemplateFromFile(1, "RouteLineINP3.txt");
+	if (!xNodeHddr) xNodeHddr = GetTemplateFromFile(1, "xNodeHddr.txt");
+	if (!NodeHddr) NodeHddr = GetTemplateFromFile(1, "NodeHddr.txt");
+	if (!NodeLine) NodeLine = GetTemplateFromFile(1, "NodeLine.txt");
+	if (!StatsHddr) StatsHddr = GetTemplateFromFile(1, "StatsHddr.txt");
+	if (!PortStatsHddr) PortStatsHddr = GetTemplateFromFile(1, "PortStatsHddr.txt");
+	if (!PortStatsLine) PortStatsLine = GetTemplateFromFile(1, "PortStatsLine.txt");
+	if (!Beacons) Beacons = GetTemplateFromFile(1, "Beacons.txt");
+	if (!LinkHddr) LinkHddr = GetTemplateFromFile(1, "LinkHddr.txt");
+	if (!LinkLine) LinkLine = GetTemplateFromFile(1, "LinkLine.txt");
+	if (!UserHddr) UserHddr = GetTemplateFromFile(1, "UserHddr.txt");
+	if (!UserLine) UserLine = GetTemplateFromFile(1, "UserLine.txt");
+	if (!TermSignon) TermSignon = GetTemplateFromFile(1, "TermSignon.txt");
+	if (!LostSession) LostSession = GetTemplateFromFile(1, "LostSession.txt");
+	if (!NoSessions) NoSessions = GetTemplateFromFile(1, "NoSessions.txt");
+	if (!TermPage) TermPage = GetTemplateFromFile(1, "TermPage.txt");
+	if (!TermOutput) TermOutput = GetTemplateFromFile(1, "TermOutput.txt");
+	if (!TermOutputTail) TermOutputTail = GetTemplateFromFile(1, "TermOutputTail.txt");
+	if (!InputLine) InputLine = GetTemplateFromFile(1, "InputLine.txt");
+	if (!NodeSignon) NodeSignon = GetTemplateFromFile(1, "NodeSignon.txt");
+	if (!MailSignon) MailSignon = GetTemplateFromFile(1, "MailSignon.txt");
+	if (!ChatSignon) ChatSignon = GetTemplateFromFile(1, "ChatSignon.txt");
+	if (!MailLostSession) MailLostSession = GetTemplateFromFile(1, "MailLostSession.txt");
+	if (!ConfigEditPage) ConfigEditPage = GetTemplateFromFile(1, "ConfigEditPage.txt");
+	if (!Tail) Tail = GetTemplateFromFile(1, "Tail.txt");
+}
+
+
 int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 {
 	struct TCPINFO * TCP = conn->TNC->TCPInfo;
@@ -1622,10 +1560,10 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 	struct HTTPConnectionInfo * sockptr = &CI;
 	struct HTTPConnectionInfo * Session = NULL;
 
-	// Make sure HTML/* templates referenced by the BBSHTMLConfig.c
-	// arrays (PassError, BusyError, MailSignon, etc.) are loaded
-	// before any code path that uses them in this request.
+	// Make sure HTML/* templates are loaded before any code path
+	// that uses them in this request.
 	LoadTemplates_BBSHTMLConfig();
+	LoadTemplates_HTTPcode();
 
 	char URL[100000];
 	char * ptr;
@@ -1647,27 +1585,27 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 	int Len;
 	char * WebSock = 0;
 
-	char PortsHddr[] = "<h2 align=center>Ports</h2><table align=center border=2 bgcolor=white>"
-		"<tr><th>Port</th><th>Driver</th><th>ID</th><th>Beacons</th><th>Driver Window</th><th>Stats Graph</th></tr>";
+
+ static char * PortsHddr = NULL;
+	if (!PortsHddr) PortsHddr = GetTemplateFromFile(1, "PortsHddr.txt");
 
 //	char PortLine[] = "<tr><td>%d</td><td><a href=PortStats?%d&%s>&nbsp;%s</a></td><td>%s</td></tr>";
 
-	char PortLineWithBeacon[] = "<tr><td>%d</td><td><a href=PortStats?%d&%s>&nbsp;%s</a></td><td>%s</td>"
-		"<td><a href=PortBeacons?%d>&nbsp;Beacons</a><td> </td></td><td>%s</td></tr>\r\n";
+ static char * PortLineWithBeacon = NULL;
+	if (!PortLineWithBeacon) PortLineWithBeacon = GetTemplateFromFile(1, "PortLineWithBeacon.txt");
 
-	char SessionPortLine[] = "<tr><td>%d</td><td>%s</td><td>%s</td><td> </td>"
-		"<td> </td><td>%s</td></tr>\r\n";
+ static char * SessionPortLine = NULL;
+	if (!SessionPortLine) SessionPortLine = GetTemplateFromFile(1, "SessionPortLine.txt");
 
-	char PortLineWithDriver[] = "<tr><td>%d</td><td>%s</td><td>%s</td><td> </td>"
-		"<td><a href=\"javascript:dev_win('/Node/Port?%d',%d,%d,%d,%d);\">Driver Window</a></td><td>%s</td></tr>\r\n";
+ static char * PortLineWithDriver = NULL;
+	if (!PortLineWithDriver) PortLineWithDriver = GetTemplateFromFile(1, "PortLineWithDriver.txt");
 
+ static char * PortLineWithBeaconAndDriver = NULL;
+	if (!PortLineWithBeaconAndDriver) PortLineWithBeaconAndDriver = GetTemplateFromFile(1, "PortLineWithBeaconAndDriver.txt");
 
-	char PortLineWithBeaconAndDriver[] = "<tr><td>%d</td><td>%s</td><td>%s</td>"
-		"<td><a href=PortBeacons?%d>&nbsp;Beacons</a></td>"
-		"<td><a href=\"javascript:dev_win('/Node/Port?%d',%d,%d,%d,%d);\">Driver Window</a></td><td>%s</td></tr>\r\n";
+ static char * RigControlLine = NULL;
+	if (!RigControlLine) RigControlLine = GetTemplateFromFile(1, "RigControlLine.txt");
 
-	char RigControlLine[] = "<tr><td>%d</td><td>%s</td><td>%s</td><td> </td>"
-		"<td><a href=\"javascript:dev_win('/Node/RigControl.html',%d,%d,%d,%d);\">Rig Control</a></td></tr>\r\n";
 
 
 	char Encoding[] = "Content-Encoding: deflate\r\n";
@@ -3043,69 +2981,16 @@ doHeader:
 
 			else if (_stricmp(NodeURL, "/Node/RigControl.html") == 0)
 			{
-				char Test[] =
-					"<html><meta http-equiv=expires content=0>\r\n"
-					"<head><title>Rigcontrol</title></head>\r\n"
-					"<script type = \"text/javascript\">\r\n"
-					"var ws;"
-					"function WebSocketTest()"
-					"{"
-					" if (\"WebSocket\" in window)"
-					" {"
-					"   // Let us open a web socket. Get address from URL\r\n"
-					"	var text = window.location.href;"
-					"	var result = text.substring(7);"
-					"	var myArray = result.split('/', 1);"
-					"   ws = new WebSocket('ws://' + myArray[0] + '/RIGCTL');\r\n"
-					
-					"   ws.onopen = function() {\r\n"
-			
-					"   // Web Socket is connected\r\n"
 
-					"	const div = document.getElementById('div');\r\n"
-					"	div.innerHTML = 'Websock Connected'\r\n"
-					"    };\r\n"
-					
-					"   ws.onmessage = function (evt)"
-					"   {"
-					"     var received_msg = evt.data;\r\n"
-					"	  const div = document.getElementById('div');\r\n"
-					"	  div.innerHTML = received_msg\r\n"
-					"     };"
+    static char * Test = NULL;
+    if (!Test) Test = GetTemplateFromFile(1, "Test.txt");
 
-					"   ws.onclose = function()"
-					"   {"
-
-					"    // websocket is closed.\r\n"
-					"	 const div = document.getElementById('div');\r\n"
-					"	 div.innerHTML = 'Websock Connection Lost'\r\n"
-					"    };"
-					" }"
-					" else"
-					" {"
-					"  // The browser doesn't support WebSocket\r\n"
-					"	const div = document.getElementById('div');\r\n"
-					"	div.innerHTML = 'WebSocket not supported by your Browser - RigControl Page not availible'\r\n"
-					" }"
-					"}"
-					"function PTT(p)"
-					"{"
-					"  ws.send(p);"
-					"}" 
-					"</script>\r\n"
-					"</head>\r\n"
-					"<body height: 600px; onload=WebSocketTest()>\r\n"
-					"<div id = 'div'>Waiting for data...</div>\r\n"
-					"</body></html>\r\n";
 
 		
-				char NoRigCtl[] =
-					"<html><meta http-equiv=expires content=0>\r\n"
-					"<head><title>Rigcontrol</title></head>\r\n"
-					"</head>\r\n"
-					"<body height: 600px>\r\n"
-					"<div id = 'div'>RigControl Not Configured...</div>\r\n"
-					"</body></html>\r\n";
+
+    static char * NoRigCtl = NULL;
+    if (!NoRigCtl) NoRigCtl = GetTemplateFromFile(1, "NoRigCtl.txt");
+
 
 				if (RigWebPage)
 					ReplyLen = sprintf(_REPLYBUFFER, "%s", Test);
@@ -3115,22 +3000,10 @@ doHeader:
 
 			else if (_stricmp(NodeURL, "/Node/ShowLog.html") == 0)
 			{
-				char ShowLogPage[] =
-					"<html><script>"
-					"function myResize() {"
-					" var h = document.getElementById('outer').clientHeight;"
-					" var offsets = document.getElementById('log').getBoundingClientRect();"
-					" document.getElementById('log').style.height = h - offsets.top;}"
-					"</script>"
-					"<head><meta content=\"text/html; charset=ISO-8859-1\" http-equiv=\"content-type\">"
-					"<title>Log Display</title></head>"
-					"<body style=\"margin: 4;\" background=/background.jpg onload='myResize()' onresize='myResize()'>"
-					"<div id=outer style=\"width: 100%%; height: 100%%;\">"
-					"<form id = form><input name=input value=Back type=submit class='btn'>"
-//					"<form id = doDate><input type=date value=Date name='date'><input type='submit'>"
-					"</form>"
-					"<textarea id=log style=\"box-sizing: border-box; overflow: auto; white-space: pre; width: 100%%; height: auto\" name=Msg>%s</textarea>"
-					"</div>";
+
+    static char * ShowLogPage = NULL;
+    if (!ShowLogPage) ShowLogPage = GetTemplateFromFile(1, "ShowLogPage.txt");
+
 
 				char * _REPLYBUFFER;
 				int ReplyLen;
@@ -3830,9 +3703,10 @@ doHeader:
 				struct arp_table_entry * arp;
 				time_t NOW = time(NULL);
 				
-				char AXIPHeader[] =
-					"<table align='center' bgcolor='ffffff' border=2 cellpadding=10 cellspacing=2 style=font-family:monospace>"
-					"<tr><td align='center'>AXIP Up</td><td align='center'>AXIP Down</td></tr><tr><td valign='top'>%s";
+
+    static char * AXIPHeader = NULL;
+    if (!AXIPHeader) AXIPHeader = GetTemplateFromFile(1, "AXIPHeader.txt");
+
 				
 
 				while (PORT)
@@ -4387,6 +4261,7 @@ int ProcessNodeSignon(SOCKET sock, struct TCPINFO * TCP, char * MsgPtr, char * A
 	struct HTTPConnectionInfo *Sess;
 
 	LoadTemplates_BBSHTMLConfig();
+	LoadTemplates_HTTPcode();
 
 
 	if (input)
@@ -4461,6 +4336,7 @@ int ProcessMailAPISignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char 
 	struct UserRec * USER;
 
 	LoadTemplates_BBSHTMLConfig();
+	LoadTemplates_HTTPcode();
 
 	if (strchr(MsgPtr, '?'))
 	{
@@ -4536,6 +4412,7 @@ int ProcessMailSignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char * R
 	struct HTTPConnectionInfo * NewSession;
 
 	LoadTemplates_BBSHTMLConfig();
+	LoadTemplates_HTTPcode();
 
 	if (input)
 	{
@@ -4598,6 +4475,7 @@ int ProcessChatSignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char * R
 	char * user, * password, * Key;
 
 	LoadTemplates_BBSHTMLConfig();
+	LoadTemplates_HTTPcode();
 
 	if (input)
 	{
@@ -4750,32 +4628,18 @@ int BuildRigCtlPage(char * _REPLYBUFFER)
 	struct RIGINFO * RIG;
 	int p, i;
 
-	char Page[] =
-		"<html><meta http-equiv=expires content=0>\r\n"
-		//					"<meta http-equiv=refresh content=5>\r\n"
-		"<head><title>Rigcontrol</title></head>\r\n"
-		"<style type=text/css>form{margin:0px; padding:0px; display:inline;}</style>"
-		"<body height: 580px;><h3>Rigcontrol</h3>\r\n"
-		"<table style=\"text-align: left; width: 580px; font-family: monospace; align=center \" border=1 cellpadding=2 cellspacing=2><tr>\r\n"
-		"<th width=90px>Radio</th>\r\n"
-		"<th width=90px>Freq</th>\r\n"
-		"<th width=90px>Mode</th>\r\n"
-		"<th>ST</th>\r\n"
-		"<th>Ports</th>\r\n"
-		"<th hidden width=10px>Action</th>\r\n"
-		"</tr>";
-	char RigLine[] =
-		"<tr>\r\n"
-		"  <td>%s</td>\r\n"
-		"  <td>%s</td>\r\n"
-		"  <td>%s/1</td>\r\n"
-		"  <td>%c%c</td>\r\n"
-		"  <td>%s</td>\r\n"
-		"  <td hidden width=10px><input onclick=PTT('R%d') type=submit class='btn' value='PTT'></td>\r\n"
-		"  </tr>\r\n";
-	char Tail[] =		
-		"</table>\r\n"
-		"</body></html>\r\n";
+
+ static char * Page = NULL;
+ if (!Page) Page = GetTemplateFromFile(1, "Page.txt");
+
+
+ static char * RigLine = NULL;
+ if (!RigLine) RigLine = GetTemplateFromFile(1, "RigLine.txt");
+
+
+ static char * RigCtlTail = NULL;
+ if (!RigCtlTail) RigCtlTail = GetTemplateFromFile(1, "RigCtlTail.txt");
+
 
 	ReplyLen = sprintf(_REPLYBUFFER, "%s", Page);
 
@@ -4790,7 +4654,7 @@ int BuildRigCtlPage(char * _REPLYBUFFER)
 		}
 	}
 
-	ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], "%s", Tail);
+	ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], "%s", RigCtlTail);
 	return ReplyLen;
 }
 

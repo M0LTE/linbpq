@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<td><a href=NodeDetail?%s>%s:%s</td>

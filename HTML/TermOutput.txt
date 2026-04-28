@@ -1,0 +1,4 @@
+<!-- Version 1 -->
+<!DOCTYPE html><html><head><meta http-equiv=cache-control content=no-cache><meta http-equiv=pragma content=no-cache><meta http-equiv=expires content=0><meta http-equiv=refresh content=2><script type="text/javascript">
+function ScrollOutput()
+{window.scrollBy(0,document.body.scrollHeight)}</script></head><body id=Text><div style="font-family:monospace;%s>"

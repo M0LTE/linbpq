@@ -1,0 +1,7 @@
+<!-- Version 1 -->
+<html><meta http-equiv=expires content=0>
+<head><title>Rigcontrol</title></head>
+</head>
+<body height: 600px>
+<div id = 'div'>RigControl Not Configured...</div>
+</body></html>

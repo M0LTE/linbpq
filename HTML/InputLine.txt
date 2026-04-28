@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<!DOCTYPE html><html><head></head><body onload='resize()' onresize='resize()'><form name=inputform method=post action=/TermInput?%s><input style="font-family:monospace;%s>" id=inp type=text text width=100%% name=input /><script>document.inputform.input.focus();function resize(){var w=window,d=document,e=d.documentElement,g=d.getElementsByTagName('body')[0];x=w.innerWidth;y=w.innerHeight;var inp=document.getElementById('inp');inp.style.width=x-20+'px';}</script></form>

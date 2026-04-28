@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<h2 align=center>Links</h2><table align=center border=2 bgcolor=white><tr><th>Far Call</th><th>Our Call</th><th>Port</th><th>ax.25 state</th><th>Link Type</th><th>ax.25 Version</th></tr>

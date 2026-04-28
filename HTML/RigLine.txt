@@ -1,0 +1,9 @@
+<!-- Version 1 -->
+<tr>
+  <td>%s</td>
+  <td>%s</td>
+  <td>%s/1</td>
+  <td>%c%c</td>
+  <td>%s</td>
+  <td hidden width=10px><input onclick=PTT('R%d') type=submit class='btn' value='PTT'></td>
+  </tr>

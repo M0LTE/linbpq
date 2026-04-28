@@ -1,0 +1,25 @@
+<!-- Version 1 -->
+<html><meta http-equiv=expires content=0>
+<head><title>Rigcontrol</title></head>
+<script type = "text/javascript">
+var ws;function WebSocketTest(){ if ("WebSocket" in window) {   // Let us open a web socket. Get address from URL
+	var text = window.location.href;	var result = text.substring(7);	var myArray = result.split('/', 1);   ws = new WebSocket('ws://' + myArray[0] + '/RIGCTL');
+   ws.onopen = function() {
+   // Web Socket is connected
+	const div = document.getElementById('div');
+	div.innerHTML = 'Websock Connected'
+    };
+   ws.onmessage = function (evt)   {     var received_msg = evt.data;
+	  const div = document.getElementById('div');
+	  div.innerHTML = received_msg
+     };   ws.onclose = function()   {    // websocket is closed.
+	 const div = document.getElementById('div');
+	 div.innerHTML = 'Websock Connection Lost'
+    }; } else {  // The browser doesn't support WebSocket
+	const div = document.getElementById('div');
+	div.innerHTML = 'WebSocket not supported by your Browser - RigControl Page not availible'
+ }}function PTT(p){  ws.send(p);}</script>
+</head>
+<body height: 600px; onload=WebSocketTest()>
+<div id = 'div'>Waiting for data...</div>
+</body></html>

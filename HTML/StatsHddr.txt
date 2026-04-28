@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<h2 align=center>Node Stats</h2><table align=center cellpadding=2 bgcolor=white><col width=250 /><col width=80 /><col width=80 /><col width=80 /><col width=80 /><col width=80 />

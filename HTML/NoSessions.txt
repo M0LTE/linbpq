@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<html><body>Sorry, No Sessions available - refresh page to try again

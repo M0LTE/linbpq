@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<table align='center' bgcolor='ffffff' border=2 cellpadding=10 cellspacing=2 style=font-family:monospace><tr><td align='center'>AXIP Up</td><td align='center'>AXIP Down</td></tr><tr><td valign='top'>%s

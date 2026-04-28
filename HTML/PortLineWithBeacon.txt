@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<tr><td>%d</td><td><a href=PortStats?%d&%s>&nbsp;%s</a></td><td>%s</td><td><a href=PortBeacons?%d>&nbsp;Beacons</a><td> </td></td><td>%s</td></tr>
