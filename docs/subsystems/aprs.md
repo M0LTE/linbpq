@@ -19,10 +19,7 @@ generic APRS-IS client (YAAC, Xastir) instead.
 !!! note "Upstream and source"
     Re-presentation of John Wiseman's [APRS Digipeater/IGate][upstream]
     page.  Cross-checked against `APRSCode.c` (cfg parsing,
-    digipeat decision, IS uplink, beacon scheduling) and
-    `tests/integration/test_aprs.py` (block parsing, STATUS / SENT /
-    MSGS / BEACON commands, outbound APRS-IS connect to a fake
-    server, OBJECT timer).
+    digipeat decision, IS uplink, beacon scheduling).
 
 [upstream]: https://www.cantab.net/users/john.wiseman/Documents/APRSDigiGate.html
 
@@ -161,12 +158,9 @@ Object format notes:
   `PORT=` / `INTERVAL=` / `TEXT=`.
 - `PORT=` accepts the same destination tokens as `Digimap`,
   including `IS`.
-- `INTERVAL=` minutes; minimum is 10.[^object-min]
-
-[^object-min]: From `APRSCode.c:1811`: `Timer = ObjectCount * 10
-    + 30` — first beacon ~30 s after boot, then `INTERVAL`-minutes
-    cadence.  Locked in by
-    `test_long_runtime_aprs_object.py`.
+- `INTERVAL=` minutes; minimum is 10.  From `APRSCode.c:1811`:
+  `Timer = ObjectCount * 10 + 30` — first beacon emits ~30 s
+  after boot, then `INTERVAL`-minute cadence.
 
 Weather beacons (UI-View `wxnow.txt` format):
 
@@ -220,12 +214,3 @@ block is configured:
 | `APRS MSGS` | Stored APRS messages received and pending acknowledgement. |
 | `APRS BEACON` | Send a position beacon now without waiting for the timer. |
 
-## Test coverage
-
-| Test file | What it locks in |
-|---|---|
-| [`test_aprs.py`][t-aprs] | APRSDIGI block parsing, `APRS STATUS` / `SENT` / `MSGS` / `BEACON` node commands, outbound APRS-IS connect against a fake server |
-| [`test_long_runtime_aprs_object.py`][t-obj] | Single-OBJECT line emits its first UI beacon at ~30 s with the expected body and AX.25 destination `APBPQ1` |
-
-[t-aprs]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_aprs.py
-[t-obj]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_long_runtime_aprs_object.py

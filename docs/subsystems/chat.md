@@ -9,12 +9,10 @@ alongside the node.
 !!! note "Upstream and source"
     Re-presentation of John Wiseman's [Hints and Kinks][hk]
     chat-network section and the [BPQ Chat Map][chatmap] page,
-    cross-checked against `bpqchat.c` and the
-    [`test_chat*.py`][tests] integration suite.
+    cross-checked against `bpqchat.c`.
 
 [hk]: https://www.cantab.net/users/john.wiseman/Documents/HintsandKinks.html
 [chatmap]: https://www.cantab.net/users/john.wiseman/Documents/BPQChatMap.htm
-[tests]: https://github.com/M0LTE/linbpq/tree/master/tests/integration
 
 ## Enabling
 
@@ -153,12 +151,3 @@ The reporting protocol is best-effort UDP — packets can drop —
 but the server fills in only fields it received non-empty, so a
 dropped update doesn't blank you off the map.
 
-## Test coverage
-
-| Test file | What it locks in |
-|---|---|
-| [`test_chat.py`][t-chat] | `CHAT` alias appears in node `?`, enter / welcome banner, `/H` help block, `/U` shows the connected user, `/T <name>` create+list, invalid-command rejection |
-| [`test_persistence.py`][t-persist] | (chat-room state — covered as a canary today) |
-
-[t-chat]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_chat.py
-[t-persist]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_persistence.py

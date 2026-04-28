@@ -145,18 +145,3 @@ There's also a parser gotcha:
 
 [issue12]: https://github.com/M0LTE/linbpq/issues/12
 
-## Test coverage
-
-| Test file | What it locks in |
-|-----------|------------------|
-| [`test_axip.py`][t_axip] | Basic two-instance bring-up, single-port AXIP, MAP routing |
-| [`test_axip_extras.py`][t_axip_extras] | Multi-`UDP` ports per block, `MHEARD ON`, `BROADCAST NODES`, `BROADCAST ID`, `MAP ... B` (broadcast flag), behavioural test that NODES actually fans out to mapped peers after `SENDNODES` |
-| [`test_two_instance.py`][t_two_inst] | Two-instance topology over AX/IP-UDP — NODES propagation + L4 uplink + `STOPROUTE`/`STARTROUTE`/`POLLNODES`/`SENDRIF` against the propagated route |
-| [`test_two_instance_bbs.py`][t_two_inst_bbs] | Cross-instance BBS post over AX/IP-UDP |
-| [`test_two_instance_bbs_forwarding.py`][t_fwd] | End-to-end FBB forwarding between two real BPQMail daemons over AX/IP-UDP |
-
-[t_axip]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_axip.py
-[t_axip_extras]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_axip_extras.py
-[t_two_inst]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_two_instance.py
-[t_two_inst_bbs]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_two_instance_bbs.py
-[t_fwd]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_two_instance_bbs_forwarding.py

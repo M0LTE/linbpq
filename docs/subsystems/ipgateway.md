@@ -20,13 +20,9 @@ old-school KA9Q / NOS interop.
 
 !!! note "Upstream and source"
     Re-presentation of John Wiseman's [IP Gateway Feature][upstream]
-    page.  Cross-checked against `IPCode.c` and the
-    [`test_telnet_ip_gateway*.py`][tests] integration tests
-    (which lock the on-prompt commands `PING` / `ARP` / `IPR` /
-    `NAT` and the SNMP responses).
+    page.  Cross-checked against `IPCode.c`.
 
 [upstream]: https://www.cantab.net/users/john.wiseman/Documents/IPGateway.html
-[tests]: https://github.com/M0LTE/linbpq/tree/master/tests/integration
 
 ## What it does
 
@@ -132,10 +128,8 @@ The SNMP server answers a small set of OIDs:
 | `ifInOctets`, `ifOutOctets` (per IP-port) | Per-port byte counters. |
 
 Unknown OIDs are silently dropped — same shape as the SNMP
-spec recommends.[^snmp]
-
-[^snmp]: Locked in by `test_snmp.py`.  See
-    [`IPCode.c:5365`][ipsnmp] for the implementation.
+spec recommends.  See [`IPCode.c:5365`][ipsnmp] for the
+implementation.
 
 [ipsnmp]: https://github.com/M0LTE/linbpq/blob/master/IPCode.c
 
