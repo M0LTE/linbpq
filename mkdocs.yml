@@ -81,8 +81,12 @@ nav:
   - Subsystems:
       - subsystems/index.md
       - BBS / mail (BPQMail): subsystems/bbsmail.md
+      - BBS user commands: subsystems/bbs-user-commands.md
+      - Inter-BBS forwarding: subsystems/bbs-forwarding.md
+      - BBS email gateways: subsystems/bbs-email.md
       - Chat node: subsystems/chat.md
       - APRS gateway: subsystems/aprs.md
+      - IP gateway: subsystems/ipgateway.md
   - Protocols and interfaces:
       - protocols/index.md
       - AX.25: protocols/ax25.md

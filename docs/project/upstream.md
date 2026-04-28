@@ -51,20 +51,20 @@ behaviour change in the binary that needs an issue filed.
 
 | Upstream page | Status | This site |
 |---------------|--------|-----------|
-| [BPQ Mail Server][MailServer] | Pending | [BBS / Mail](../subsystems/bbsmail.md) |
-| [BPQ Mail Server Configuration][MailServerConfiguration] | Pending | [BBS / Mail](../subsystems/bbsmail.md) |
-| [BPQ Mail Server Mail Forwarding][Forwarding] | Pending | — |
-| [BPQ Mail and Chat Hints and Kinks][HintsandKinks] | Pending | — |
-| [Mail Forwarding to/from Winlink][RMSForwarding] | Pending | — |
-| [Winlink interworking changes][BBSAttachments] | Pending | — |
-| [BPQ Mail Server email Client Configuration][eMailClientConfiguration] | Pending | — |
-| [BPQ Mail Server email Gateway][ISPGateway] | Pending | — |
-| [BPQ Mail Server Changelog][BBSChangeLog] | Pending | — |
-| [BBS User Commands][BBSUserCommands] | Pending | [Node prompt commands](../node-commands.md) (overlaps) |
+| [BPQ Mail Server][MailServer] | Rewritten | [BBS / Mail](../subsystems/bbsmail.md) |
+| [BPQ Mail Server Configuration][MailServerConfiguration] | Rewritten | [BBS / Mail](../subsystems/bbsmail.md) |
+| [BPQ Mail Server Mail Forwarding][Forwarding] | Rewritten | [Inter-BBS forwarding](../subsystems/bbs-forwarding.md) |
+| [BPQ Mail and Chat Hints and Kinks][HintsandKinks] | Rewritten | Folded into [BBS / Mail](../subsystems/bbsmail.md) "Hints and gotchas" |
+| [Mail Forwarding to/from Winlink][RMSForwarding] | Rewritten | [Inter-BBS forwarding](../subsystems/bbs-forwarding.md) |
+| [Winlink interworking changes][BBSAttachments] | Rewritten | [Inter-BBS forwarding](../subsystems/bbs-forwarding.md) (Attachments section) |
+| [BPQ Mail Server email Client Configuration][eMailClientConfiguration] | Rewritten | [BBS email gateways](../subsystems/bbs-email.md) |
+| [BPQ Mail Server email Gateway][ISPGateway] | Rewritten | [BBS email gateways](../subsystems/bbs-email.md) |
+| [BPQ Mail Server Changelog][BBSChangeLog] | Out of scope | Upstream changelog; not re-presented here |
+| [BBS User Commands][BBSUserCommands] | Rewritten | [BBS user commands](../subsystems/bbs-user-commands.md) |
 | [APRS Digipeater/IGate][APRSDigiGate] | Pending | [APRS](../subsystems/aprs.md) |
 | [APRS Mapping and Messaging Application][BPQAPRS] | Pending | — |
 | [Guide to Chat Network Map System][BPQChatMap] | Pending | — |
-| [IP Gateway Feature][IPGateway] | Pending | — |
+| [IP Gateway Feature][IPGateway] | Rewritten | [IP gateway](../subsystems/ipgateway.md) |
 
 [MailServer]: https://www.cantab.net/users/john.wiseman/Documents/MailServer.html
 [MailServerConfiguration]: https://www.cantab.net/users/john.wiseman/Documents/MailServerConfiguration.html
