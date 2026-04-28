@@ -36,6 +36,7 @@ band — a transport — and binds it to a `DRIVER=` (built-in or
 | KISS framing (serial / TCP / UDP) | [KISS](kiss.md) |
 | AX.25 over IP (UDP / TCP / proto-93) | [AX/IP over UDP](axip.md) |
 | AGW emulator (BPQtoAGW driver) | [BPQtoAGW](bpqtoagw.md) |
+| Applications Interface (CMDPORT, AGW outbound) | [Applications Interface](apps-interface.md) |
 | FBB compressed inter-BBS forwarding | [FBB forwarding](fbb-forwarding.md) |
 
 ## External interfaces (network-side)
