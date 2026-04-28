@@ -7,6 +7,13 @@ on:
     branches: [master]
   workflow_dispatch:
 
+# Opt every action in this workflow into the Node.js 24 runtime.
+# GitHub will force this on by default starting June 2026; setting
+# it explicitly here clears the deprecation warnings now and is a
+# no-op once GHA flips the default.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   # Integration suite — runs inside the Docker image so the test
   # environment matches what `make test` does locally.  The image
