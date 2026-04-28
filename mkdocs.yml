@@ -102,6 +102,7 @@ nav:
       - Host Mode Emulator: protocols/host-mode.md
       - BPQ Ethernet: protocols/ethernet.md
       - Applications Interface: protocols/apps-interface.md
+      - RHP (Remote Host Protocol): protocols/rhp.md
       - FBB inter-BBS forwarding: protocols/fbb-forwarding.md
   - Node prompt commands:
       - node-commands.md
