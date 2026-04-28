@@ -109,11 +109,27 @@ to its callsign) BPQ opens a TCP connection to
 front.  The user is shown `*** Connected to <APPL>\r` on
 their side at the same moment.
 
-After the callsign line, both sides exchange application bytes
-freely.  The default mode applies a line discipline — your
-output gets `\r\n` line-end normalisation, and BPQ buffers
-incoming lines from the user.  Add `TRANS` to the
-`APPLICATION` line if you want raw byte-for-byte passthrough.
+After the callsign line, both sides exchange application bytes.
+
+#### Default vs `TRANS` mode
+
+The default isn't a clean byte pipe — BPQ applies a textual
+line discipline in *both* directions and interprets a few
+control sequences:
+
+| | Default (no `TRANS`) | `TRANS` |
+|---|---|---|
+| **App → user** (BPQ reads your socket) | Bytes are *buffered* until a CR (`\r`) or LF (`\n`) arrives, then forwarded to the user.  A CR-NUL pair is rewritten to CR-LF (and the inserted LF is echoed back to your socket).  Lines longer than 255 bytes are split at 255-byte boundaries before being handed to the node. | Raw passthrough — bytes are forwarded in `recv()`-sized chunks the moment they arrive, no scanning, no buffering, no rewriting. |
+| **User → app** (BPQ writes your socket) | Every CR (`\r`) in the outbound stream is *expanded* to CR-LF (`\r\n`).  Optional codepage → UTF-8 conversion can happen here too (controlled by the per-session UTF8 flag from BPQTerm-style clients). | Raw passthrough — bytes go out in the same order and quantity BPQ received them from the node side. |
+| **Telnet IAC** (`0xFF`) | Interpreted as a telnet command byte and swallowed if it forms a valid IAC sequence. | Passed through verbatim. |
+
+In short: **default mode is line-oriented text, biased toward
+human terminals**.  It's fine for any protocol whose unit of
+work is a CR-terminated line of 7-bit text.  It's *not* fine
+for binary transfers, length-framed protocols, anything that
+relies on an unmodified `0xFF` byte (FBB B2 attachments,
+arbitrary file content), or anything where you want zero
+bytes between an app `write()` and the user receiving them.
 
 When the user disconnects (or your app closes the socket) BPQ
 either:
@@ -121,44 +137,140 @@ either:
 - Returns them to the node prompt (with the `S` flag), or
 - Drops the whole session (without `S`).
 
-Errors are surfaced as text on the user's session:
+#### Control text BPQ injects on the user's session
 
-| User sees | Why |
+| User sees | When |
 |---|---|
+| `*** Connected to <APPL>` | Your TCP listener accepted (text-mode only). |
+| `*** Disconnected from Stream <n>` | Either side closed the socket (text-mode only — `TRANS` mode just closes). |
 | `Error - Invalid HOST Port` | Slot index out of range, or that slot is `0` in the `CMDPORT` array. |
-| `*** Connected to APPL` | Your TCP listener accepted. |
-| `*** Disconnected from Stream <n>` | Either side closed the socket (text-mode only — TRANS mode just closes). |
+| `Keepalive\r` | If the `K` flag is set and the session has been idle long enough that the L4 idle timer would otherwise reap it. |
 
-### Listener via `inetd` / `xinetd` / `systemd`
+### Listener — `inetd`, `systemd`, or your own daemon
 
-The classic upstream pattern is to drive the application through
-`inetd` so a fresh process is forked per connection:
+Your application has to be listening on `127.0.0.1:<port>`
+when BPQ dials.  Three common ways to arrange that, easiest
+first.
 
-`/etc/services`:
+#### Option A — let `inetd` run your program
+
+`inetd` is the original Unix "Internet superserver".  It's a
+long-running daemon that holds open every TCP/UDP port listed
+in its config; when a connection arrives it accepts the socket,
+forks, and execs the program you've nominated for that port —
+with stdin / stdout / stderr already wired to the socket.  Your
+program just reads stdin and writes stdout, exits when it's
+done, and `inetd` is ready for the next connection.
+
+For a BPQ app this is ideal: every user gets their own fresh
+process, you don't have to write any networking code, and
+crashes in one session can't leak state into the next.
+
+Install on Debian / Ubuntu (Hibbian package included):
+
+```bash
+sudo apt install openbsd-inetd
+```
+
+Then two small config changes.
+
+`/etc/services` is a system-wide name → port-number table.
+Pick any unused port above 1024 — say 63000 — and give it a
+name:
 
 ```
 bpqdemo        63000/tcp   # BPQ Demo App
 ```
 
-`/etc/inetd.conf`:
+`/etc/inetd.conf` tells `inetd` which program to run for that
+service:
 
 ```
 bpqdemo    stream    tcp    nowait    linbpq    /usr/local/bin/bpqdemo
 ```
 
-A fresh process per session: simple lifecycle, isolated state.
-Standard input is the socket; standard output goes back over
-the socket.  `inetd` handles accept loops, fork, exec.
+Field by field:
 
-Modern equivalents:
+| Field | Value | Meaning |
+|---|---|---|
+| Service | `bpqdemo` | Looked up in `/etc/services` to get the port number. |
+| Socket type | `stream` | TCP. |
+| Protocol | `tcp` | TCP. |
+| Wait | `nowait` | Fork a new process per connection rather than serializing. |
+| User | `linbpq` | Run the program as this user (the same user `linbpq` itself runs as is fine). |
+| Program | `/usr/local/bin/bpqdemo` | Absolute path to the binary. |
 
-- **xinetd**: per-service file in `/etc/xinetd.d/`.
-- **systemd socket units**: `bpqdemo.socket` listens, hands
-  the accepted FD to a templated `bpqdemo@.service` per
-  connection.
+(There are usually a couple more fields after the program path
+for arguments — `man 5 inetd.conf` if you need them.)
 
-A long-running daemon listening on the port itself works just
-as well — BPQ doesn't care how the listener is implemented.
+Reload `inetd` to pick up the change:
+
+```bash
+sudo systemctl reload inetd
+# or, on older systems:
+sudo killall -HUP inetd
+```
+
+Now drop your `bpq32.cfg` `CMDPORT 63000` (or wherever 63000
+is in your slot list) and an `APPLICATION` line, and the next
+connect will fire your program.
+
+The standard variant `xinetd` does the same thing with a
+per-service config file in `/etc/xinetd.d/bpqdemo` instead of a
+shared `inetd.conf` line — the `inetd.conf` fields above all
+have direct equivalents (see `man 5 xinetd.conf`).
+
+#### Option B — let `systemd` do it
+
+systemd has its own equivalent of `inetd` built in.  Two unit
+files do the work: a `.socket` unit holds the listening port,
+and a templated `.service` unit runs an instance per connection.
+
+`/etc/systemd/system/bpqdemo.socket`:
+
+```ini
+[Socket]
+ListenStream=127.0.0.1:63000
+Accept=yes
+
+[Install]
+WantedBy=sockets.target
+```
+
+`/etc/systemd/system/bpqdemo@.service`:
+
+```ini
+[Unit]
+Description=BPQ demo app, per-connection instance
+
+[Service]
+ExecStart=/usr/local/bin/bpqdemo
+StandardInput=socket
+StandardOutput=socket
+User=linbpq
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now bpqdemo.socket
+```
+
+Now every accepted connection starts a fresh `bpqdemo@.service`
+instance with stdin/stdout already plugged into the socket —
+same model as `inetd`, but managed by systemd so logs land in
+`journalctl -u bpqdemo@*` and lifecycle is visible to
+`systemctl status`.
+
+#### Option C — your own daemon
+
+Nothing stops you from writing a long-running listener
+yourself: open a socket, `bind()`, `listen()`, `accept()` in a
+loop, fork or thread per accepted connection.  This is more
+work than the above but lets you carry shared state across
+sessions (a connected-user table, a database handle, etc.).
+
+BPQ doesn't care which option you choose — it just connects to
+`127.0.0.1:<port>` and starts moving bytes.
 
 ### A minimal echo app
 
