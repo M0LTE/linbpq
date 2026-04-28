@@ -1,0 +1,6 @@
+<!-- Version 1 -->
+<span style="position: absolute; left: 380;top: 2;"> TX Offset <span id='val'>%d</span></span><span style="position: absolute; left: 350;top: 22;"><input type='range' min=-200 max=200 value=%d class='slider' id='myRange'></span>
+<script>
+var slider = document.getElementById('myRange');var output = document.getElementById('val');slider.oninput = function() {output.innerHTML = this.value;}
+slider.onmouseout = function() {myInt = setInterval('Refresh()', 15000 );output.innerHTML = this.value;yyy(this.value);}
+slider.onmouseover = function() {clearInterval(myInt)};</script>

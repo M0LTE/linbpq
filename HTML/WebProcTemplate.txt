@@ -1,0 +1,19 @@
+<!-- Version 1 -->
+<html><meta http-equiv=expires content=0><link rel='stylesheet' href='webproc.css'>
+<script type="text/javascript">
+function ScrollOutput()
+{var textarea = document.getElementById('textarea');textarea.scrollTop = textarea.scrollHeight;}
+function xxx(data){
+req = new XMLHttpRequest();
+req.open('POST', 'PortAction?%d', true);
+req.send(data);alert(data + ' Sent');}
+function yyy(data){
+req = new XMLHttpRequest();
+req.open('POST', 'freqOffset?%d', true);
+req.send(data);}
+myInt = setInterval('Refresh()', 15000 );
+function Refresh( )
+{location.reload()}
+</script>
+</head><title>%s</title></head><body id=Text onload="ScrollOutput()">
+<h2 style="margin-bottom: 0.2em; text-align:center">%s</h2>

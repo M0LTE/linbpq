@@ -1931,11 +1931,13 @@ VOID ARDOPReleasePort(struct TNCINFO * TNC)
 	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 }
 
-extern char WebProcTemplate[];
-extern char sliderBit[];
+extern char * WebProcTemplate;  // moved to HTML/WebProcTemplate.txt; see VARA.c
+extern char * sliderBit;
+extern void LoadTemplates_VARA(void);
 
 static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 {
+	LoadTemplates_VARA();
 	int Len = sprintf(Buff, WebProcTemplate, TNC->Port, TNC->Port, "ARDOP Status", "ARDOP Status");
 
 	if (TNC->TXFreq)
@@ -3650,7 +3652,7 @@ static VOID ARDOPProcessReceivedData(struct TNCINFO * TNC)
 	// May get message split over packets
 
 	//	Data  has a length field
-	//	ARQ|FEC|ERR|, 2 byte count (Hex 0001 – FFFF), binary data”
+	//	ARQ|FEC|ERR|, 2 byte count (Hex 0001 ï¿½ FFFF), binary dataï¿½
 	//	New standard doesnt have d:
 
 	if (TNC->DataInputLen > 16000)	// Shouldnt have packets longer than this
@@ -5718,7 +5720,7 @@ VOID ARDOPSCSPoll(struct TNCINFO * TNC)
 		}
 	}
 
-//0x04421CB0  aa aa 21 00 07 00 06 48 65 6c 6c 6f 0d c8 3e 38 42 50 51 2d 32 20 35 0d 4a 8a 4d 38 42 50 51  ªª!....Hello.È>8BPQ-2 5.JŠM8BPQ
+//0x04421CB0  aa aa 21 00 07 00 06 48 65 6c 6c 6f 0d c8 3e 38 42 50 51 2d 32 20 35 0d 4a 8a 4d 38 42 50 51  ï¿½ï¿½!....Hello.ï¿½>8BPQ-2 5.Jï¿½M8BPQ
 //0x04421CCF  2d 31 30 2c 47 4d 38 42 50 51 2d 35 2c 47 4d 38 42 50 51 2c 47 4d 38 42 50 51 2d 31 35 0d 00  -10,GM8BPQ-5,GM8BPQ,GM8BPQ-15..
 //0x04421CEE  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ...............................
 

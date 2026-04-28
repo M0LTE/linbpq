@@ -170,6 +170,10 @@ EXTRACTED_TEMPLATES = (
     ("WebTrailer.txt",       1, "APRSCode.c::WebTrailer"),
     ("SendMsgPage.txt",      1, "APRSCode.c::SendMsgPage"),
     ("APRSIndexPage.txt",    1, "APRSCode.c::APRSIndexPage"),
+    # --- Phase 8: VARA.c (also referenced from ARDOP.c, WINMOR.c) ---
+    ("WebProcTemplate.txt",  1, "VARA.c::WebProcTemplate (shared with ARDOP/WINMOR)"),
+    ("Menubit.txt",          1, "VARA.c::Menubit"),
+    ("sliderBit.txt",        1, "VARA.c::sliderBit (shared with ARDOP/WINMOR)"),
 )
 
 

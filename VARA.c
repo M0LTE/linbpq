@@ -63,6 +63,7 @@ int KillPopups(struct TNCINFO * TNC);
 VOID MoveWindows(struct TNCINFO * TNC);
 int SendReporttoWL2K(struct TNCINFO * TNC);
 char * CheckAppl(struct TNCINFO * TNC, char * Appl);
+char * GetTemplateFromFile(int Version, char * FN);
 int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len);
 BOOL KillOldTNC(char * Path);
 int VARASendData(struct TNCINFO * TNC, UCHAR * Buff, int Len);
@@ -1025,69 +1026,26 @@ void CountRestarts(struct TNCINFO * TNC)
 	MySetWindowText(TNC->xIDC_RESTARTS, Time);
 	strcpy(TNC->WEB_RESTARTS, Time);
 }
-/*
-char WebProcTemplate[] = "<html><meta http-equiv=expires content=0><meta http-equiv=refresh content=15>"
-		"<link rel='stylesheet' href='webproc.css'>\r\n"
-		"<script type=\"text/javascript\">\r\n"
-		"function ScrollOutput()\r\n"
-		"{var textarea = document.getElementById('textarea');"
-		"textarea.scrollTop = textarea.scrollHeight;}\r\n"
-		"function xxx(data){\r\n"
-		"req = new XMLHttpRequest();\r\n"
-		"req.open('POST', 'PortAction?%d', true);\r\n"
-		"req.send(data);alert(data + ' Sent');}\r\n"
-		"</script>"
-		"</head><title>%s</title></head><body id=Text onload=\"ScrollOutput()\">"
-		"<span class='dropdown'>"
-		"<button class='dropbtn'>Actions</button><span style=\"margin-left:120px;font-size:16px\"><b>%s</b></span>"
-		"<div class='dropdown-content'>"
-		"<a href='javascript:xxx(\"Abort\");'>Abort Session</a>"
-		"<a href='javascript:xxx(\"Kill\");'>Kill TNC</a>"
-		"<a href='javascript:xxx(\"KillRestart\");'>Kill and Restart TNC</a>"
-		"</div></span>";
-*/
-char WebProcTemplate[] = "<html><meta http-equiv=expires content=0>"
-		"<link rel='stylesheet' href='webproc.css'>\r\n"
-		"<script type=\"text/javascript\">\r\n"
-		"function ScrollOutput()\r\n"
-		"{var textarea = document.getElementById('textarea');"
-		"textarea.scrollTop = textarea.scrollHeight;}\r\n"
-		"function xxx(data){\r\n"
-		"req = new XMLHttpRequest();\r\n"
-		"req.open('POST', 'PortAction?%d', true);\r\n"
-		"req.send(data);alert(data + ' Sent');}\r\n"
-		"function yyy(data){\r\n"
-		"req = new XMLHttpRequest();\r\n"
-		"req.open('POST', 'freqOffset?%d', true);\r\n"
-		"req.send(data);}\r\n"
-		"myInt = setInterval('Refresh()', 15000 );\n"
-		"function Refresh( )\n"
-		"{location.reload()}\n"
-		"</script>\r\n"
-		"</head><title>%s</title></head><body id=Text onload=\"ScrollOutput()\">\r\n"
-		"<h2 style=\"margin-bottom: 0.2em; text-align:center\">%s</h2>";
+// Older WebProcTemplate variant removed during HTML extraction.
 
-char Menubit[] = "<span class='dropdown' style=\"position: absolute; left: 10;top: 12;\">"
-		"<button class='dropbtn'>Actions</button>\r\n"
-		"<span class='dropdown-content'>"
-		"<a href='javascript:xxx(\"Abort\");'>Abort Session</a>"
-		"<a href='javascript:xxx(\"Kill\");'>Kill TNC</a>"
-		"<a href='javascript:xxx(\"KillRestart\");'>Kill and Restart TNC</a>"
-		"</span></span>";
+// Non-static so ARDOP.c / WINMOR.c can re-use these via extern.
+char * WebProcTemplate = NULL;
+char * Menubit = NULL;
+char * sliderBit = NULL;
 
-char sliderBit[] = "<span style=\"position: absolute; left: 380;top: 2;\"> TX Offset <span id='val'>%d</span></span>"
-		"<span style=\"position: absolute; left: 350;top: 22;\"><input type='range' min=-200 max=200 value=%d class='slider' id='myRange'></span>\r\n"
-		"<script>\r\n"
-		"var slider = document.getElementById('myRange');"
-		"var output = document.getElementById('val');"
-		"slider.oninput = function() {output.innerHTML = this.value;}\r\n"
-		"slider.onmouseout = function() {myInt = setInterval('Refresh()', 15000 );"
-		"output.innerHTML = this.value;yyy(this.value);}\r\n"
-		"slider.onmouseover = function() {clearInterval(myInt)};"
-		"</script>\r\n";
+
+void LoadTemplates_VARA(void)
+{
+	// Generated ? load every file-scope template once.
+	if (!WebProcTemplate) WebProcTemplate = GetTemplateFromFile(1, "WebProcTemplate.txt");
+	if (!Menubit) Menubit = GetTemplateFromFile(1, "Menubit.txt");
+	if (!sliderBit) sliderBit = GetTemplateFromFile(1, "sliderBit.txt");
+}
+
 
 static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 {
+	LoadTemplates_VARA();
 	int Len = sprintf(Buff, WebProcTemplate, TNC->Port, TNC->Port, "VARA Status", "VARA Status");
 
 	if (LOCAL)

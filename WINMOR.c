@@ -1427,11 +1427,13 @@ VOID WinmorReleasePort(struct TNCINFO * TNC)
 		send(TNC->TCPSock, "CODEC TRUE\r\n", 13, 0);
 }
 
-extern char WebProcTemplate[];
-extern char sliderBit[];
+extern char * WebProcTemplate;  // moved to HTML/WebProcTemplate.txt; see VARA.c
+extern char * sliderBit;
+extern void LoadTemplates_VARA(void);
 
 static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 {
+	LoadTemplates_VARA();
 	int Len = sprintf(Buff, WebProcTemplate, TNC->Port, TNC->Port, "WINMOR Status", "WINMOR Status");
 
 	if (TNC->TXFreq)

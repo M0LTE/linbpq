@@ -1,0 +1,3 @@
+<!-- Version 1 -->
+<span class='dropdown' style="position: absolute; left: 10;top: 12;"><button class='dropbtn'>Actions</button>
+<span class='dropdown-content'><a href='javascript:xxx("Abort");'>Abort Session</a><a href='javascript:xxx("Kill");'>Kill TNC</a><a href='javascript:xxx("KillRestart");'>Kill and Restart TNC</a></span></span>
