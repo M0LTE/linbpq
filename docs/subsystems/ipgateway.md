@@ -98,11 +98,6 @@ The block ends with `****` (four asterisks) on a line by itself.
 |---|---|
 | `ENABLESNMP` | Open the SNMP server on UDP/161.  Pair with `SNMPPORT=` at top level for an alternative listening port. |
 
-### Legacy
-
-`encap.txt` parsing is supported (`ENCAPFILE <path>`) but RIP44
-makes it largely obsolete.
-
 ## Sysop commands
 
 These run from the node prompt and are gated on the IP gateway

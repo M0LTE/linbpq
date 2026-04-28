@@ -412,7 +412,7 @@ serial ports linking out to APRS clients like Xastir.
 
 | Keyword | Value | Effect |
 |---|---|---|
-| `IPGATEWAY` | `0`/`1` | Enable the IP-over-AX.25 gateway. |
+| `IPGATEWAY` | block | Open the IP-over-AX.25 gateway config block (terminated by `****`).  See [IP gateway][ipgw].  The `IPGATEWAY=0`/`IPGATEWAY=1` form is no longer accepted by the parser. |
 | `APRSDIGI` | block | Open an APRS digi/iGate config block — see [APRS][aprs]. |
 | `LINMAIL` | flag | Same as the `mail` command-line argument: start the BBS. |
 | `LINCHAT` | flag | Same as the `chat` command-line argument: start the chat server. |
@@ -423,6 +423,7 @@ serial ports linking out to APRS clients like Xastir.
 | `MONTOFILE` | `0`/`1` | Mirror the monitor stream to a file (`MonTrace.txt`). |
 
 [aprs]: ../subsystems/aprs.md
+[ipgw]: ../subsystems/ipgateway.md
 
 ## Driver-specific blocks
 
