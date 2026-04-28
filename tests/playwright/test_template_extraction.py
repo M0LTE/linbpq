@@ -58,6 +58,9 @@ EXTRACTED_TEMPLATES = (
     # --- Phase 2: ChatHTMLConfig.c inline arrays ---
     ("ChatSignon.txt",   1, "ChatHTMLConfig.c::ChatSignon[]"),
     ("ChatPage.txt",     1, "ChatHTMLConfig.c::ChatPage[]"),
+    # --- Phase 3: BBSHTMLConfig.c + HTTPcode.c inline arrays ---
+    ("MailSignon.txt",   1, "BBSHTMLConfig.c::MailSignon[] + HTTPcode.c dup"),
+    ("MailPage.txt",     1, "BBSHTMLConfig.c::MailPage[]"),
 )
 
 
@@ -144,6 +147,39 @@ def test_htmlcommoncode_no_longer_calls_inline_template_functions():
         assert fn not in src, (
             f"HTMLCommonCode.c still calls {fn} — fast-path return "
             "to inline template not removed."
+        )
+
+
+def test_bbshtmlconfig_no_inline_html_arrays_for_mailsignon_mailpage():
+    """Phase 3: BBSHTMLConfig.c had ``MailSignon[] = "<html>..."``
+    and ``MailPage[] = "<html>..."``.  Both extracted to
+    HTML/MailSignon.txt and HTML/MailPage.txt.  The inline
+    declarations must be gone, replaced with cached pointers."""
+    src = (_REPO_ROOT / "BBSHTMLConfig.c").read_text()
+    forbidden = (
+        'char MailSignon[] = "<',
+        'char MailPage[] = "<',
+    )
+    for pattern in forbidden:
+        assert pattern not in src, (
+            f"BBSHTMLConfig.c still has inline-HTML decl {pattern!r}"
+        )
+
+
+def test_httpcode_no_duplicate_mailsignon_chatsignon_inline():
+    """HTTPcode.c had its own duplicate inline ``static char
+    MailSignon[]`` and ``static char ChatSignon[]`` — verbatim
+    copies of the BBSHTMLConfig.c / ChatHTMLConfig.c arrays.
+    Phase 3 extracted both to the shared HTML/ files; the local
+    statics here are now char* pointers that lazy-load."""
+    src = (_REPO_ROOT / "HTTPcode.c").read_text()
+    forbidden = (
+        'char MailSignon[] = "<',
+        'char ChatSignon[] = "<',
+    )
+    for pattern in forbidden:
+        assert pattern not in src, (
+            f"HTTPcode.c still has inline-HTML decl {pattern!r}"
         )
 
 
