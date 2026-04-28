@@ -204,7 +204,12 @@ These set node-wide variables. Form is `CMD` (display) or `CMD VALUE`
 | [`GETPORTCTEXT`](#getportctext)   | 9  | Re-read all `PortNCTEXT.txt` files. |
 | [`VALIDCALLS`](#validcalls)       | 5  | Show / set permitted callsigns on a port. |
 | [`EXCLUDE`](#exclude)             | 4  | Show / add / clear the connect-exclude list (Windows build). |
-| [`DUMP`](#dump)                   | 4  | Write a minidump file (Windows build). |
+
+### Diagnostics
+
+| Command | Abbr | Sysop | Summary |
+|---------|-----:|:-----:|---------|
+| [`DUMP`](#dump) | 4 | | Write a minidump file (Windows build only — no-op on other platforms). |
 
 ### Application aliases
 
@@ -764,7 +769,7 @@ Errors are `Error - <port> is not UZ7HO port` or
 ### Port parameters (`CMD PORT [VALUE]`)
 
 Source: `PORTVAL` in `Cmd.c:553`. All entries listed in the
-[Port parameters](#sysop--port-parameters-portparm-port-value) quick
+[Port parameters](#sysop-port-parameters-portparm-port-value) quick
 table behave identically:
 
 ```
@@ -794,7 +799,7 @@ helper.
 
 Source: `SWITCHVAL` (8-bit) and `SWITCHVALW` (16-bit) in `Cmd.c:668`
 and `Cmd.c:713`. Each entry in the
-[switch-globals quick table](#sysop--switch-globals) prints
+[switch-globals quick table](#sysop-switch-globals) prints
 `<NAME> <value>` when called bare and
 `<NAME> was X now Y` when given a new value.
 
@@ -1002,10 +1007,16 @@ EXCLUDE Z              clear the list
 Excluded callsigns cannot issue [`CONNECT`](#connect).
 
 <a id="dump"></a>
-### `DUMP` *(abbr: 4, sysop)*
+### `DUMP` *(abbr: 4)*
 
-Source: `DUMPCMD` in `Cmd.c:439`. Calls `WriteMiniDump()` (Windows
-build) to write a process minidump for support analysis.
+Source: `DUMPCMD` in `Cmd.c:439`. Calls `WriteMiniDump()` to write a
+process minidump for support analysis. Despite sitting next to sysop
+commands by name, `DUMP` is dispatched after `PASSWORD` in the
+`COMMANDS[]` table and `DUMPCMD` itself performs no privilege check —
+any session that reaches the node prompt can fire it. The handler
+body (`CommonCode.c:3851`) is wrapped in `#ifdef WIN32`, so on Linux,
+macOS and the BSDs the command is a no-op (replies `OK` without
+producing a file).
 
 <a id="application-commands"></a>
 ### Application commands (`BBS`, `CHAT`, `MAIL`, ...)

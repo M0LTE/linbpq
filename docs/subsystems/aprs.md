@@ -191,7 +191,7 @@ WXComment=BPQ Weather
 
 | Keyword | Effect |
 |---|---|
-| `MaxStations=<n>` | Cap on retained station records (default 500).  A full APRS-IS feed is ~20k stations; raising this raises memory use roughly linearly. |
+| `MaxStations=<n>` | Cap on retained station records (default 1000, hard ceiling 10000).  A full APRS-IS feed is ~20k stations; raising this raises memory use roughly linearly. |
 | `MaxAge=<minutes>` | Drop a station if no traffic seen for this long. |
 | `SaveAPRSMsgs=1` | Persist the message store across reboots. |
 
