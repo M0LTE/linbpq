@@ -25,15 +25,20 @@ What's covered:
   actions — without those, POST /Mail/Signon hits a NULL Appl
   deref upstream (M0LTE/linbpq#18).
 - Chat post-signon walkthrough exercises ChatStatus.txt and
-  ChatConfig.txt at render time.  Mail post-signon currently
-  returns a 912-byte all-NUL body for /Mail/Header (separate
-  bug, doesn't crash) so we only smoke-test the Mail signon POST.
+  ChatConfig.txt at render time.  Mail post-signon walkthrough
+  exercises MailPage.txt, MainConfig.txt, FwdPage.txt,
+  UserPage.txt, MsgPage.txt, Housekeeping.txt and WP.txt — all
+  HTTP requests advertise ``Accept-Encoding: deflate`` to route
+  around M0LTE/linbpq#19 (the no-deflate path sends an
+  uninitialised buffer).  Browsers always send that header, so
+  this matches production traffic.
 """
 
 from __future__ import annotations
 
 import re
 import socket
+import zlib
 from pathlib import Path
 
 import pytest
@@ -190,39 +195,7 @@ EXTRACTED_TEMPLATES = (
 )
 
 
-def _http_get(port: int, path: str, timeout: float = 3.0) -> tuple[bytes, bytes]:
-    """Tiny HTTP/1.0 GET on loopback.  Returns (status_line, body)."""
-    with socket.create_connection(("127.0.0.1", port), timeout=timeout) as sock:
-        sock.sendall(
-            f"GET {path} HTTP/1.0\r\nConnection: close\r\n\r\n".encode("ascii")
-        )
-        sock.settimeout(timeout)
-        data = b""
-        while True:
-            try:
-                chunk = sock.recv(8192)
-            except (TimeoutError, socket.timeout):
-                break
-            if not chunk:
-                break
-            data += chunk
-            if len(data) > 1 << 20:
-                break
-    head, _, body = data.partition(b"\r\n\r\n")
-    status_line = head.split(b"\r\n", 1)[0]
-    return status_line, body
-
-
-def _http_post(
-    port: int, path: str, body: bytes, timeout: float = 3.0
-) -> tuple[bytes, bytes]:
-    """Tiny HTTP/1.0 POST on loopback.  Returns (status_line, body)."""
-    request = (
-        f"POST {path} HTTP/1.0\r\n"
-        f"Content-Type: application/x-www-form-urlencoded\r\n"
-        f"Content-Length: {len(body)}\r\n"
-        f"Connection: close\r\n\r\n"
-    ).encode("ascii") + body
+def _send_and_recv(request: bytes, port: int, timeout: float) -> bytes:
     with socket.create_connection(("127.0.0.1", port), timeout=timeout) as sock:
         sock.sendall(request)
         sock.settimeout(timeout)
@@ -237,9 +210,64 @@ def _http_post(
             data += chunk
             if len(data) > 1 << 20:
                 break
-    head, _, resp_body = data.partition(b"\r\n\r\n")
-    status_line = head.split(b"\r\n", 1)[0]
-    return status_line, resp_body
+    return data
+
+
+def _split_response(data: bytes) -> tuple[bytes, dict[bytes, bytes], bytes]:
+    """Split into (status_line, headers, body), inflating deflate bodies.
+
+    All requests advertise ``Accept-Encoding: deflate`` to dodge the
+    /Mail/ + /WebMail/ ``Compressed = Reply`` bug (M0LTE/linbpq#19) —
+    real browsers send the same header, so this matches production
+    traffic.  Body is returned decompressed if Content-Encoding says
+    deflate; otherwise as-is.
+    """
+    head, _, body = data.partition(b"\r\n\r\n")
+    lines = head.split(b"\r\n")
+    status_line = lines[0] if lines else b""
+    headers: dict[bytes, bytes] = {}
+    for line in lines[1:]:
+        name, _, value = line.partition(b":")
+        headers[name.strip().lower()] = value.strip()
+    if headers.get(b"content-encoding", b"").lower() == b"deflate":
+        body = zlib.decompress(body)
+    return status_line, headers, body
+
+
+def _http_get(port: int, path: str, timeout: float = 3.0) -> tuple[bytes, bytes]:
+    """Tiny HTTP/1.0 GET on loopback.  Returns (status_line, body).
+
+    Sends ``Accept-Encoding: deflate`` so /Mail/ and /WebMail/
+    responses come back through the working compression path
+    (workaround for M0LTE/linbpq#19).
+    """
+    request = (
+        f"GET {path} HTTP/1.0\r\n"
+        f"Accept-Encoding: deflate\r\n"
+        f"Connection: close\r\n\r\n"
+    ).encode("ascii")
+    status, _, body = _split_response(_send_and_recv(request, port, timeout))
+    return status, body
+
+
+def _http_post(
+    port: int, path: str, body: bytes, timeout: float = 3.0
+) -> tuple[bytes, bytes]:
+    """Tiny HTTP/1.0 POST on loopback.  Returns (status_line, body).
+
+    Same Accept-Encoding workaround as ``_http_get``.
+    """
+    request = (
+        f"POST {path} HTTP/1.0\r\n"
+        f"Content-Type: application/x-www-form-urlencoded\r\n"
+        f"Content-Length: {len(body)}\r\n"
+        f"Accept-Encoding: deflate\r\n"
+        f"Connection: close\r\n\r\n"
+    ).encode("ascii") + body
+    status, _, resp_body = _split_response(
+        _send_and_recv(request, port, timeout)
+    )
+    return status, resp_body
 
 
 # ── Repo-level invariants ─────────────────────────────────────────
@@ -372,34 +400,63 @@ def test_chat_signon_form_renders(linbpq_web):
     assert b"BPQ32 Chat Server" in body
 
 
-# ── Mail signon does not crash with the ?Mail workaround ─────────
+# ── Mail post-signon walkthrough ─────────────────────────────────
 
 
-def test_mail_signon_post_with_appl_query_does_not_crash(linbpq_web):
-    """Regression test for M0LTE/linbpq#18: POST /Mail/Signon with
-    no query string hit a NULL Appl deref in ProcessMailSignon
-    (HTTPcode.c:4443).  The signon form's own action URL includes
-    ``?Mail``, which avoids the crash.  This test pins the
-    workaround so any future change that re-introduces the crash
-    on the form-driven path fails loudly.
+_MAIL_SESSION_KEY_RE = re.compile(rb"\?(M[0-9A-F]{12})")
 
-    Limitation: the post-signon /Mail/Header response is currently
-    a 912-byte all-NUL body.  That looks like a separate bug worth
-    a follow-up issue, but it doesn't crash the process — so this
-    test only asserts liveness + status code, not body content.
+
+def test_mail_post_signon_walkthrough(linbpq_web):
+    """Sign in to /Mail with the form's own ?Mail action URL
+    (workaround for the NULL Appl deref, M0LTE/linbpq#18), extract
+    the session key from the post-signon MailPage frame, then GET
+    every nav target and verify each rendered template carries its
+    expected version marker.
+
+    Covers MailPage.txt (the BBS top-frame nav) and the post-signon
+    pages MainConfig (v7), UserPage (v4), MsgPage (v2),
+    Housekeeping (v2), FwdPage (v4), WP (v1).
     """
     port = linbpq_web["http_port"]
     status, body = _http_post(
         port, "/Mail/Signon?Mail", b"User=test&password=test"
     )
     assert b"200" in status, f"POST /Mail/Signon?Mail: {status!r}"
-    assert len(body) > 0, "expected some response body"
-    # Process must still be alive — follow-up GET should succeed.
-    status2, _ = _http_get(port, "/Node/NodeIndex.html")
-    assert b"200" in status2, (
-        f"linbpq died after /Mail/Signon POST — is M0LTE/linbpq#18 back? "
-        f"follow-up GET returned {status2!r}"
+    assert b"BPQ32 BBS" in body, (
+        f"MailPage frame missing branding: {body[:200]!r}"
     )
+    match = _MAIL_SESSION_KEY_RE.search(body)
+    assert match, f"no session key in Mail signon response: {body[:200]!r}"
+    key = match.group(1).decode("ascii")
+
+    # Each post-signon nav target should render its template with
+    # the expected version marker.  ``Status`` re-renders MailPage
+    # plus a status table — covered by the signon body above.
+    expected = [
+        ("/Mail/Conf", 7, b"Main Configuration"),
+        ("/Mail/Users", 4, None),
+        ("/Mail/Msgs", 2, None),
+        ("/Mail/HK", 2, None),
+        ("/Mail/FWD", 4, None),
+        ("/Mail/WP", 1, None),
+    ]
+    for path, version, marker in expected:
+        url = f"{path}?{key}"
+        status, body = _http_get(port, url)
+        assert b"200" in status, f"GET {url}: {status!r}"
+        # Marker appears with or without a date suffix
+        # (e.g. ``<!-- Version 4 10/10/2015 -->``); accept either.
+        assert re.search(
+            rb"<!-- Version " + str(version).encode("ascii") + rb"[\s>]",
+            body[:200],
+        ), (
+            f"GET {url}: missing or wrong Version {version} marker.  "
+            f"Body[:200]: {body[:200]!r}"
+        )
+        if marker is not None:
+            assert marker in body, (
+                f"GET {url}: missing expected marker {marker!r}"
+            )
 
 
 # ── Chat post-signon walkthrough (works end-to-end) ──────────────
