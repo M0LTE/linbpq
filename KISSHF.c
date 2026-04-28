@@ -35,6 +35,8 @@ extern int (WINAPI FAR *EnumProcessesPtr)();
 
 #include "bpq32.h"
 
+char * GetTemplateFromFile(int Version, char * FN);
+
 #include "tncinfo.h"
 
 static int Socket_Data(int sock, int error, int eventcode);
@@ -746,30 +748,12 @@ VOID KISSHFReleasePort(struct TNCINFO * TNC)
 
 static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 {
-	int Len = sprintf(Buff, "<html><meta http-equiv=expires content=0><meta http-equiv=refresh content=15>"
-		"<script type=\"text/javascript\">\r\n"
-		"function ScrollOutput()\r\n"
-		"{var textarea = document.getElementById('textarea');"
-		"textarea.scrollTop = textarea.scrollHeight;}</script>"
-		"</head><title>KISSHF Status</title></head><body id=Text onload=\"ScrollOutput()\">"
-		"<h2><form method=post target=\"POPUPW\" onsubmit=\"POPUPW = window.open('about:blank','POPUPW',"
-		"'width=440,height=50');\" action=ARDOPAbort?%d>KISSHF Status"
-		"<input name=Save value=\"Abort Session\" type=submit style=\"position: absolute; right: 20;\"></form></h2>",
-		TNC->Port);
+	static char * KISSHFWebProc = NULL;
+	if (!KISSHFWebProc)
+		KISSHFWebProc = GetTemplateFromFile(1, "KISSHFWebProc.txt");
 
-
-	Len += sprintf(&Buff[Len], "<table style=\"text-align: left; width: 500px; font-family: monospace; align=center \" border=1 cellpadding=2 cellspacing=2>");
-
-	Len += sprintf(&Buff[Len], "<tr><td width=110px>Comms State</td><td>%s</td></tr>", TNC->WEB_COMMSSTATE);
-	Len += sprintf(&Buff[Len], "<tr><td>TNC State</td><td>%s</td></tr>", TNC->WEB_TNCSTATE);
-//	Len += sprintf(&Buff[Len], "<tr><td>Mode</td><td>%s</td></tr>", TNC->WEB_MODE);
-//	Len += sprintf(&Buff[Len], "<tr><td>Channel State</td><td>%s</td></tr>", TNC->WEB_CHANSTATE);
-//	Len += sprintf(&Buff[Len], "<tr><td>Proto State</td><td>%s</td></tr>", TNC->WEB_PROTOSTATE);
-//	Len += sprintf(&Buff[Len], "<tr><td>Traffic</td><td>%s</td></tr>", TNC->WEB_TRAFFIC);
-//	Len += sprintf(&Buff[Len], "<tr><td>TNC Restarts</td><td></td></tr>", TNC->WEB_RESTARTS);
-	Len += sprintf(&Buff[Len], "</table>");
-
-	Len += sprintf(&Buff[Len], "<textarea rows=2 style=\"width:500px; height:50px;\" id=textarea >%s</textarea>", TNC->WebBuffer);
+	int Len = sprintf(Buff, KISSHFWebProc, TNC->Port,
+		TNC->WEB_COMMSSTATE, TNC->WEB_TNCSTATE, TNC->WebBuffer);
 	Len = DoScanLine(TNC, Buff, Len);
 
 	return Len;

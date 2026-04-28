@@ -174,6 +174,14 @@ EXTRACTED_TEMPLATES = (
     ("WebProcTemplate.txt",  1, "VARA.c::WebProcTemplate (shared with ARDOP/WINMOR)"),
     ("Menubit.txt",          1, "VARA.c::Menubit"),
     ("sliderBit.txt",        1, "VARA.c::sliderBit (shared with ARDOP/WINMOR)"),
+    # --- Phase 9: Driver status pages (sprintf-chain consolidations) ---
+    ("KAMPactorWebProc.txt", 1, "KAMPactor.c::WebProc (consolidated)"),
+    ("KISSHFWebProc.txt",    1, "KISSHF.c::WebProc (consolidated)"),
+    ("HALDriverWebProc.txt", 1, "HALDriver.c::WebProc (consolidated)"),
+    ("SCSPactorWebProc.txt", 1, "SCSPactor.c::WebProc (consolidated)"),
+    ("WinRPRWebProc.txt",    1, "WinRPR.c::WebProc (consolidated)"),
+    ("FreeDATAWebProc.txt",  1, "FreeDATA.c::WebProc (consolidated)"),
+    ("FLDigiWebProc.txt",    1, "FLDigi.c::WebProc (consolidated)"),
 )
 
 

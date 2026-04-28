@@ -83,6 +83,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "bpq32.h"
 
+char * GetTemplateFromFile(int Version, char * FN);
+
 #ifndef WIN32
 #ifndef MACBPQ
 #ifndef FREEBSD
@@ -797,22 +799,14 @@ int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len)
 
 static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 {
-	int Len = sprintf(Buff, "<html><meta http-equiv=expires content=0><meta http-equiv=refresh content=15>"
-	"<head><title>SCS Pactor Status</title></head><body><h3>SCS Pactor Status</h3>");
+	static char * SCSPactorWebProc = NULL;
+	if (!SCSPactorWebProc)
+		SCSPactorWebProc = GetTemplateFromFile(1, "SCSPactorWebProc.txt");
 
-	Len += sprintf(&Buff[Len], "<table style=\"text-align: left; width: 480px; font-family: monospace; align=center \" border=1 cellpadding=2 cellspacing=2>");
-
-	Len += sprintf(&Buff[Len], "<tr><td width=90px>Comms State</td><td>%s</td></tr>", TNC->WEB_COMMSSTATE);
-	Len += sprintf(&Buff[Len], "<tr><td>TNC State</td><td>%s</td></tr>", TNC->WEB_TNCSTATE);
-	Len += sprintf(&Buff[Len], "<tr><td>Mode</td><td>%s</td></tr>", TNC->WEB_MODE);
-	Len += sprintf(&Buff[Len], "<tr><td>Status</td><td>%s</td></tr>", TNC->WEB_STATE);
-	Len += sprintf(&Buff[Len], "<tr><td>TX/RX State</td><td>%s</td></tr>", TNC->WEB_TXRX);
-	Len += sprintf(&Buff[Len], "<tr><td>Buffers</td><td>%s</td></tr>", TNC->WEB_BUFFERS);
-	Len += sprintf(&Buff[Len], "<tr><td>Traffic</td><td>%s</td></tr>", TNC->WEB_TRAFFIC);
-	Len += sprintf(&Buff[Len], "<tr><td>Mode</td><td>%s</td></tr>", TNC->WEB_PACTORLEVEL);
-	Len += sprintf(&Buff[Len], "</table>");
-
-	Len += sprintf(&Buff[Len], "<textarea rows=10 style=\"width:500px; height:250px;\" id=textarea >%s</textarea>", TNC->WebBuffer);
+	int Len = sprintf(Buff, SCSPactorWebProc,
+		TNC->WEB_COMMSSTATE, TNC->WEB_TNCSTATE, TNC->WEB_MODE,
+		TNC->WEB_STATE, TNC->WEB_TXRX, TNC->WEB_BUFFERS,
+		TNC->WEB_TRAFFIC, TNC->WEB_PACTORLEVEL, TNC->WebBuffer);
 	Len = DoScanLine(TNC, Buff, Len);
 
 	return Len;
