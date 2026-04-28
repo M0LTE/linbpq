@@ -259,6 +259,57 @@ def test_htmlcommoncode_no_longer_calls_inline_template_functions():
         )
 
 
+def test_no_extraction_artefacts_in_templates():
+    """C string literals in the original code use backslash
+    escapes (``\\<LF>`` line continuations, ``\\?`` trigraph
+    escapes, ``\\"`` etc.) that the C compiler resolves to the
+    intended characters at compile time.  When templates were
+    extracted from C arrays into ``HTML/*.txt`` files, those
+    escapes would have been preserved verbatim — leaking into
+    runtime HTML.
+
+    Lock in that the extracted templates are clean.  If a new
+    template lands with a backslash anywhere it doesn't belong,
+    this test fires.
+
+    Currently allowed: a single literal ``\\r`` in
+    ``UIHddr.txt`` (instructional text telling the user how
+    to type a CR in their MailFor message).
+    """
+    import re as _re
+    from pathlib import Path
+
+    ALLOWED_BACKSLASHES = {
+        "UIHddr.txt": [r"\r"],  # user-facing instruction
+    }
+
+    html_dir = Path(__file__).resolve().parents[2] / "HTML"
+    offenders: list[str] = []
+    for path in sorted(html_dir.glob("*.txt")):
+        text = path.read_text(errors="replace")
+        # Find every backslash-followed-by-something occurrence.
+        for m in _re.finditer(r"\\.", text):
+            seq = m.group(0)
+            if seq in ALLOWED_BACKSLASHES.get(path.name, []):
+                continue
+            offenders.append(
+                f"{path.name}: {seq!r} at offset {m.start()} "
+                f"(context: {text[max(0, m.start()-20):m.end()+20]!r})"
+            )
+        # Trailing-backslash check (separate because ``\\.`` won't
+        # match `\<LF>` or `\<EOF>`).
+        for ln_idx, line in enumerate(text.splitlines(), 1):
+            if line.endswith("\\") and path.name not in ALLOWED_BACKSLASHES:
+                offenders.append(
+                    f"{path.name}:{ln_idx}: trailing backslash "
+                    f"({line[-30:]!r})"
+                )
+    assert not offenders, (
+        "Extraction artefacts detected:\n  "
+        + "\n  ".join(offenders)
+    )
+
+
 def test_chathtmlconfig_no_inline_html_arrays():
     """``ChatHTMLConfig.c`` previously had ``ChatSignon[] = "<html>...";``
     and ``ChatPage[] = "<html>...";`` declarations as inline char
