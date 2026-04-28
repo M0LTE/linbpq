@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<html><head><title>BPQ32 APRS Messaging</title></head><body background="/background.jpg"><center><h2>APRS Message Input</h1><form method=post action=/APRS/Msgs/SendMsg><table align=center  bgcolor=white><tr><td>To</td><td><input type=text name=call tabindex=1 size=10 maxlength=12 value="%s"/></td></tr><tr><td>Message</td><td><input type=text name=message tabindex=2 size=80 maxlength=100 /></td></tr></table><p align=center><input type=submit value=Submit /><input type=submit value=Cancel name=Cancel /></form>

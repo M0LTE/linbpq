@@ -64,6 +64,7 @@ BOOL APIENTRY  Send_AX(PMESSAGE Block, DWORD Len, UCHAR Port);
 VOID Send_AX_Datagram(PDIGIMESSAGE Block, DWORD Len, UCHAR Port);
 int APRSDecodeFrame(char * msg, char * buffer, time_t Stamp, uint64_t Mask);		// Unsemaphored DecodeFrame
 APRSHEARDRECORD * UpdateHeard(UCHAR * Call, int Port);
+char * GetTemplateFromFile(int Version, char * FN);
 BOOL CheckforDups(char * Call, char * Msg, int Len);
 VOID ProcessQuery(char * Query);
 VOID ProcessSpecificQuery(char * Query, int Port, char * Origin, char * DestPlusDigis);
@@ -203,7 +204,7 @@ BOOL PosnSet = FALSE;
 /*
 The null position should be include the \. symbol (unknown/indeterminate
 position). For example, a Position Report for a station with unknown position
-will contain the coordinates …0000.00N\00000.00W.…
+will contain the coordinates ï¿½0000.00N\00000.00W.ï¿½
 */
 char * FloodCalls = 0;			// Calls to relay using N-n without tracing
 char * TraceCalls = 0;			// Calls to relay using N-n with tracing
@@ -5338,10 +5339,10 @@ VOID Decode_MIC_E_Packet(char * Payload, struct STATIONRECORD * Station)
 	To decode the longitude degrees value:
 1. subtract 28 from the d+28 value to obtain d.
 2. if the longitude offset is +100 degrees, add 100 to d.
-3. subtract 80 if 180 ˜ d ˜ 189
-(i.e. the longitude is in the range 100–109 degrees).
-4. or, subtract 190 if 190 ˜ d ˜ 199.
-(i.e. the longitude is in the range 0–9 degrees).
+3. subtract 80 if 180 ï¿½ d ï¿½ 189
+(i.e. the longitude is in the range 100ï¿½109 degrees).
+4. or, subtract 190 if 190 ï¿½ d ï¿½ 199.
+(i.e. the longitude is in the range 0ï¿½9 degrees).
 */
 
 	n = Payload[2] - 28;			// Lon Mins
@@ -5354,8 +5355,8 @@ VOID Decode_MIC_E_Packet(char * Payload, struct STATIONRECORD * Station)
 	n = Payload[3] - 28;			// Lon Mins/100;
 
 //1. subtract 28 from the m+28 value to obtain m.
-//2. subtract 60 if m ™ 60.
-//(i.e. the longitude minutes is in the range 0–9).
+//2. subtract 60 if m ï¿½ 60.
+//(i.e. the longitude minutes is in the range 0ï¿½9).
 
 
 	memcpy(LatDeg, Lat, 2);
@@ -6351,7 +6352,7 @@ Jan 22 2012 14:10
 < previous
 
 @221452z3844.42N/08628.33W_203/006g007t032r000P000p000h00b10171
-Complete Weather Report Format — with Lat/Long position, no Timestamp
+Complete Weather Report Format ï¿½ with Lat/Long position, no Timestamp
 ! or = Lat   Sym Table ID   Long   Symbol Code _  Wind Directn/ Speed Weather Data APRS Software   WX Unit uuuu
  1      8          1         9          1                 7                 n            1              2-4
 Examples
@@ -6534,7 +6535,7 @@ char * DoDetailLine(struct STATIONRECORD * ptr, BOOL LocalTime, BOOL KM)
 	Degrees = Lat;
 	Minutes = Lat * 60.0 - (60 * Degrees);
 
-	sprintf(LatString,"%2d°%05.2f'%c", Degrees, Minutes, NS);
+	sprintf(LatString,"%2dï¿½%05.2f'%c", Degrees, Minutes, NS);
 		
 	Degrees = Lon;
 
@@ -6542,7 +6543,7 @@ char * DoDetailLine(struct STATIONRECORD * ptr, BOOL LocalTime, BOOL KM)
 
 	Minutes = Lon * 60 - 60 * Degrees;
 
-	sprintf(LongString, "%3d°%05.2f'%c",Degrees, Minutes, EW);
+	sprintf(LongString, "%3dï¿½%05.2f'%c",Degrees, Minutes, EW);
 
 	sprintf(DistString, "%6.1f", myDistance(ptr->Lat, ptr->Lon, KM));
 	sprintf(BearingString, "%3.0f", myBearing(ptr->Lat, ptr->Lon));
@@ -6707,7 +6708,7 @@ char * APRSLookupKey(struct APRSConnectionInfo * sockptr, char * Key, BOOL KM)
 		Degrees = Lat;
 		Minutes = Lat * 60.0 - (60 * Degrees);
 
-		sprintf(LatString,"%2d°%05.2f'%c",Degrees, Minutes, NS);
+		sprintf(LatString,"%2dï¿½%05.2f'%c",Degrees, Minutes, NS);
 		
 		Degrees = Lon;
 
@@ -6715,7 +6716,7 @@ char * APRSLookupKey(struct APRSConnectionInfo * sockptr, char * Key, BOOL KM)
 
 		Minutes = Lon * 60 - 60 * Degrees;
 
-		sprintf(val,"%s %3d°%05.2f'%c", LatString, Degrees, Minutes, EW);
+		sprintf(val,"%s %3dï¿½%05.2f'%c", LatString, Degrees, Minutes, EW);
 
 		return _strdup(val);
 	}
@@ -7236,69 +7237,31 @@ VOID APRSSendMessageFile(struct APRSConnectionInfo * sockptr, char * FN)
 	free (SaveMsgBytes);
 }
 
-char WebHeader[] = "<HTML><HEAD><meta http-equiv=\"expires\" content=\"-1\">"
-	"<meta http-equiv=\"pragma\" content=\"no-cache\">"
-	"<TITLE>APRS Messaging</TITLE></HEAD>"
-	"<BODY alink=\"#008000\" bgcolor=\"#F5F5DC\" link=\"#0000FF\" vlink=\"#000080\"  background=/background.jpg>"
-	"<table  align=center border=2 cellpadding=2 cellspacing=2 bgcolor=white><tr>"
-	"<td align=center><a href=/aprs.html>APRS Map</a></td>"
-	"<td align=center><a href=/aprs/msgs>Received Messages</a></td>"
-	"<td align=center><a href=/aprs/txmsgs>Sent Messages</a></td>"
-	"<td align=center><a href=/aprs/msgs/entermsg>Send Message</a></td>"
-	"<td align=center><a href=/aprs/all.html>Station Pages</a></td>"
-	"<td align=center><a href=/Node/NodeMenu.html>Return to Node Pages</a></td>"
-	"</tr></table>"
-	"<center><h2>%s's Messages</h2><TABLE BORDER=\"3\" CELLSPACING=\"2\" CELLPADDING=\"1\">"
-	"<tr><td>From</td><td>To</td><td>Seq</td><td>Time</td><td>&nbsp;</td><td>Message</td></tr>";
 
-char WebTXHeader[] = "<HTML><HEAD><meta http-equiv=\"expires\" content=\"-1\">"
-	"<meta http-equiv=\"pragma\" content=\"no-cache\">"
-	"<TITLE>APRS Messaging</TITLE></HEAD>"
-	"<BODY alink=\"#008000\" bgcolor=\"#F5F5DC\" link=\"#0000FF\" vlink=\"#000080\"  background=/background.jpg>"
-	"<table align=center border=2 cellpadding=2 cellspacing=2 bgcolor=white><tr>"
-	"<td align=center><a href=/aprs.html>APRS Map</a></td>"
-	"<td align=center><a href=/aprs/msgs>Received Messages</a></td>"
-	"<td align=center><a href=/aprs/txmsgs>Sent Messages</a></td>"
-	"<td align=center><a href=/aprs/msgs/entermsg>Send Message</a></td>"
-	"<td align=center><a href=/aprs/all.html>Station Pages</a></td>"
-	"<td align=center><a href=/Node/NodeMenu.html>Return to Node Pages</a></td>"
-	"</tr></table>"
-	"<center><h2>Message Sent by %s</h2><TABLE BORDER=\"3\" CELLSPACING=\"2\" CELLPADDING=\"1\">"
-	"<tr><td>To</td><td>Seq</td><td>Time</td><td>State</td><td>message</td></tr>";
+static char * WebHeader = NULL;
+static char * WebTXHeader = NULL;
+static char * WebLine = NULL;
+static char * WebTXLine = NULL;
+static char * WebTrailer = NULL;
+static char * SendMsgPage = NULL;
+static char * APRSIndexPage = NULL;
 
-char WebLine[] = "<tr bgcolor=\"#ffcccc\"><td>%s </td><td> %s </td><td> %s </td><td> %s</td><td>"
-	"<a href=\"entermsg?tocall=%s&fromcall=%s\">Reply</a></td><td> %s</td></tr>";
+extern char * Tail;  // BBS-style page tail, defined in HTTPcode.c
 
-char WebTXLine[] = "<tr bgcolor=\"#ffcccc\">"
-	"<td>%s </td><td> %s </td><td> %s </td><td> %s </td><td> %s</td></tr>";
-
-
-char WebTrailer[] = "</table></BODY></HTML>";
-
-char SendMsgPage[] = "<html><head><title>BPQ32 APRS Messaging</title></head><body background=\"/background.jpg\">"
-	"<center><h2>APRS Message Input</h1>"
-	"<form method=post action=/APRS/Msgs/SendMsg>"
-	"<table align=center  bgcolor=white>"
-	"<tr><td>To</td><td><input type=text name=call tabindex=1 size=10 maxlength=12 value=\"%s\"/></td></tr>" 
-	"<tr><td>Message</td><td><input type=text name=message tabindex=2 size=80 maxlength=100 /></td></tr></table>"  
-	"<p align=center><input type=submit value=Submit /><input type=submit value=Cancel name=Cancel /></form>";
-
-char APRSIndexPage[] = "<html><head><title>BPQ32 Web Server APRS Pages</title></head>"
-	"<body background=/background.jpg><P align=center>"
-	"<h2 align=center>BPQ32 APRS Server</h2><P align=center>"
-	"<table border=2 cellpadding=2 cellspacing=2 bgcolor=white><tr>"
-	"<td align=center><a href=/aprs.html>APRS Map</a></td>"
-	"<td align=center><a href=/aprs/msgs>Received Messages</a></td>"
-	"<td align=center><a href=/aprs/txmsgs>Sent Messages</a></td>"
-	"<td align=center><a href=/aprs/msgs/entermsg>Send Message</a></td>"
-	"<td align=center><a href=/aprs/all.html>Station Pages</a></td>"
-	"<td align=center><a href=/Node/NodeMenu.html>Return to Node Pages</a></td>"
-	"</tr></table>%s</body></html>";
-
-extern char Tail[];
+static void LoadTemplates_APRSCode(void)
+{
+	if (!WebHeader) WebHeader = GetTemplateFromFile(1, "WebHeader.txt");
+	if (!WebTXHeader) WebTXHeader = GetTemplateFromFile(1, "WebTXHeader.txt");
+	if (!WebLine) WebLine = GetTemplateFromFile(1, "WebLine.txt");
+	if (!WebTXLine) WebTXLine = GetTemplateFromFile(1, "WebTXLine.txt");
+	if (!WebTrailer) WebTrailer = GetTemplateFromFile(1, "WebTrailer.txt");
+	if (!SendMsgPage) SendMsgPage = GetTemplateFromFile(1, "SendMsgPage.txt");
+	if (!APRSIndexPage) APRSIndexPage = GetTemplateFromFile(1, "APRSIndexPage.txt");
+}
 
 VOID APRSProcessHTTPMessage(SOCKET sock, char * MsgPtr,	BOOL LOCAL, BOOL COOKIE)
 {
+	LoadTemplates_APRSCode();
 	int InputLen = 0;
 	int OutputLen = 0;
    	char * URL;

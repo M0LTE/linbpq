@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<tr bgcolor="#ffcccc"><td>%s </td><td> %s </td><td> %s </td><td> %s</td><td><a href="entermsg?tocall=%s&fromcall=%s">Reply</a></td><td> %s</td></tr>

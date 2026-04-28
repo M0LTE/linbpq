@@ -162,6 +162,14 @@ EXTRACTED_TEMPLATES = (
     ("AprsWxRf.txt",         1, "APRSStdPages.c::get_wxrf"),
     ("AprsPortStats.txt",    1, "APRSStdPages.c::get_portstats"),
     ("AprsMain.txt",         1, "APRSStdPages.c::get_aprs"),
+    # --- Phase 7: APRSCode.c ---
+    ("WebHeader.txt",        1, "APRSCode.c::WebHeader"),
+    ("WebTXHeader.txt",      1, "APRSCode.c::WebTXHeader"),
+    ("WebLine.txt",          1, "APRSCode.c::WebLine"),
+    ("WebTXLine.txt",        1, "APRSCode.c::WebTXLine"),
+    ("WebTrailer.txt",       1, "APRSCode.c::WebTrailer"),
+    ("SendMsgPage.txt",      1, "APRSCode.c::SendMsgPage"),
+    ("APRSIndexPage.txt",    1, "APRSCode.c::APRSIndexPage"),
 )
 
 
