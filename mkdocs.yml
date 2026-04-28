@@ -93,13 +93,6 @@ nav:
       - FBB inter-BBS forwarding: protocols/fbb-forwarding.md
   - Node prompt commands:
       - node-commands.md
-  - Reference:
-      - test-coverage-audit.md
-      - mqtt-output.md
-  - Project:
-      - Plan: plan.md
-      - Contributing: project/contributing.md
-      - Upstream documentation: project/upstream.md
 
 extra:
   social:
