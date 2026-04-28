@@ -19,6 +19,16 @@ permissions:
   pages: write
   id-token: write
 
+# Rapid-fire commits (e.g. the per-page docs rewrite stream)
+# would otherwise queue up N Pages deploys racing each other.
+# Cancel any in-flight run on the same ref when a new commit
+# lands — only the latest state ships, and CI minutes don't get
+# burned on intermediate deploys we'd never see.  PRs get their
+# own group so a PR push doesn't cancel the master deploy.
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
 # Opt every action in this workflow into the Node.js 24 runtime
 # (GHA forces this June 2026; explicit opt-in clears warnings now).
 env:
