@@ -100,6 +100,14 @@ class TelnetClient:
     def write_line(self, text: str) -> None:
         self.sock.sendall(text.encode("ascii") + b"\r")
 
+    def write_raw(self, data: bytes) -> None:
+        """Send raw bytes — no line termination, no encoding.
+
+        Used by binary-transparency tests where any extra byte
+        from us would invalidate the assertion.
+        """
+        self.sock.sendall(data)
+
     def login(self, user: str, password: str) -> bytes:
         """Drive the user/password prompts; return up to and including the
         ``Connected to ... Telnet Server\\r\\n\\r\\n`` welcome banner that
