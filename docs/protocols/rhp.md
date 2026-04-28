@@ -18,12 +18,41 @@ what you need, you almost certainly want one of those instead.
 
 !!! note "Source and references"
     Cross-checked against `RHP.c` and `HTTPcode.c` in the LinBPQ
-    source.  The original protocol white paper is in the
-    [OARC packet white-papers wiki][oarc] (Paula's PDFs).
-    LinBPQ does *not* implement the full protocol — only the
-    subset WhatsPac needs.
+    source, plus Paula's RHP v2 white papers — primarily
+    [PWP 222 — Remote Host Protocol Version 2][pwp222] and
+    [PWP 245 — RHP Version 2 — AX25 Functionality][pwp245],
+    indexed at the [OARC packet white-papers wiki][oarc].
+    LinBPQ implements a deliberately small subset of RHP v2;
+    the rest of the spec is documented in those PDFs and is
+    available in XRouter.
 
-[oarc]: https://wiki.oarc.uk/packet:white-papers
+[pwp222]: https://wiki.oarc.uk/_media/packet:white-papers:pwp222_remote_host_protocol_version_2.pdf
+[pwp245]: https://wiki.oarc.uk/_media/packet:white-papers:pwp245_rhp_version_2_-_ax25_functionality.txt.pdf
+[oarc]: https://wiki.oarc.uk/packet:white-papers:index
+
+## What LinBPQ implements vs what RHP v2 defines
+
+The full RHP v2 spec is comparatively rich — multi-protocol
+sockets, BSD-style socket-call message family, listen / accept
+for inbound, authentication, packet tracing.  LinBPQ implements
+only the slice WhatsPac uses.  Side-by-side:
+
+| Area | RHP v2 spec | LinBPQ implementation |
+|---|---|---|
+| Transport | Raw TCP framed by 2-byte length on port 9000 (default), *or* WebSocket at `ws://host:9000/rhp` | WebSocket only, on the BPQ HTTPPORT.  No raw-TCP RHP listener. |
+| Protocol families | `unix`, `inet`, `ax25`, `netrom` | `ax25` only.  Anything else gets `errCode: 12 ("Bad parameter")`. |
+| Socket modes | `stream`, `dgram`, `seqpkt`, `custom`, `semiraw`, `trace`, `raw` | `stream` only. |
+| `flags` field on `open` | 0x00 passive, 0x01/0x02/0x04 trace flags, 0x80 active | Parsed and ignored — every `open` is treated as an active stream connect. |
+| `AUTH` / `authReply` | Required for clients on public IPs not whitelisted in `ACCESS.SYS` | Not implemented.  No authentication on `/rhp`. |
+| Listen / `ACCEPT` | Listener sockets register a local callsign; the server pushes `accept` for each inbound connect | Not implemented.  LinBPQ-side RHP can only originate. |
+| BSD-style messages: `SOCKET`, `BIND`, `LISTEN`, `CONNECT`, `SENDTO` and replies | Defined as an alternative to the all-in-one `OPEN` | Not implemented; `OPEN` is the only entry point. |
+| Client-initiated `STATUS` request | Defined; server replies with `statusReply` (or `status` on success) | Implemented. |
+| Address formats (`local`, `remote`) | AX25: `call[-ssid]`; NETROM: `usercall[@nodecall][:svcnum]`; INET: `addr[:port]` | AX25-style only (≤10 chars). |
+
+If you need anything beyond an outgoing AX.25 stream
+connection, you're hitting the limits of the LinBPQ
+implementation.  XRouter is the reference implementation that
+exercises the rest of the spec.
 
 ## Transport
 
@@ -179,6 +208,13 @@ Server reply:
 {"type":"keepaliveReply"}
 ```
 
+`keepalive` doesn't appear in the published RHP v2 spec
+(PWP 222 / 245).  Treat it as an XRouter / LinBPQ extension —
+both sides honour it, but a strictly-spec-only client wouldn't
+emit one and a strictly-spec-only server wouldn't recognise it.
+Worth using against LinBPQ: an idle WebSocket otherwise risks
+being closed by an intervening proxy.
+
 ## Error codes
 
 LinBPQ uses the standard XRouter RHP code table:
@@ -203,19 +239,25 @@ LinBPQ uses the standard XRouter RHP code table:
 | 15 | No Route |
 | 16 | Operation not supported |
 
-## Limitations vs full RHP / XRouter
+## Implementation quirks
 
-The LinBPQ implementation is deliberately minimal.  Things the
-full Paula spec covers that LinBPQ doesn't:
+A few rough edges to watch for when writing a strict RHP v2
+client and pointing it at LinBPQ:
 
-- Other protocol families (`netrom` direct, `udp`, `kiss`, etc.)
-- Datagram and UI modes (`mode: "datagram"`, `mode: "ui"`)
-- Server-initiated *listen* sessions (the LinBPQ side can't
-  register a callsign for inbound RHP connects)
-- Authentication / login on the WebSocket
-- Per-session statistics
-
-If you need any of those, talk to XRouter, not LinBPQ.
+- **Field-name case is inconsistent.**  PWP 222 / 245 use
+  lowercase `errcode` / `errtext` throughout.  LinBPQ emits
+  capital-cased `errCode` / `errText` in some replies
+  (`openReply`, `sendReply`'s success path) and the spec-correct
+  lowercase form in others (`closeReply`, `statusReply` failure).
+  Parse case-insensitively if you can.
+- **Initial `recv` banner.**  LinBPQ pushes a synthetic
+  `{"data":"Connected to RHP Server\r"}` immediately after the
+  `flags: 2` status — this isn't in the spec and isn't generated
+  by XRouter.  Filter it on the client if it gets in your way.
+- **Unrecognised messages are dropped silently** (logged on the
+  server side as `Unrecognised RHP Message` but no error reply).
+  Don't rely on `errCode: 2 ("Bad or missing type")` to surface a
+  malformed message — you'll get nothing back.
 
 ## Sysop command
 
