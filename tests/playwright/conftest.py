@@ -135,9 +135,18 @@ def _setup_workdir(tmp_path: Path, cfg: str) -> None:
     if _HTML_DIR.is_dir():
         target = tmp_path / "HTML"
         target.mkdir(exist_ok=True)
+        # Copy files at the top level + recurse subdirs (e.g.
+        # samples/) so SendMessageFile can resolve URLs like
+        # /samples/index.html in the test workdir.
         for src in _HTML_DIR.iterdir():
             if src.is_file():
                 (target / src.name).write_bytes(src.read_bytes())
+            elif src.is_dir():
+                subdir = target / src.name
+                subdir.mkdir(exist_ok=True)
+                for subfile in src.iterdir():
+                    if subfile.is_file():
+                        (subdir / subfile.name).write_bytes(subfile.read_bytes())
 
 
 def _wait_for_http(http_port: int, proc: subprocess.Popen, log_path: Path) -> None:
@@ -155,6 +164,38 @@ def _wait_for_http(http_port: int, proc: subprocess.Popen, log_path: Path) -> No
     proc.terminate()
     raise TimeoutError(
         f"linbpq HTTP port {http_port} didn't open within 10s"
+    )
+
+
+def _wait_for_bbs_ready(http_port: int, log_path: Path) -> None:
+    """The HTTP port opens before the BBS subsystem finishes
+    starting up.  /WebMail returns the WebMailPage (Version 6)
+    once the BBS is registered; until then it serves a fallback
+    that looks like the WebMailSignon page (Version 1).  Poll the
+    log for "Mail Started" and verify /WebMail renders the right
+    template before letting tests run.
+    """
+    import urllib.request
+
+    deadline = time.monotonic() + 10.0
+    while time.monotonic() < deadline:
+        try:
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{http_port}/WebMail",
+                headers={"Accept-Encoding": "deflate"},
+            )
+            with urllib.request.urlopen(req, timeout=1.0) as resp:
+                body = resp.read()
+                if resp.headers.get("Content-Encoding", "").lower() == "deflate":
+                    import zlib as _zlib
+                    body = _zlib.decompress(body)
+                if b"<!-- Version 6" in body[:300]:
+                    return
+        except (OSError, ValueError):
+            pass
+        time.sleep(0.2)
+    raise TimeoutError(
+        f"BBS subsystem didn't reach ready state within 10s; see {log_path}"
     )
 
 
@@ -179,11 +220,10 @@ def _start_linbpq(tmp_path: Path, cfg: str) -> dict:
     )
     try:
         _wait_for_http(http_port, proc, tmp_path / "linbpq.stdout.log")
+        _wait_for_bbs_ready(http_port, tmp_path / "linbpq.stdout.log")
     except Exception:
         log.close()
         raise
-    # Give the subsystem threads a moment to register.
-    time.sleep(0.5)
     return {
         "base_url": f"http://127.0.0.1:{http_port}",
         "telnet_port": telnet_port,
@@ -244,3 +284,30 @@ def chat_session(linbpq_web):
     port = linbpq_web["http_port"]
     key = chat_signon(port)
     return {"port": port, "key": key, "base": linbpq_web["base_url"]}
+
+
+# ── Browser-tier fixtures (pytest-playwright) ─────────────────────
+
+
+@pytest.fixture
+def browser_context_args(browser_context_args, linbpq_web):
+    """Override pytest-playwright's default context args so the
+    Playwright ``page`` fixture is automatically pointed at the
+    per-test linbpq HTTP base URL.
+    """
+    return {**browser_context_args, "base_url": linbpq_web["base_url"]}
+
+
+@pytest.fixture
+def authed_page(page, linbpq_web):
+    """A Playwright ``Page`` already past the BBS signon flow.
+    Performs a one-shot POST against /Mail/Signon?Mail to
+    establish the cookie/session, then navigates to /Node/.
+    Tests can drive ``page`` from there without each test having
+    to repeat the auth dance.
+    """
+    page.goto("/Mail/Signon")
+    page.fill('input[name="user"]', "test")
+    page.fill('input[name="password"]', "test")
+    page.click('input[type="submit"][value="Submit"]')
+    return page
