@@ -53,9 +53,17 @@ def _split_response(data: bytes) -> tuple[bytes, dict[bytes, bytes], bytes]:
 def http_get(
     port: int, path: str, timeout: float = _TIMEOUT
 ) -> tuple[bytes, bytes]:
-    """HTTP/1.0 GET on loopback.  Returns (status_line, body)."""
+    """HTTP/1.0 GET on loopback.  Returns (status_line, body).
+
+    Sends ``Host: 127.0.0.1:<port>`` so the server's
+    ``strstr(input, "Host: 127.0.0.1")`` LOCAL-detection trips
+    (see ``BBSHTMLConfig.c::ProcessMailHTTPMessage``).  Without
+    it, /WebMail and parts of /Mail/ refuse to auto-authenticate
+    from loopback and serve the signon form instead.
+    """
     request = (
         f"GET {path} HTTP/1.0\r\n"
+        f"Host: 127.0.0.1:{port}\r\n"
         f"Accept-Encoding: deflate\r\n"
         f"Connection: close\r\n\r\n"
     ).encode("ascii")
@@ -69,6 +77,7 @@ def http_get_with_headers(
     """HTTP/1.0 GET that also returns the parsed headers dict."""
     request = (
         f"GET {path} HTTP/1.0\r\n"
+        f"Host: 127.0.0.1:{port}\r\n"
         f"Accept-Encoding: deflate\r\n"
         f"Connection: close\r\n\r\n"
     ).encode("ascii")
@@ -85,6 +94,7 @@ def http_post(
     """HTTP/1.0 POST on loopback.  Returns (status_line, body)."""
     request = (
         f"POST {path} HTTP/1.0\r\n"
+        f"Host: 127.0.0.1:{port}\r\n"
         f"Content-Type: {content_type}\r\n"
         f"Content-Length: {len(body)}\r\n"
         f"Accept-Encoding: deflate\r\n"
