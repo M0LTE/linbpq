@@ -77,8 +77,7 @@ nav:
   - Getting started:
       - getting-started/index.md
   - Configuration:
-      - Reference: configuration/reference.md
-      - bpq32.cfg keywords: configuration/bpq32-cfg-keywords.md
+      - configuration/reference.md
   - Subsystems:
       - subsystems/index.md
       - BBS / mail (BPQMail): subsystems/bbsmail.md
