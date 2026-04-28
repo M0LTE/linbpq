@@ -58,6 +58,32 @@ EXTRACTED_TEMPLATES = (
     # --- Phase 2: ChatHTMLConfig.c inline arrays ---
     ("ChatSignon.txt",   1, "ChatHTMLConfig.c::ChatSignon[]"),
     ("ChatPage.txt",     1, "ChatHTMLConfig.c::ChatPage[]"),
+    # --- Phase 3: BBSHTMLConfig.c inline arrays (full sweep) ---
+    ("PassError.txt",        1, "BBSHTMLConfig.c::PassError[]"),
+    ("BusyError.txt",        1, "BBSHTMLConfig.c::BusyError[]"),
+    ("MailSignon.txt",       1, "BBSHTMLConfig.c::MailSignon[]"),
+    ("MailPage.txt",         1, "BBSHTMLConfig.c::MailPage[]"),
+    ("RefreshMainPage.txt",  1, "BBSHTMLConfig.c::RefreshMainPage[]"),
+    ("StatusPage.txt",       1, "BBSHTMLConfig.c::StatusPage[]"),
+    ("StreamEnd.txt",        1, "BBSHTMLConfig.c::StreamEnd[]"),
+    ("UIHddr.txt",           1, "BBSHTMLConfig.c::UIHddr[]"),
+    ("UILine.txt",           1, "BBSHTMLConfig.c::UILine[]"),
+    ("UITail.txt",           1, "BBSHTMLConfig.c::UITail[]"),
+    ("FWDSelectHddr.txt",    1, "BBSHTMLConfig.c::FWDSelectHddr[]"),
+    ("FWDSelectTail.txt",    1, "BBSHTMLConfig.c::FWDSelectTail[]"),
+    ("UserSelectHddr.txt",   1, "BBSHTMLConfig.c::UserSelectHddr[]"),
+    ("UserSelectLine.txt",   1, "BBSHTMLConfig.c::UserSelectLine[]"),
+    ("StatusLine.txt",       1, "BBSHTMLConfig.c::StatusLine[]"),
+    ("UserSelectTail.txt",   1, "BBSHTMLConfig.c::UserSelectTail[]"),
+    ("UserUpdateHddr.txt",   1, "BBSHTMLConfig.c::UserUpdateHddr[]"),
+    ("UserUpdateLine.txt",   1, "BBSHTMLConfig.c::UserUpdateLine[]"),
+    ("FWDUpdate.txt",        1, "BBSHTMLConfig.c::FWDUpdate[]"),
+    ("MailDetailPage.txt",   1, "BBSHTMLConfig.c::MailDetailPage[]"),
+    ("MailDetailTail.txt",   1, "BBSHTMLConfig.c::MailDetailTail[]"),
+    ("Welcome.txt",          1, "BBSHTMLConfig.c::Welcome[]"),
+    ("MsgEditPage.txt",      1, "BBSHTMLConfig.c::MsgEditPage[]"),
+    ("WPDetail.txt",         1, "BBSHTMLConfig.c::WPDetail[]"),
+    ("LostSession.txt",      1, "BBSHTMLConfig.c::LostSession[]"),
 )
 
 

@@ -121,7 +121,7 @@ char FormDirList[4][MAX_PATH] = {"Standard_Templates", "Standard Templates", "Lo
 static char PassError[] = "<p align=center>Sorry, User or Password is invalid - please try again</p>";
 static char BusyError[] = "<p align=center>Sorry, No sessions available - please try later</p>";
 
-extern char MailSignon[];
+extern char * MailSignon;  // moved from inline array — see BBSHTMLConfig.c
 
 char WebMailSignon[] = "<html><head><title>BPQ32 Mail Server Access</title></head><body background='/background.jpg'>"
 	"<h3 align=center>BPQ32 Mail Server %s Access</h3>"

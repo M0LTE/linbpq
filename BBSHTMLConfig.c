@@ -128,71 +128,28 @@ char Sent[] = "#98FFA0";
 char ToSend[] = "#FFFF00";
 char NotThisOne[] = "#FFFFFF";
 
-static char PassError[] = "<p align=center>Sorry, User or Password is invalid - please try again</p>";
-
-static char BusyError[] = "<p align=center>Sorry, No sessions available - please try later</p>";
+// Non-static — these symbols are referenced via `extern` in
+// ChatHTMLConfig.c (PassError / BusyError) and WebMail.c (MailSignon).
+char * PassError = NULL;
+char * BusyError = NULL;
 
 extern char WebMailSignon[];
 
-char MailSignon[] = "<html><head><title>BPQ32 Mail Server Access</title></head><body background=\"/background.jpg\">"
-	"<h3 align=center>BPQ32 Mail Server %s Access</h3>"
-	"<h3 align=center>Please enter Callsign and Password to access the BBS</h3>"
-	"<form method=post action=/Mail/Signon?Mail>"
-	"<table align=center  bgcolor=white>"
-	"<tr><td>User</td><td><input type=text name=user tabindex=1 size=20 maxlength=50 /></td></tr>" 
-	"<tr><td>Password</td><td><input type=password name=password tabindex=2 size=20 maxlength=50 /></td></tr></table>"  
-	"<p align=center><input type=submit class='btn' value=Submit /><input type=submit class='btn' value=Cancel name=Cancel /></form>";
+char * MailSignon = NULL;
 
 
-char MailPage[] = "<html><head><title>%s's BBS Web Server</title>"
-	"<style type=\"text/css\">"
-	"input.btn:active {background:black;color:white;} "
-	"submit.btn:active {background:black;color:white;} "
-	"</style>"
-	"</head>"
-	"<body background=\"/background.jpg\"><h3 align=center>BPQ32 BBS %s</h3><P>"
-	"<P align=center><table border=1 cellpadding=2 bgcolor=white><tr>"
-	"<td><a href=/Mail/Status?%s>Status</a></td>"
-	"<td><a href=/Mail/Conf?%s>Configuration</a></td>"
-	"<td><a href=/Mail/Users?%s>Users</a></td>"
-	"<td><a href=/Mail/Msgs?%s>Messages</a></td>"
-	"<td><a href=/Mail/FWD?%s>Forwarding</a></td>"
-	"<td><a href=/Mail/Wel?%s>Welcome Msgs & Prompts</a></td>"
-	"<td><a href=/Mail/HK?%s>Housekeeping</a></td>"
-	"<td><a href=/Mail/WP?%s>WP Update</a></td>"
-	"<td><a href=/Webmail>WebMail</a></td>"
-	"<td><a href=/>Node Menu</a></td>"
-	"</tr></table>";
 
-char RefreshMainPage[] = "<html><head>"
-	"<meta http-equiv=refresh content=10>"
-	"<style type=\"text/css\">"
-	"input.btn:active {background:black;color:white;} "
-	"submit.btn:active {background:black;color:white;} "
-	"</style>"
-	"<title>%s's BBS Web Server</title></head>"
-	"<body background=\"/background.jpg\"><h3 align=center>BPQ32 BBS %s</h3><P>"
-	"<P align=center><table border=1 cellpadding=2 bgcolor=white><tr>"
-	"<td><a href=/Mail/Status?%s>Status</a></td>"
-	"<td><a href=/Mail/Conf?%s>Configuration</a></td>"
-	"<td><a href=/Mail/Users?%s>Users</a></td>"
-	"<td><a href=/Mail/Msgs?%s>Messages</a></td>"
-	"<td><a href=/Mail/FWD?%s>Forwarding</a></td>"
-	"<td><a href=/Mail/Wel?%s>Welcome Msgs & Prompts</a></td>"
-	"<td><a href=/Mail/HK?%s>Housekeeping</a></td>"
-	"<td><a href=/Mail/WP?%s>WP Update</a></td>"
-	"<td><a href=/Webmail>WebMail</a></td>"
-	"<td><a href=/>Node Menu</a></td>"
-	"</tr></table>";
+static char * MailPage = NULL;
 
-char StatusPage [] = 
 
-"<form style=\"font-family: monospace; text-align: center\"  method=post action=/Mail/DisSession?%s>"
-"<br>User&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Callsign&nbsp;&nbsp; Stream &nbsp;Queue &nbsp;Sent &nbsp;Rxed<br>"
-"<select style=\"font-family: monospace;\" tabindex=1 size=10 name=call>";
+static char * RefreshMainPage = NULL;
 
-char StreamEnd[] = 
-"</select><br><input name=Disconnect value=Disconnect type=submit class='btn'><br><br>";
+
+static char * StatusPage = NULL;
+
+
+static char * StreamEnd = NULL;
+
 
 char StatusTail[] = 
 "Msgs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <input readonly=readonly value=%d size=3><br>"
@@ -201,178 +158,98 @@ char StatusTail[] =
 "SMTP Msgs&nbsp; <input readonly=readonly value=%d size=3><br></form>";
 
 
-char UIHddr [] = "<form style=\"font-family: monospace;\" align=center method=post"
-" action=/Mail/UI?%s> Mailfor Header <input size=40 value=\"%s\" name=MailFor><br>"
-"&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;"
-"&nbsp;&nbsp;&nbsp; (use \\r to insert newline in message)<br><br>"
-"Enable Port&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;"
-"&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; Path&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;"
-"&nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Send: MailFor Headers Empty Mailfor<br><br>";
+static char * UIHddr = NULL;
 
-char UILine[] = "<input %sname=En%d type=checkbox> %s <input size=40 value=\"%s\" name=Path%d>"
-" <input %sname=SndMF%d type=checkbox>"
-"&nbsp;&nbsp;&nbsp;&nbsp;<input %sname=SndHDDR%d type=checkbox>"
-"&nbsp; &nbsp; &nbsp; &nbsp; <input %sname=SndNull%d type=checkbox><br>";
 
-char UITail[] = "<br><br><input name=Update value=Update type=submit class='btn'> "
-"<input name=Cancel value=Cancel type=submit class='btn'><br></form>";
+static char * UILine = NULL;
 
-char FWDSelectHddr[] = 
-	"<form style=\"font-family: monospace; text-align: center;\" method=post action=/Mail/FWDSel?%s>"
-	"Max Size to Send &nbsp;&nbsp; <input value=%d size=3 name=MaxTX><br>"
-	"Max Size to Receive <input value=%d size=3 name=MaxRX><br>"
-	"Warn if no route for P or T <input %sname=WarnNoRoute type=checkbox><br>"
-	"Use Local Time&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-	"<input %sname=LocalTime type=checkbox><br><br>"
-	"Aliases &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; Select BBS<br>"
-	"<textarea rows=10 cols=20 name=Aliases>%s</textarea> &nbsp<select tabindex=1 size=10 name=call>";
 
-char FWDSelectTail[] =
-	"</select><br>&nbsp;&nbsp; <input name=Save value=Save type=submit class='btn'>&nbsp;<input "
-	"name=Cancel value=Cancel type=submit class='btn'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-	"&nbsp; <input name=Select value=Select type=submit class='btn'></form>";
+static char * UITail = NULL;
 
-char UserSelectHddr[] = 
-	"<form style=\"font-family: monospace; text-align: center\" method=post action=/Mail/Users?%s>"
-	"Please Select User<br><br><select tabindex=1 size=10 name=call>";
 
-char UserSelectLine[] = "<option value=%s>%s</option>";
+static char * FWDSelectHddr = NULL;
 
-char StatusLine[] = "<option value=%d>%s</option>";
 
-char UserSelectTail[] = "</select><br><br>"
-	"<input size=6 value=\"\" name=NewCall>"
-	"<input type=submit class='btn' value=\"Add User\" name=Adduser><br>"
-	"<input type=submit class='btn' value=Select> "
-	"<input type=submit class='btn' value=Cancel name=Cancel><br></form>";
+static char * FWDSelectTail = NULL;
 
-char UserUpdateHddr[] =
-	"<h3 align=center>Update User %s</h3>"
-	"<form style=\"font-family: monospace; text-align: center\" method=post action=/Mail/Users?%s>";
 
-char UserUpdateLine[] = "<option value=%s>%s</option>";
+static char * UserSelectHddr = NULL;
+
+
+static char * UserSelectLine = NULL;
+
+
+static char * StatusLine = NULL;
+
+
+static char * UserSelectTail = NULL;
+
+
+static char * UserUpdateHddr = NULL;
+
+
+static char * UserUpdateLine = NULL;
+
 
 //<option value="G8BPQ">G8BPQ</option>
 //<input checked="checked" name=%s type="checkbox"><br>
 
 
-char FWDUpdate[] = 
-"<h3 align=center>Update Forwarding for BBS %s</h3>"
-"<form style=\"font-family: monospace; text-align: center\" method=post action=/Mail/FWD?%s"
-" name=Test>&nbsp;&nbsp;&nbsp;&nbsp;"
-"TO &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-"AT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-"TIMES&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; Connect Script<br>"
-"<textarea wrap=hard rows=10 cols=10 name=TO>%s</textarea>"
-" <textarea wrap=hard rows=10 cols=10 name=AT>%s</textarea>"
-" <textarea wrap=hard rows=10 cols=10 name=Times>%s</textarea>"
-" <textarea wrap=hard rows=10 cols=20 name=FWD>%s</textarea><br>"
-"<textarea wrap=hard rows=10 cols=30 name=HRB>%s</textarea>"
-" <textarea wrap=hard rows=10 cols=30 name=HRP>%s</textarea><br><br>"
-"Enable Forwarding&nbsp;<input %sname=EnF type=checkbox> Interval"
-"<input value=%d size=3 name=Interval>(Secs) Request Reverse"
-"<input %sname=EnR type=checkbox> Interval <input value=%d size=3 "
-"name=RInterval>(Secs)<br>"
-"Send new messages without waiting for poll timer<input %sname=NoWait type=checkbox><br>"
-"BBS HA <input value=%s size=60 name=BBSHA> FBB Max Block <input "
-"value=%d size=3 name=FBBBlock><br>"
-"Send Personal Mail Only <input %sname=Personal type=checkbox>&nbsp;"
-"Allow Binary&nbsp; <input %sname=Bin type=checkbox>&nbsp;&nbsp; Use B1 "
-"Protocol <input %sname=B1 type=checkbox>&nbsp; Use B2 Protocol<input "
-"%sname=B2 type=checkbox><br><br>"
-"<input name=Submit value=Update type=submit class='btn'> <input name=Fwd value=\"Start Forwarding\" type=submit class='btn'> "
-"<input name=Cancel value=Cancel type=submit class='btn'></form><br></body></html>";
-
-static char MailDetailPage[] = 
-"<html><head><meta content=\"text/html; charset=ISO-8859-1\" http-equiv=\"content-type\">"
-"<title>MsgEdit</title></head><body><h4>Message %d</h4>"
-"<form style=\"font-family: monospace;\" method=post action=/Mail/Msg?%s name=Msgs>"
-"From&nbsp; <input style=\"font-family: monospace;\" size=10 name=From value=%s> Sent&nbsp;&nbsp;&nbsp;"
-"&nbsp; &nbsp; &nbsp; <input readonly=readonly size=12 name=Sent value=\"%s\">&nbsp;"
-"Type &nbsp;&nbsp;&nbsp;&nbsp;<select tabindex=1 size=1 name=Type>"
-"<option %s value=B>B</option>"
-"<option %s value=P>P</option>"
-"<option %s value=T>T</option>"
-"</select><br>"
-"To&nbsp; &nbsp; <input style=\"font-family: monospace;\" size=10 name=To value=%s>"
-" Received&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input readonly=readonly size=12 name=RX value=\"%s\">&nbsp;"
-"Status &nbsp;&nbsp;<select tabindex=1 size=1 name=Status>"
-"<option %s value=N>N</option>"
-"<option %s value=Y>Y</option>"
-"<option %s value=F>F</option>"
-"<option %s value=K>K</option>"
-"<option %s value=H>H</option>"
-"<option %s value=D>D</option>"
-"<option %s value=$>$</option>"
-"</select><br>"
-"BID&nbsp;&nbsp; <input style=\"width:100px; font-family: monospace; \" name=BID value=\"%s\"> Last Changed <input readonly=readonly size=12 name=LastChange value=\"%s\">&nbsp;"
-"Size&nbsp; <input readonly=readonly size=5 name=Size value=%d><br><br>"
-"%s"		// Email from Line
-"&nbsp;VIA&nbsp; <input style=\"width:360px;\" name=VIA value=%s><br>"
-"Title&nbsp; <input style=\"width:360px;\" name=Title value=\"%s\"> <br><br>"
-"<span align = center><input onclick=editmsg(\"EditM?%s?%d\") value=\"Edit Text\" type=button class='btn'> "
-"<input onclick=save(this.form) value=Save type=button class='btn'> "
-"<td><a href=/Mail/SaveMessage?%s><button type=button class='btn'>Save Message</button></a></td>"
-"<td><a href=/Mail/SaveAttachment?%s><button type=button class='btn' %s>Save Attachment</button></a></td>"
-//"<input onclick=doit(\"SavetoFile\") value=\"Save to File\" type=button class='btn'> "
-"<input onclick=doit(\"Print\") value=Print type=button class='btn'> "
-"<input onclick=doit(\"Export\") value=Export type=button class='btn'></span><br><br>"
-"Green = Sent, Yellow = Queued"
-"<table style=\"text-align: left; width: 490px; font-family: monospace; align=center \" border=1 cellpadding=2 cellspacing=2>";
-
-char MailDetailTail[] = "</table></form>";
-
-char Welcome[] = "<form style=\"font-family: monospace; text-align: center;\"" 
-"method=post action=/Mail/Welcome?%s>"
-"Normal User Welcome<br>"
-"<textarea cols=80 rows=3 name=NUWelcome>%s</textarea><br>"
-"New User Welcome<br>"
-"<textarea cols=80 rows=3 name=NewWelcome>%s</textarea><br>"
-"Expert User Welcome<br>"
-"<textarea cols=80 rows=3 name=ExWelcome>%s</textarea><br>"
-"Normal User Prompt<br>"
-"<textarea cols=80 rows=3 name=NUPrompt>%s</textarea><br>"
-"New User Prompt<br>"
-"<textarea cols=80 rows=3 name=NewPrompt>%s</textarea><br>"
-"Expert User Prompt<br>"
-"<textarea cols=80 rows=1 name=ExPrompt>%s</textarea><br>"
-"Signoff<br>"
-"<textarea cols=80 rows=1 name=Bye>%s</textarea><br><br>"
-"$U:Callsign of the user&nbsp; $I:First name of the user $X:Messages for user $x:Unread messages<br>"
-"$L:Number of the latest message $N:Number of active messages. $Z:Last message read by user<br><br>"
-"<input name=Save value=Save type=submit class='btn'> <inputcname=Cancel value=Cancel type=submit class='btn'></form>";
-
-static char MsgEditPage[] = "<html><head><meta content=\"text/html; charset=ISO-8859-1\" http-equiv=\"content-type\">"
-"<title></title></head><body>"
-"<form style=\"font-family: monospace;  text-align: center;\"method=post action=EMSave?%s>"
-"<textarea cols=90 rows=33 name=Msg>%s</textarea><br><br>"
-"<input name=Save value=Save type=submit class='btn'><input name=Cancel value=Cancel type=submit class='btn'><br></form>";
-
-static char WPDetail[] = "<form style=\"font-family: monospace;\" method=post action=/Mail/WP?%s>"
-"<br><table style=\"text-align: left; width: 431px;\" border=0 cellpadding=2 cellspacing=2><tbody>"
- 
-"<tr><td>Call</td><td><input readonly=readonly size=10 value=\"%s\"></td></tr>"
-"<tr><td>Name</td><td><input size=30 name=Name value=\"%s\"></td></tr>"
-"<tr><td>Home BBS 1</td><td><input size=40 name=Home1 value=%s></td></tr>"
-"<tr><td>Home BBS 2</td><td><input size=40 name=Home2 value=%s></td></tr>"
-"<tr><td>QTH 1</td><td><input size=40 name=QTH1 value=\"%s\"></td></tr>"
-"<tr><td>QTH 2</td><td><input size=40 name=QTH2 value=\"%s\"></td></tr>"
-"<tr><td>ZIP 1<br></td><td><input size=10 name=ZIP1 value=\"%s\"></td></tr>"
-"<tr><td>ZIP 2<br></td><td><input size=10 name=ZIP2 value=\"%s\"></td></tr>"
-"<tr><td>Last Seen<br></td><td><input size=15 name=Seen value=\"%s\"></td></tr>"
-"<tr><td>Last Modified<br></td><td><input size=15 name=Modif value=\"%s\"></td></tr>"
-"<tr><td>Type<br></td><td><input size=4 name=Type value=%c></td></tr>"
-"<tr><td>Changed<br></td><td><input size=4 name=Changed value=%d></td></tr>"
-"<tr><td>Seen<br></td><td><input size=4 name=Seen value=%d></td></tr></tbody></table>"
-"<br><input onclick=save(this.form) value=Save type=button class='btn'> "
-"<input onclick=del(this.form) value=Delete type=button class='btn'> "
-"<input name=Cancel value=Cancel type=submit class='btn'></form>";
+static char * FWDUpdate = NULL;
 
 
-static char LostSession[] = "<html><body>"
-"<form style=\"font-family: monospace; text-align: center;\" method=post action=/Mail/Lost?%s>"
-"Sorry, Session had been lost<br><br>&nbsp;&nbsp;&nbsp;&nbsp;"
-"<input name=Submit value=Restart type=submit class='btn'> <input type=submit class='btn' value=Exit name=Cancel><br></form>";
+static char * MailDetailPage = NULL;
+
+
+static char * MailDetailTail = NULL;
+
+
+static char * Welcome = NULL;
+
+
+static char * MsgEditPage = NULL;
+
+
+static char * WPDetail = NULL;
+
+
+
+static char * LostSession = NULL;
+
+
+void LoadTemplates_BBSHTMLConfig(void)
+{
+	// Generated by tools/extract_and_replace.py — load every
+	// template once on first call.  Non-static so HTTPcode.c
+	// callers (ProcessNodeSignon, ProcessMailSignon, etc.) that
+	// use PassError / BusyError can ensure they're loaded.
+	if (!PassError) PassError = GetTemplateFromFile(1, "PassError.txt");
+	if (!BusyError) BusyError = GetTemplateFromFile(1, "BusyError.txt");
+	if (!MailSignon) MailSignon = GetTemplateFromFile(1, "MailSignon.txt");
+	if (!MailPage) MailPage = GetTemplateFromFile(1, "MailPage.txt");
+	if (!RefreshMainPage) RefreshMainPage = GetTemplateFromFile(1, "RefreshMainPage.txt");
+	if (!StatusPage) StatusPage = GetTemplateFromFile(1, "StatusPage.txt");
+	if (!StreamEnd) StreamEnd = GetTemplateFromFile(1, "StreamEnd.txt");
+	if (!UIHddr) UIHddr = GetTemplateFromFile(1, "UIHddr.txt");
+	if (!UILine) UILine = GetTemplateFromFile(1, "UILine.txt");
+	if (!UITail) UITail = GetTemplateFromFile(1, "UITail.txt");
+	if (!FWDSelectHddr) FWDSelectHddr = GetTemplateFromFile(1, "FWDSelectHddr.txt");
+	if (!FWDSelectTail) FWDSelectTail = GetTemplateFromFile(1, "FWDSelectTail.txt");
+	if (!UserSelectHddr) UserSelectHddr = GetTemplateFromFile(1, "UserSelectHddr.txt");
+	if (!UserSelectLine) UserSelectLine = GetTemplateFromFile(1, "UserSelectLine.txt");
+	if (!StatusLine) StatusLine = GetTemplateFromFile(1, "StatusLine.txt");
+	if (!UserSelectTail) UserSelectTail = GetTemplateFromFile(1, "UserSelectTail.txt");
+	if (!UserUpdateHddr) UserUpdateHddr = GetTemplateFromFile(1, "UserUpdateHddr.txt");
+	if (!UserUpdateLine) UserUpdateLine = GetTemplateFromFile(1, "UserUpdateLine.txt");
+	if (!FWDUpdate) FWDUpdate = GetTemplateFromFile(1, "FWDUpdate.txt");
+	if (!MailDetailPage) MailDetailPage = GetTemplateFromFile(1, "MailDetailPage.txt");
+	if (!MailDetailTail) MailDetailTail = GetTemplateFromFile(1, "MailDetailTail.txt");
+	if (!Welcome) Welcome = GetTemplateFromFile(1, "Welcome.txt");
+	if (!MsgEditPage) MsgEditPage = GetTemplateFromFile(1, "MsgEditPage.txt");
+	if (!WPDetail) WPDetail = GetTemplateFromFile(1, "WPDetail.txt");
+	if (!LostSession) LostSession = GetTemplateFromFile(1, "LostSession.txt");
+}
+
 
 
 char * MsgEditTemplate = NULL;
@@ -401,6 +278,7 @@ static int compare(const void *arg1, const void *arg2)
 
 int SendHeader(char * Reply, char * Key)
 {
+	LoadTemplates_BBSHTMLConfig();
 	return sprintf(Reply, MailPage, BBSName, BBSName, Key, Key, Key, Key, Key, Key, Key, Key);
 }
 
@@ -435,6 +313,8 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 	BOOL LOCAL = FALSE;
 	char * Key;
 	char Appl = 'M';
+
+	LoadTemplates_BBSHTMLConfig();
 
 	if (URL[0] == 0 || Method == NULL)
 		return;

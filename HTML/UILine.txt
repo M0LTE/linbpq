@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<input %sname=En%d type=checkbox> %s <input size=40 value="%s" name=Path%d> <input %sname=SndMF%d type=checkbox>&nbsp;&nbsp;&nbsp;&nbsp;<input %sname=SndHDDR%d type=checkbox>&nbsp; &nbsp; &nbsp; &nbsp; <input %sname=SndNull%d type=checkbox><br>

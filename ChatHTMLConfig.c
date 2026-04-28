@@ -35,8 +35,10 @@ extern char OurNode[10];
 #define WAITPROMPT 256				// Waiting for prompt after message
 
 
-extern char PassError[];
-extern char BusyError[];
+// PassError / BusyError extracted to HTML/PassError.txt and
+// HTML/BusyError.txt; defined as ``char * `` in BBSHTMLConfig.c.
+extern char * PassError;
+extern char * BusyError;
 extern int chatPaclen;
 
 extern char NodeTail[];

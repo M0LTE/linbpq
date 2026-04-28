@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+</select><br><br><input size=6 value="" name=NewCall><input type=submit class='btn' value="Add User" name=Adduser><br><input type=submit class='btn' value=Select> <input type=submit class='btn' value=Cancel name=Cancel><br></form>

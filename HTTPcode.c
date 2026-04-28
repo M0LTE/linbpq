@@ -215,9 +215,11 @@ char TermSignon[] = "<html><head><title>BPQ32 Node %s Terminal Access</title></h
 "<input type=hidden name=Appl value=\"%s\"  id=Pass></form>";
 
 
-char PassError[] = "<p align=center>Sorry, User or Password is invalid - please try again</p>";
-
-char BusyError[] = "<p align=center>Sorry, No sessions available - please try later</p>";
+// PassError / BusyError moved to HTML/PassError.txt + HTML/BusyError.txt;
+// definition + lazy-load lives in BBSHTMLConfig.c.
+extern char * PassError;
+extern char * BusyError;
+extern void LoadTemplates_BBSHTMLConfig(void);
 
 char LostSession[] = "<html><body>Sorry, Session had been lost - refresh page to sign in again";
 char NoSessions[] = "<html><body>Sorry, No Sessions available - refresh page to try again";
@@ -859,6 +861,8 @@ int ProcessTermSignon(struct TNCINFO * TNC, SOCKET sock, char * MsgPtr, int MsgL
 	char * user, * password, * Context, * Appl;
 	char NoApp[] = "";
 	struct TCPINFO * TCP = TNC->TCPInfo;
+
+	LoadTemplates_BBSHTMLConfig();
 
 	if (input)
 	{
@@ -1617,6 +1621,11 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 	struct HTTPConnectionInfo CI;
 	struct HTTPConnectionInfo * sockptr = &CI;
 	struct HTTPConnectionInfo * Session = NULL;
+
+	// Make sure HTML/* templates referenced by the BBSHTMLConfig.c
+	// arrays (PassError, BusyError, MailSignon, etc.) are loaded
+	// before any code path that uses them in this request.
+	LoadTemplates_BBSHTMLConfig();
 
 	char URL[100000];
 	char * ptr;
@@ -4377,6 +4386,8 @@ int ProcessNodeSignon(SOCKET sock, struct TCPINFO * TCP, char * MsgPtr, char * A
 	int HeaderLen;
 	struct HTTPConnectionInfo *Sess;
 
+	LoadTemplates_BBSHTMLConfig();
+
 
 	if (input)
 	{
@@ -4448,6 +4459,8 @@ int ProcessMailAPISignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char 
 	struct HTTPConnectionInfo * NewSession;
 	int i;
 	struct UserRec * USER;
+
+	LoadTemplates_BBSHTMLConfig();
 
 	if (strchr(MsgPtr, '?'))
 	{
@@ -4522,6 +4535,8 @@ int ProcessMailSignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char * R
 	char * user, * password, * Key;
 	struct HTTPConnectionInfo * NewSession;
 
+	LoadTemplates_BBSHTMLConfig();
+
 	if (input)
 	{
 		int i;
@@ -4581,6 +4596,8 @@ int ProcessChatSignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char * R
 	int ReplyLen = 0;
 	char * input = strstr(MsgPtr, "\r\n\r\n");	// End of headers
 	char * user, * password, * Key;
+
+	LoadTemplates_BBSHTMLConfig();
 
 	if (input)
 	{

@@ -1,0 +1,2 @@
+<!-- Version 1 -->
+<p align=center>Sorry, No sessions available - please try later</p>
