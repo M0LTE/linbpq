@@ -398,8 +398,15 @@ The DataKind values you'll typically use:
 | `C` | client → BPQ | Connect to `callto` from `callfrom` on `Port`. |
 | `v` | client → BPQ | Same, but with via-digi list in payload. |
 | `D` | both | Connected-mode data (in-band session bytes). |
-| `M` | client → BPQ | Send a UI frame. |
-| `K` | both | Raw KISS frame in/out. |
+| `M` | client → BPQ | Send an [unconnected (UI) frame](#sending-and-receiving-ui-frames). |
+| `V` | client → BPQ | Send a UI frame with a via-digipeater path. |
+| `m` | client → BPQ | Toggle [monitor mode](#sending-and-receiving-ui-frames) on this AGW connection. |
+| `U` | BPQ → client | Inbound UI frame, decoded (only delivered while monitor mode is on). |
+| `T` | BPQ → client | One of *your* transmitted UI frames, echoed back (loop monitor). |
+| `S` | BPQ → client | Inbound supervisory frame (RR / RNR / REJ) when monitoring. |
+| `I` | BPQ → client | Inbound information frame (connected-mode I-frame) when monitoring. |
+| `K` | both | Raw AX.25 frame in/out (low-level escape hatch). |
+| `k` | client → BPQ | Toggle raw-receive on this AGW connection. |
 | `C` | BPQ → client | Connect-confirmation (mirrors the request). |
 | `d` | BPQ → client | Remote disconnected. |
 | `R` | BPQ → client | AGW software version. |
@@ -436,6 +443,81 @@ allowed to register against.  `AGWMASK=1` permits slot 1 only;
 matching mask bit the AGW client can still send/receive but
 won't appear as a registered destination for incoming
 connects.
+
+#### Sending and receiving UI frames
+
+Connected-mode (`C` / `D` / `d`) is the right tool for
+session-oriented traffic.  For unconnected packets — APRS-style
+beacons, broadcast announcements, ID frames, anything that
+should hit the air without a SABM handshake — the AGW protocol
+exposes UI (Unnumbered Information) frames directly.  Same
+TCP socket, no extra config.
+
+**Sending a UI frame:**
+
+| Frame | What you send |
+|---|---|
+| `M` | Header with `Port`, `callfrom`, `callto`, `PID` (typically `0xF0` = no L3); payload follows. |
+| `V` | Same as `M` but the payload starts with a 1-byte digi count followed by 10-byte NUL-padded callsigns for each via station, then the actual data. |
+
+BPQ assembles the AX.25 UI frame (CTL byte = 0x03, supplied
+PID, last-bit set on the final address) and pushes it onto the
+configured port.  Source: `AGWAPI.c::ProcessAGWCommand` cases
+`'M'` / `'V'` (around line 1383).
+
+PID defaults to `0xF0` if the header field is zero.  Common
+PID values:
+
+| PID | Meaning |
+|---|---|
+| `0xF0` | No layer 3 — generic data, what APRS uses. |
+| `0xCF` | NET/ROM. |
+| `0xCC` | ARPA Internet (IP). |
+| `0xCD` | ARPA address resolution (ARP). |
+
+**Receiving UI frames:**
+
+UI frames inbound are gated by *monitor mode*.  Send an `m`
+frame to toggle monitor on for your AGW connection; while it's
+on, every AX.25 frame received on the configured port is
+delivered to you, classified by frame type:
+
+| You receive | When |
+|---|---|
+| `U` | Inbound UI frame.  Header carries `callfrom`, `callto`, `Port`, `PID`; payload is the UI data. |
+| `I` | Inbound I-frame (someone else's connected-mode session). |
+| `S` | Inbound S-frame (RR / RNR / REJ supervisory). |
+| `T` | One of *your* transmitted frames, echoed back to you (only if `LoopMonFlag` is set on your connection). |
+
+Source: `AGWAPI.c::AGWDataPacket` (around line 760) — the
+inbound classifier.
+
+If you also want to see traffic that BPQ couldn't decode, send
+a `k` frame to toggle raw-receive on the same connection;
+every byte of every frame on the configured port arrives as a
+`K` frame, undecoded.  Useful for protocol experimentation,
+malformed-frame analysis, or implementing your own AX.25
+decoder above BPQ's KISS layer.
+
+**Worked example — APRS beacon:**
+
+```
+client → BPQ : 'X' callfrom='M0XYZ-7'                  (register)
+client → BPQ : 'm'                                     (monitor on)
+client → BPQ : 'M' Port=2 callfrom='M0XYZ-7' callto='APBPQ1' PID=0xF0
+                  data="!5132.83N/00007.50W>Test beacon"
+BPQ    → client : 'T' Port=2 callfrom='M0XYZ-7' callto='APBPQ1' …
+                  (loopback — your own frame back, only if LoopMonFlag)
+BPQ    → client : 'U' Port=2 callfrom='G8BPQ-9' callto='APRS' …
+                  (inbound UI from another station)
+```
+
+For real APRS work, BPQ's own [APRS subsystem](../subsystems/aprs.md)
+is usually the right answer — it handles digipeating, message
+acks, beacon scheduling, igate-to-IS bridging, and so on.  The
+raw AGW UI path is for cases where you want to roll your own
+protocol on top of UI frames, or write a tool that BPQ's APRS
+subsystem doesn't already do.
 
 ### Option 2 — FBB-mode telnet
 
