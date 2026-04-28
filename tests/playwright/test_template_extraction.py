@@ -5,15 +5,11 @@ now standalone files under ``HTML/``.  ``GetTemplateFromFile``
 loads them at runtime; the fast-path returns to inline functions
 have been removed (HTMLCommonCode.c).
 
-This test file is the regression net for the extraction.  It
-covers what we can verify directly without tripping over a
-pre-existing SIGSEGV in BPQMail's ``/Mail/Signon`` handler that
-blocks a full UI walkthrough — see the skipped tests for the
-specific paths that need the upstream segfault fixed first.
+This test file is the regression net for the extraction.
 
 What's covered:
 
-- All 13 expected templates exist under HTML/ in the repo.
+- All expected templates exist under HTML/ in the repo.
 - Each template carries a ``<!-- Version N`` marker in its first
   bytes — HTMLCommonCode.c:112-120 enforces this at runtime; if
   extraction stripped it, every page using the template 404s with
@@ -24,6 +20,14 @@ What's covered:
   rest of the HTTP layer.
 - Boot also succeeds *without* HTML/, with the templates serving
   the "File is missing" stub instead of crashing.
+- The signon forms (MailSignon.txt, ChatSignon.txt) render and
+  carry the ``?Mail`` / ``?Chat`` query strings on their POST
+  actions — without those, POST /Mail/Signon hits a NULL Appl
+  deref upstream (M0LTE/linbpq#18).
+- Chat post-signon walkthrough exercises ChatStatus.txt and
+  ChatConfig.txt at render time.  Mail post-signon currently
+  returns a 912-byte all-NUL body for /Mail/Header (separate
+  bug, doesn't crash) so we only smoke-test the Mail signon POST.
 """
 
 from __future__ import annotations
@@ -209,6 +213,35 @@ def _http_get(port: int, path: str, timeout: float = 3.0) -> tuple[bytes, bytes]
     return status_line, body
 
 
+def _http_post(
+    port: int, path: str, body: bytes, timeout: float = 3.0
+) -> tuple[bytes, bytes]:
+    """Tiny HTTP/1.0 POST on loopback.  Returns (status_line, body)."""
+    request = (
+        f"POST {path} HTTP/1.0\r\n"
+        f"Content-Type: application/x-www-form-urlencoded\r\n"
+        f"Content-Length: {len(body)}\r\n"
+        f"Connection: close\r\n\r\n"
+    ).encode("ascii") + body
+    with socket.create_connection(("127.0.0.1", port), timeout=timeout) as sock:
+        sock.sendall(request)
+        sock.settimeout(timeout)
+        data = b""
+        while True:
+            try:
+                chunk = sock.recv(8192)
+            except (TimeoutError, socket.timeout):
+                break
+            if not chunk:
+                break
+            data += chunk
+            if len(data) > 1 << 20:
+                break
+    head, _, resp_body = data.partition(b"\r\n\r\n")
+    status_line = head.split(b"\r\n", 1)[0]
+    return status_line, resp_body
+
+
 # ── Repo-level invariants ─────────────────────────────────────────
 
 
@@ -309,19 +342,99 @@ def test_boot_with_html_dir_node_pages_render(linbpq_web):
         assert b"BPQ32" in body, f"{path}: missing branding"
 
 
-# ── Pages requiring /Mail/Signon — skipped pending upstream fix ──
+# ── Signon-form rendering (no auth required) ─────────────────────
 
 
-@pytest.mark.skip(
-    reason=(
-        "Blocked by SIGSEGV in /Mail/Signon handler: posting "
-        "'User=test&password=test' to /Mail/Signon crashes linbpq "
-        "with a clean stack on master, not specific to the HTML "
-        "extraction.  Once the upstream SIGSEGV is resolved we can "
-        "exercise: MainConfig.txt, FwdPage.txt, UserPage.txt, "
-        "MsgPage.txt, Housekeeping.txt, WP.txt, ChatStatus.txt, "
-        "ChatConfig.txt."
+def test_mail_signon_form_renders(linbpq_web):
+    """GET /Mail/Signon serves the signon form from MailSignon.txt
+    with the canonical post-action URL embedded.  This locks in
+    that the form's ``action=/Mail/Signon?Mail`` is preserved —
+    the ``?Mail`` query string is the workaround for upstream
+    issue #18 (NULL Appl deref in ProcessMailSignon)."""
+    port = linbpq_web["http_port"]
+    status, body = _http_get(port, "/Mail/Signon")
+    assert b"200" in status, f"GET /Mail/Signon: {status!r}"
+    assert b"<!-- Version 1 -->" in body[:30]
+    assert b"action=/Mail/Signon?Mail" in body, (
+        "MailSignon form action lost the ?Mail query string — without it, "
+        "POST hits the NULL Appl deref (M0LTE/linbpq#18)."
     )
-)
-def test_per_template_url_walkthrough_when_signon_works():
-    """Placeholder — see skip reason."""
+    assert b"BPQ32 Mail Server" in body
+
+
+def test_chat_signon_form_renders(linbpq_web):
+    """Same check for the Chat signon form (ChatSignon.txt)."""
+    port = linbpq_web["http_port"]
+    status, body = _http_get(port, "/Chat/Signon")
+    assert b"200" in status, f"GET /Chat/Signon: {status!r}"
+    assert b"<!-- Version 1 -->" in body[:30]
+    assert b"action=/Chat/Signon?Chat" in body
+    assert b"BPQ32 Chat Server" in body
+
+
+# ── Mail signon does not crash with the ?Mail workaround ─────────
+
+
+def test_mail_signon_post_with_appl_query_does_not_crash(linbpq_web):
+    """Regression test for M0LTE/linbpq#18: POST /Mail/Signon with
+    no query string hit a NULL Appl deref in ProcessMailSignon
+    (HTTPcode.c:4443).  The signon form's own action URL includes
+    ``?Mail``, which avoids the crash.  This test pins the
+    workaround so any future change that re-introduces the crash
+    on the form-driven path fails loudly.
+
+    Limitation: the post-signon /Mail/Header response is currently
+    a 912-byte all-NUL body.  That looks like a separate bug worth
+    a follow-up issue, but it doesn't crash the process — so this
+    test only asserts liveness + status code, not body content.
+    """
+    port = linbpq_web["http_port"]
+    status, body = _http_post(
+        port, "/Mail/Signon?Mail", b"User=test&password=test"
+    )
+    assert b"200" in status, f"POST /Mail/Signon?Mail: {status!r}"
+    assert len(body) > 0, "expected some response body"
+    # Process must still be alive — follow-up GET should succeed.
+    status2, _ = _http_get(port, "/Node/NodeIndex.html")
+    assert b"200" in status2, (
+        f"linbpq died after /Mail/Signon POST — is M0LTE/linbpq#18 back? "
+        f"follow-up GET returned {status2!r}"
+    )
+
+
+# ── Chat post-signon walkthrough (works end-to-end) ──────────────
+
+
+_CHAT_SESSION_KEY_RE = re.compile(rb"\?(C[0-9A-F]{12})")
+
+
+def test_chat_post_signon_walkthrough(linbpq_web):
+    """Sign in to /Chat, extract the session key from the response,
+    then GET each post-signon URL and verify the rendered template
+    carries its expected version marker.  This covers ChatStatus.txt
+    (v1) and ChatConfig.txt (v2) end-to-end — without it those
+    templates are only verified at the file level, not at render
+    time."""
+    port = linbpq_web["http_port"]
+    status, body = _http_post(
+        port, "/Chat/Signon?Chat", b"User=test&password=test"
+    )
+    assert b"200" in status, f"POST /Chat/Signon?Chat: {status!r}"
+    match = _CHAT_SESSION_KEY_RE.search(body)
+    assert match, f"no session key in Chat signon response: {body[:200]!r}"
+    key = match.group(1).decode("ascii")
+
+    # /Chat/ChatStatus → ChatStatus.txt (Version 1)
+    status, body = _http_get(port, f"/Chat/ChatStatus?{key}")
+    assert b"200" in status, f"GET /Chat/ChatStatus?{key}: {status!r}"
+    assert b"<!-- Version 1" in body[:80], (
+        f"ChatStatus.txt version marker missing: {body[:120]!r}"
+    )
+
+    # /Chat/ChatConf → ChatConfig.txt (Version 2)
+    status, body = _http_get(port, f"/Chat/ChatConf?{key}")
+    assert b"200" in status, f"GET /Chat/ChatConf?{key}: {status!r}"
+    assert b"<!-- Version 2" in body[:80], (
+        f"ChatConfig.txt version marker missing: {body[:120]!r}"
+    )
+    assert b"Chat Configuration" in body
