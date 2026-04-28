@@ -4,8 +4,7 @@
     This site is being built up from John Wiseman G8BPQ's
     upstream HTML documentation, reorganised around user journeys
     and fact-checked against the binary plus the integration test
-    suite.  Expect rough edges and gaps until the rewrite project
-    completes — see the [plan][docsplan] for status.
+    suite.  Expect rough edges and gaps.
 
 LinBPQ is a Linux/macOS port of John Wiseman's
 [BPQ32][bpq32upstream] amateur-radio packet switch.  It runs as a
@@ -53,11 +52,6 @@ over-TCP, MQTT, and a JSON / SNMP / Winlink CMS family.
     Generated from `Cmd.c::COMMANDS[]`, fact-checked against
     the integration suite.
 
-- :material-source-pull: __[Upstream documentation][upstream]__
-
-    John Wiseman's original HTML docs, with a per-page status
-    of "rewritten / partial / pending" against this site.
-
 </div>
 
 ## Why a re-presentation
@@ -82,6 +76,4 @@ filed — please open a [GitHub issue][issues].
 [subsystems]: subsystems/index.md
 [protocols]: protocols/index.md
 [node-commands]: node-commands.md
-[upstream]: project/upstream.md
-[docsplan]: plan.md
 [issues]: https://github.com/M0LTE/linbpq/issues
