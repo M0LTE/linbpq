@@ -104,5 +104,19 @@ def test_admin_bare_page_renders(linbpq, path):
 
 def test_unknown_static_asset_404s(linbpq):
     """Requests for files that genuinely don't exist return 404."""
-    status, _ = _http_get(linbpq.http_port, "/favicon.ico")
-    assert b"404" in status, f"expected 404 for /favicon.ico, got {status!r}"
+    status, _ = _http_get(linbpq.http_port, "/no-such-file.html")
+    assert b"404" in status, f"expected 404 for /no-such-file.html, got {status!r}"
+
+
+def test_favicon_served(linbpq):
+    """favicon.ico is bundled from NodePages.zip and served as an image."""
+    status, body = _http_get(linbpq.http_port, "/favicon.ico")
+    assert b"200" in status, f"expected 200 for /favicon.ico, got {status!r}"
+    assert len(body) > 0, "favicon.ico body empty"
+
+
+def test_background_served(linbpq):
+    """background.jpg is bundled from NodePages.zip and referenced by many templates."""
+    status, body = _http_get(linbpq.http_port, "/background.jpg")
+    assert b"200" in status, f"expected 200 for /background.jpg, got {status!r}"
+    assert len(body) > 0, "background.jpg body empty"

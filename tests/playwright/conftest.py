@@ -88,7 +88,8 @@ def linbpq_web(tmp_path: Path):
         target = tmp_path / "HTML"
         target.mkdir(exist_ok=True)
         for src in _HTML_DIR.iterdir():
-            (target / src.name).write_bytes(src.read_bytes())
+            if src.is_file():
+                (target / src.name).write_bytes(src.read_bytes())
     # Pre-seed chatconfig.cfg with the libconfig format BPQChat
     # expects (Chat:{...};) so chat starts cleanly.  ApplNum must
     # match APPL2 in bpq32.cfg.
