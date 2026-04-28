@@ -1,10 +1,22 @@
 # LinBPQ documentation
 
-!!! warning "AI-generated, in progress"
-    This site is being built up from John Wiseman G8BPQ's
-    upstream HTML documentation, reorganised around user journeys
-    and fact-checked against the LinBPQ source.  Expect rough
-    edges and gaps.
+!!! warning "Unofficial fork, AI-generated, in progress"
+    This site lives in [`M0LTE/linbpq`][thisrepo] — a personal
+    fork of [`g8bpq/linbpq`][upstreamrepo] used for patching,
+    experimenting, and documenting.  John Wiseman G8BPQ is the
+    author and authority for both the software and its official
+    documentation; he distributes source through his GitHub repo
+    and develops largely outside it.  This fork is not authoritative
+    — it's a downstream sandbox, made possible by the project's
+    GPL.
+
+    Content here is being built up from John's [upstream HTML
+    docs][bpqdocs], reorganised around user journeys and
+    fact-checked against the LinBPQ source.  When this site
+    disagrees with John's upstream, treat John as right.
+
+[thisrepo]: https://github.com/M0LTE/linbpq
+[upstreamrepo]: https://github.com/g8bpq/linbpq
 
 ## LinBPQ vs BPQ32 — same software, different OS
 
@@ -17,14 +29,12 @@ systems.  The names are historical:
 | **BPQ32** | Windows | `BPQ32.exe` plus `BPQ32.dll`, installed via an NSIS package; companion programs (BPQTerminal, BPQAPRS desktop, VCOMConfig) ship alongside |
 | **LinBPQ** | Linux, macOS, FreeBSD, NetBSD | A single `linbpq` binary built with `make` |
 
-Both are built from the *same C sources* maintained at
-[`M0LTE/linbpq`][repo].  They share the same `bpq32.cfg` format,
-the same on-air wire protocols, the same node-prompt commands,
-the same subsystems (BBS, chat, APRS gateway, IP gateway), and
-the same web admin UI.  Day-to-day operation is identical
-across platforms.
-
-[repo]: https://github.com/M0LTE/linbpq
+Both are built from the same C sources, maintained by John and
+distributed through [`g8bpq/linbpq`][upstreamrepo] on GitHub.
+They share the same `bpq32.cfg` format, the same on-air wire
+protocols, the same node-prompt commands, the same subsystems
+(BBS, chat, APRS gateway, IP gateway), and the same web admin
+UI.  Day-to-day operation is identical across platforms.
 
 Where the two diverge:
 
@@ -94,17 +104,18 @@ over-TCP, MQTT, and a JSON / SNMP / Winlink CMS family.
 ## Why a re-presentation
 
 [John Wiseman's docs][bpqdocs] are the authoritative source on
-LinBPQ's behaviour and have been kept up to date for two decades.
-What this site adds is *organisation by audience and task*: the
-upstream docs are arranged loosely as files-as-found, while this
-site groups material by what someone actually wants to do, with
-deep links into the source.
+LinBPQ's behaviour and have been kept up to date for two
+decades.  What this site adds is *organisation by audience and
+task*: the upstream docs are arranged loosely as files-as-found,
+while this site groups material by what someone actually wants
+to do, with deep links into the source.
 
-This is a re-presentation, not a fork.  The technical content is
-faithful to the upstream and we cite John's pages prominently.
-Where this site disagrees with the upstream, that's a bug in this
-site or a behaviour change in the binary that needs an issue
-filed — please open a [GitHub issue][issues].
+This site is a downstream re-presentation of John's docs, hosted
+in a fork of his repo.  The technical content is meant to be
+faithful to upstream and we cite John's pages prominently.
+Where this site disagrees with John, treat John as right and
+[file a GitHub issue][issues] against this fork so we can fix
+the doc here.
 
 [bpqdocs]: https://www.cantab.net/users/john.wiseman/Documents/
 [getting-started]: getting-started/index.md
