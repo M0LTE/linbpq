@@ -49,3 +49,4 @@ tests/.venv/
 __pycache__/
 .pytest_cache/
 reports/
+/site/
