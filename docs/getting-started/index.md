@@ -1,8 +1,7 @@
 # Getting started
 
 A walk from a clean Linux box to a node serving a telnet session,
-fact-checked against the source and the integration suite that ships
-alongside this repo.
+fact-checked against the LinBPQ source.
 
 LinBPQ runs on Linux (Raspberry Pi, x86, generic ARM), macOS, and
 the BSDs.  This page focuses on Linux — the build is the same shape
@@ -155,12 +154,7 @@ GB7XXX:N0CALL-1} Connected to N0CALL TEST
 ```
 
 Useful for separating runtime data from a read-only install
-directory, or for running multiple instances side by side
-(see [`tests/integration/helpers/linbpq_instance.py`][test-fixture]
-for an example — every test spins a per-test instance with
-`-d <tempdir>`).
-
-[test-fixture]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/helpers/linbpq_instance.py
+directory, or for running multiple instances side by side.
 
 Positional arguments after the flags select extra subsystems:
 

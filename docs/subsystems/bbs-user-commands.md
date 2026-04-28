@@ -9,8 +9,7 @@ hits the BBS callsign or alias.
 
 !!! note "Upstream and source"
     Re-presentation of John Wiseman's [BBS User Commands][upstream]
-    page.  Behaviour cross-checked against `MailCommands.c` and
-    the BBS-driven integration tests under `tests/integration/`.
+    page.  Behaviour cross-checked against `MailCommands.c`.
 
 [upstream]: https://www.cantab.net/users/john.wiseman/Documents/BBSUserCommands.html
 

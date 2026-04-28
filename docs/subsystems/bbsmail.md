@@ -19,13 +19,11 @@ Sub-pages:
     [BPQ Mail Server][upstream] and
     [BPQ Mail Server Configuration][upstream-cfg], plus the
     [Hints and Kinks][hk] page.  Cross-checked against
-    `bpqmail.h`, `BBSUtilities.c`, `MailCommands.c` and the
-    [BBS-related integration tests][tests].
+    `bpqmail.h`, `BBSUtilities.c`, and `MailCommands.c`.
 
 [upstream]: https://www.cantab.net/users/john.wiseman/Documents/MailServer.html
 [upstream-cfg]: https://www.cantab.net/users/john.wiseman/Documents/MailServerConfiguration.html
 [hk]: https://www.cantab.net/users/john.wiseman/Documents/HintsandKinks.html
-[tests]: https://github.com/M0LTE/linbpq/tree/master/tests/integration
 
 ## What the BBS does
 
@@ -249,25 +247,7 @@ prompt.
   isn't in your `BBSForwarding` list will be treated as a regular
   user and refused B/B1/B2 SID exchange.  Add a partner record
   even if you never connect outbound — set `Enabled = 0` and the
-  BBS won't dial out, but inbound exchanges still work.[^enabled]
+  BBS won't dial out, but inbound exchanges still work.
 
 [^sysop]: From `BBSUtilities.c` — Telnet sessions are tagged as
     LocalUserSession and bypass the call-and-passcode challenge.
-[^enabled]: Locked in by `test_bbs_forwarding.py` partner-config
-    matrix — `Enabled=0` only suppresses outbound dial-out.
-
-## Test coverage
-
-| Test | What it locks in |
-|---|---|
-| [`test_bbs_basic.py`][t-basic] | SP / R / K / LM / B round-trip in a single session |
-| [`test_bbs_forwarding.py`][t-fwd] | FBB SID exchange, FA/FC/FB proposal handling, B2 binary blocks, every partner-config flag |
-| [`test_two_instance_bbs.py`][t-cross] | Cross-instance BBS post over AX/IP-UDP |
-| [`test_two_instance_bbs_forwarding.py`][t-2bbs] | End-to-end FBB forwarding between two real BPQMail daemons |
-| [`test_persistence.py`][t-persist] | BBS messages survive reboot |
-
-[t-basic]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_bbs_basic.py
-[t-fwd]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_bbs_forwarding.py
-[t-cross]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_two_instance_bbs.py
-[t-2bbs]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_two_instance_bbs_forwarding.py
-[t-persist]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_persistence.py

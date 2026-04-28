@@ -93,6 +93,9 @@ nav:
       - NET/ROM: protocols/netrom.md
       - AX/IP over UDP: protocols/axip.md
       - KISS: protocols/kiss.md
+      - BPQtoAGW: protocols/bpqtoagw.md
+      - Pactor / WINMOR / ARDOP / VARA: protocols/pactor.md
+      - Host Mode Emulator: protocols/host-mode.md
       - FBB inter-BBS forwarding: protocols/fbb-forwarding.md
   - Node prompt commands:
       - node-commands.md

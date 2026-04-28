@@ -15,12 +15,8 @@ B2 binary blocks) are in the [FBB protocol page][fbb].
     Re-presentation of John Wiseman's
     [Mail Forwarding][upstream] and
     [Winlink Forwarding][rmsupstream] pages.  Cross-checked
-    against `BBSUtilities.c::CheckABBS`,
-    `FBBRoutines.c`, `MailRouting.c`, plus
-    `tests/integration/test_bbs_forwarding.py` (10+ partner-config
-    flag round-trips, spec-violation handling) and
-    `test_two_instance_bbs_forwarding.py` (real BPQMail-to-BPQMail
-    over AX/IP-UDP).
+    against `BBSUtilities.c::CheckABBS`, `FBBRoutines.c`, and
+    `MailRouting.c`.
 
 [upstream]: https://www.cantab.net/users/john.wiseman/Documents/Forwarding.html
 [rmsupstream]: https://www.cantab.net/users/john.wiseman/Documents/RMSForwarding.html
@@ -102,9 +98,8 @@ A bulletin to `B @ ALL.EU`:
 !!! warning "Known bug — HRoutes-based bulletin routing"
     [Issue #7][issue7] tracks `MatchMessageto​BBSList` returning 0
     for `B @ ALL.EU` against `HRoutes = ".EU"` when the matcher in
-    `CheckABBS` lines 3629-3650 should fire.  The expected-behaviour
-    test is in `test_bbs_forwarding.py` but skipped pending fix.
-    Workaround: list each `<area>.EU` you want to receive.
+    `CheckABBS` lines 3629-3650 should fire.  Workaround: list
+    each `<area>.EU` you want to receive.
 
 [issue7]: https://github.com/M0LTE/linbpq/issues/7
 
@@ -330,14 +325,3 @@ Aliases = ( "AMSAT:WW", "ALLUS:USA", "CALIF:CA.USA", "CANADA:CAN" );
 A bulletin addressed to `B @ AMSAT` then routes as if it were
 addressed to `B @ WW`.
 
-## Test coverage
-
-| Test file | What it locks in |
-|---|---|
-| [`test_bbs_forwarding.py`][t-fwd] | SID exchange (every flag combo), empty-queue protocol, FA/FC proposal generation, oversized-From handling, F> checksum validation, B2 binary frames, all 10+ partner-config flags |
-| [`test_two_instance_bbs_forwarding.py`][t-2bbs] | Two real BPQMail daemons forwarding over AX/IP-UDP — full lifecycle from `SP @ partner` to message landing on the partner's disk |
-| [`helpers/fbb_partner.py`][h-fbb] | Python-side fake FBB partner — reusable for fine-grained protocol tests |
-
-[t-fwd]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_bbs_forwarding.py
-[t-2bbs]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_two_instance_bbs_forwarding.py
-[h-fbb]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/helpers/fbb_partner.py

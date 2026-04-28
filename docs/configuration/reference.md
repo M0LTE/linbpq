@@ -10,12 +10,10 @@ with their respective subsystem pages.
     Re-presentation of John Wiseman's
     [BPQ32 Configuration File Description][upstream], adapted for
     LinBPQ.  Keyword list cross-checked against
-    [`config.c`][config-src] (the global keywords table) and the
-    [config-acceptance test suite][test-cfg].
+    [`config.c`][config-src] (the global keywords table).
 
 [upstream]: https://www.cantab.net/users/john.wiseman/Documents/BPQCFGFile.html
 [config-src]: https://github.com/M0LTE/linbpq/blob/master/config.c
-[test-cfg]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_config_keyword_acceptance.py
 
 ## File layout
 
@@ -45,22 +43,14 @@ A few rules the parser enforces:
 - **Hash comments**: `#` at top level lands in the unknown-keyword
   path and produces an `Ignored:` warning in the log; it doesn't
   fail the parse.  Inside `CONFIG ... ENDPORT` driver blocks `#`
-  comments are silently accepted.[^comments]
+  comments are silently accepted.
 - **Case-insensitive keywords**: `simple=1`, `port`, `driver=Telnet`
-  all work.[^case]
-- **Trailing whitespace** on a value line is tolerated.[^trailing]
+  all work.
+- **Trailing whitespace** on a value line is tolerated.
 - **Multi-line text blocks** (`IDMSG:`, `BTEXT:`, `CTEXT:`,
   `INFOMSG:`, `IPGATEWAY ... ****`, `APRSDIGI ... ***`) end with
   `****` (four asterisks) on a line by themselves.  Note the
   trailing colon on the keyword.
-
-[^comments]: Locked in by
-    [`test_config_matrix.py::test_semicolon_comments_are_silently_ignored`][t1]
-    and `test_hash_comment_at_top_level_is_warned_but_tolerated`.
-[^case]: `test_config_matrix.py::test_keywords_are_case_insensitive`.
-[^trailing]: `test_config_matrix.py::test_trailing_whitespace_tolerance`.
-
-[t1]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_config_matrix.py
 
 ## Quick start: SIMPLE mode
 
@@ -467,16 +457,3 @@ compatibility with older cfg files):
 The standalone `UNPROTO=` at top level is also a no-op (only the
 per-port `UNPROTO=` does anything today).
 
-## Test coverage
-
-| Test file | What it locks in |
-|---|---|
-| [`test_config_matrix.py`][t-matrix] | Minimal cfg, comments, case, trailing whitespace, unknown-keyword tolerance, multi-user |
-| [`test_config_keyword_acceptance.py`][t-accept] | Parse-only canaries for every "obscure" keyword in the production GB7RDG cfg |
-| [`test_config_to_runtime.py`][t-runtime] | cfg-keyword → runtime-observable round-trips: per-port `RETRIES`/`MAXFRAME`/`PERSIST`/`DIGIFLAG`/`PACLEN`/`TXDELAY`/`TXTAIL`, new-format `APPLICATION` line, `M0LTEMapInfo` |
-| [`test_password_challenge.py`][t-pw] | `PASSWORD=` cfg + `PWTEXT` challenge round-trip |
-
-[t-matrix]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_config_matrix.py
-[t-accept]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_config_keyword_acceptance.py
-[t-runtime]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_config_to_runtime.py
-[t-pw]: https://github.com/M0LTE/linbpq/blob/master/tests/integration/test_password_challenge.py

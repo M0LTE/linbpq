@@ -3,8 +3,8 @@
 !!! warning "AI-generated, in progress"
     This site is being built up from John Wiseman G8BPQ's
     upstream HTML documentation, reorganised around user journeys
-    and fact-checked against the binary plus the integration test
-    suite.  Expect rough edges and gaps.
+    and fact-checked against the LinBPQ source.  Expect rough
+    edges and gaps.
 
 LinBPQ is a Linux/macOS port of John Wiseman's
 [BPQ32][bpq32upstream] amateur-radio packet switch.  It runs as a
@@ -49,8 +49,7 @@ over-TCP, MQTT, and a JSON / SNMP / Winlink CMS family.
 - :material-console: __[Node prompt commands][node-commands]__
 
     Reference for every command on the telnet node prompt.
-    Generated from `Cmd.c::COMMANDS[]`, fact-checked against
-    the integration suite.
+    Generated from `Cmd.c::COMMANDS[]`.
 
 </div>
 
