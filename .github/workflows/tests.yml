@@ -8,6 +8,10 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Integration suite — runs inside the Docker image so the test
+  # environment matches what `make test` does locally.  The image
+  # builds linbpq from source as part of `docker build`, which
+  # also doubles as a build smoke test.
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -30,24 +34,94 @@ jobs:
 
       - name: Run integration suite
         # Mount a host directory so junit output survives the container
-        # for the upload step below.
+        # for the upload step below.  The image's WORKDIR is
+        # /src/tests/integration, so this picks up the integration
+        # suite by default.
         run: |
           mkdir -p reports
           docker run --rm \
             -v "$PWD/reports:/reports" \
             linbpq-test:ci \
-            python3 -m pytest --junitxml=/reports/junit.xml
+            python3 -m pytest -n auto --junitxml=/reports/junit-integration.xml
 
-      - name: Upload junit report
+      - name: Upload integration junit report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: junit-report
-          path: reports/junit.xml
+          name: junit-integration
+          path: reports/junit-integration.xml
           if-no-files-found: warn
 
       - name: Publish test summary
         if: always()
         uses: test-summary/action@v2
         with:
-          paths: reports/junit.xml
+          paths: reports/junit-integration.xml
+
+  # Playwright suite — runs natively rather than in Docker so we
+  # don't have to ship Chromium in the integration image.  The
+  # pytest-playwright plugin's ``playwright install`` step is the
+  # bulk of the setup; cache the browser binaries.
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            libpaho-mqtt-dev \
+            libjansson-dev \
+            libminiupnpc-dev \
+            libconfig-dev \
+            libpcap-dev \
+            zlib1g-dev
+
+      - name: Build linbpq
+        run: |
+          make -j"$(nproc)"
+          test -x linbpq
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}
+
+      - name: Install pytest + playwright
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-xdist pytest-playwright
+          # Only Chromium — we don't need Firefox / WebKit.
+          playwright install --with-deps chromium
+
+      - name: Run playwright suite
+        env:
+          LINBPQ_BIN: ${{ github.workspace }}/linbpq
+        run: |
+          mkdir -p reports
+          cd tests/playwright
+          python -m pytest -n auto \
+            --junitxml="$GITHUB_WORKSPACE/reports/junit-playwright.xml"
+
+      - name: Upload playwright junit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-playwright
+          path: reports/junit-playwright.xml
+          if-no-files-found: warn
+
+      - name: Publish playwright summary
+        if: always()
+        uses: test-summary/action@v2
+        with:
+          paths: reports/junit-playwright.xml
