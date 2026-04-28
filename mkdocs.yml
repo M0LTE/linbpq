@@ -101,6 +101,7 @@ nav:
       - Pactor / WINMOR / ARDOP / VARA: protocols/pactor.md
       - Host Mode Emulator: protocols/host-mode.md
       - BPQ Ethernet: protocols/ethernet.md
+      - Applications Interface: protocols/apps-interface.md
       - FBB inter-BBS forwarding: protocols/fbb-forwarding.md
   - Node prompt commands:
       - node-commands.md
