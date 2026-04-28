@@ -29,7 +29,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "cheaders.h"
 
-#include "templatedefs.c"				// Inline definitions from HTLMPages
+// templatedefs.c removed — its 13 inline HTML/JS templates now
+// live under HTML/ as standalone files loaded at runtime by
+// GetTemplateFromFile.
 
 
 char * GetTemplateFromFile(int Version, char * FN)
@@ -42,44 +44,10 @@ char * GetTemplateFromFile(int Version, char * FN)
 	BOOL Special = FALSE;
 	struct stat STAT;
 
-	if (strcmp(FN, "WebMailMsg.txt") == 0)
-		return WebMailMsgtxt();
-
-	if (strcmp(FN, "FwdPage.txt") == 0)
-		return FwdPagetxt();
-
-	if (strcmp(FN, "FwdDetail.txt") == 0)
-		return FwdDetailtxt();
-
-	if (strcmp(FN, "webscript.js") == 0)
-		return webscriptjs();
-
-	if (strcmp(FN, "WebMailPage.txt") == 0)
-		return WebMailPagetxt();
-
-	if (strcmp(FN, "MainConfig.txt") == 0)
-		return MainConfigtxt();
-
-	if (strcmp(FN, "MsgPage.txt") == 0)
-		return 	MsgPagetxt();
-
-	if (strcmp(FN, "UserDetail.txt") == 0)
-		return 	UserDetailtxt();
-
-	if (strcmp(FN, "UserPage.txt") == 0)
-		return UserPagetxt();
-
-	if (strcmp(FN, "Housekeeping.txt") == 0)
-		return Housekeepingtxt();
-
-	if (strcmp(FN, "WP.txt") == 0)
-		return WPtxt();
-
-	if (strcmp(FN, "ChatConfig.txt") == 0)
-		return ChatConfigtxt();
-
-	if (strcmp(FN, "ChatStatus.txt") == 0)
-		return ChatStatustxt();
+	// All templates are now loaded from $BPQDirectory/HTML/.  The
+	// previous fast-path returns to inline templatedefs.c functions
+	// have been removed; each template now lives in its own file
+	// under HTML/, making it editable without recompiling.
 
 	sprintf(MsgFile, "%s/HTML/%s", BPQDirectory, FN);
 
