@@ -37,11 +37,12 @@ What's covered:
 from __future__ import annotations
 
 import re
-import socket
-import zlib
 from pathlib import Path
 
 import pytest
+
+from web_helpers import http_get as _http_get
+from web_helpers import http_post as _http_post
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -193,81 +194,6 @@ EXTRACTED_TEMPLATES = (
     ("FLDigiWebProc.txt",    1, "FLDigi.c::WebProc (consolidated)"),
     ("SCSTrackerWebProc.txt", 1, "SCSTracker.c::WebProc (consolidated)"),
 )
-
-
-def _send_and_recv(request: bytes, port: int, timeout: float) -> bytes:
-    with socket.create_connection(("127.0.0.1", port), timeout=timeout) as sock:
-        sock.sendall(request)
-        sock.settimeout(timeout)
-        data = b""
-        while True:
-            try:
-                chunk = sock.recv(8192)
-            except (TimeoutError, socket.timeout):
-                break
-            if not chunk:
-                break
-            data += chunk
-            if len(data) > 1 << 20:
-                break
-    return data
-
-
-def _split_response(data: bytes) -> tuple[bytes, dict[bytes, bytes], bytes]:
-    """Split into (status_line, headers, body), inflating deflate bodies.
-
-    All requests advertise ``Accept-Encoding: deflate`` to dodge the
-    /Mail/ + /WebMail/ ``Compressed = Reply`` bug (M0LTE/linbpq#19) —
-    real browsers send the same header, so this matches production
-    traffic.  Body is returned decompressed if Content-Encoding says
-    deflate; otherwise as-is.
-    """
-    head, _, body = data.partition(b"\r\n\r\n")
-    lines = head.split(b"\r\n")
-    status_line = lines[0] if lines else b""
-    headers: dict[bytes, bytes] = {}
-    for line in lines[1:]:
-        name, _, value = line.partition(b":")
-        headers[name.strip().lower()] = value.strip()
-    if headers.get(b"content-encoding", b"").lower() == b"deflate":
-        body = zlib.decompress(body)
-    return status_line, headers, body
-
-
-def _http_get(port: int, path: str, timeout: float = 3.0) -> tuple[bytes, bytes]:
-    """Tiny HTTP/1.0 GET on loopback.  Returns (status_line, body).
-
-    Sends ``Accept-Encoding: deflate`` so /Mail/ and /WebMail/
-    responses come back through the working compression path
-    (workaround for M0LTE/linbpq#19).
-    """
-    request = (
-        f"GET {path} HTTP/1.0\r\n"
-        f"Accept-Encoding: deflate\r\n"
-        f"Connection: close\r\n\r\n"
-    ).encode("ascii")
-    status, _, body = _split_response(_send_and_recv(request, port, timeout))
-    return status, body
-
-
-def _http_post(
-    port: int, path: str, body: bytes, timeout: float = 3.0
-) -> tuple[bytes, bytes]:
-    """Tiny HTTP/1.0 POST on loopback.  Returns (status_line, body).
-
-    Same Accept-Encoding workaround as ``_http_get``.
-    """
-    request = (
-        f"POST {path} HTTP/1.0\r\n"
-        f"Content-Type: application/x-www-form-urlencoded\r\n"
-        f"Content-Length: {len(body)}\r\n"
-        f"Accept-Encoding: deflate\r\n"
-        f"Connection: close\r\n\r\n"
-    ).encode("ascii") + body
-    status, _, resp_body = _split_response(
-        _send_and_recv(request, port, timeout)
-    )
-    return status, resp_body
 
 
 # ── Repo-level invariants ─────────────────────────────────────────
