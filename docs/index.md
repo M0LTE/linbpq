@@ -1,19 +1,21 @@
 # LinBPQ documentation
 
 !!! warning "Unofficial fork, AI-generated, in progress"
-    This site lives in [`M0LTE/linbpq`][thisrepo] — a personal
-    fork of [`g8bpq/linbpq`][upstreamrepo] used for patching,
-    experimenting, and documenting.  John Wiseman G8BPQ is the
-    author and authority for both the software and its official
-    documentation; he distributes source through his GitHub repo
-    and develops largely outside it.  This fork is not authoritative
-    — it's a downstream sandbox, made possible by the project's
-    GPL.
+    [`M0LTE/linbpq`][thisrepo] — both the software in this repo
+    and these docs — is a personal fork of [`g8bpq/linbpq`][upstreamrepo]
+    used for patching, experimenting, and documenting.  John
+    Wiseman G8BPQ is the author and authority for both the
+    software and its official documentation; he distributes
+    source through his GitHub repo and develops largely outside
+    it.  Code in this fork may carry local patches, experiments
+    or instrumentation that aren't in John's upstream.  Both
+    streams sit downstream of John, made possible by the
+    project's GPL — neither is authoritative.
 
-    Content here is being built up from John's [upstream HTML
-    docs][bpqdocs], reorganised around user journeys and
-    fact-checked against the LinBPQ source.  When this site
-    disagrees with John's upstream, treat John as right.
+    For canonical builds, get them from John.  For canonical
+    documentation, see his [upstream HTML docs][bpqdocs].
+    When this site or the binary built from this fork disagrees
+    with John's upstream, treat John as right.
 
 [thisrepo]: https://github.com/M0LTE/linbpq
 [upstreamrepo]: https://github.com/g8bpq/linbpq
