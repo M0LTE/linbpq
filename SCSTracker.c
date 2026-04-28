@@ -34,6 +34,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "cheaders.h"
 #include "tncinfo.h"
 
+char * GetTemplateFromFile(int Version, char * FN);
+
 //#include "bpq32.h"
 
 static char ClassName[]="TRACKERSTATUS";
@@ -612,19 +614,13 @@ int TrkWebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 			TNC->WEB_CHANGED = 0;
 	}
 
-	Len = sprintf(Buff, "<html><meta http-equiv=expires content=0><meta http-equiv=refresh content=%d>"
-	"<head><title>SCSTracker Status</title></head><body><h2>SCSTracker Status</h2>", Interval);
+	static char * SCSTrackerWebProc = NULL;
+	if (!SCSTrackerWebProc)
+		SCSTrackerWebProc = GetTemplateFromFile(1, "SCSTrackerWebProc.txt");
 
-	Len += sprintf(&Buff[Len], "<table style=\"text-align: left; width: 480px; font-family: monospace; align=center \" border=1 cellpadding=2 cellspacing=2>");
-
-	Len += sprintf(&Buff[Len], "<tr><td width=90px>Comms State</td><td>%s</td></tr>", TNC->WEB_COMMSSTATE);
-	Len += sprintf(&Buff[Len], "<tr><td>TNC State</td><td>%s</td></tr>", TNC->WEB_TNCSTATE);
-	Len += sprintf(&Buff[Len], "<tr><td>Mode</td><td>%s</td></tr>", TNC->WEB_MODE);
-	Len += sprintf(&Buff[Len], "<tr><td>Buffers</td><td>%s</td></tr>", TNC->WEB_BUFFERS);
-	Len += sprintf(&Buff[Len], "<tr><td>Traffic</td><td>%s</td></tr>", TNC->WEB_TRAFFIC);
-	Len += sprintf(&Buff[Len], "</table>");
-
-	Len += sprintf(&Buff[Len], "<textarea rows=10 style=\"width:480px; height:250px;\" id=textarea >%s</textarea>", TNC->WebBuffer);
+	Len = sprintf(Buff, SCSTrackerWebProc, Interval,
+		TNC->WEB_COMMSSTATE, TNC->WEB_TNCSTATE, TNC->WEB_MODE,
+		TNC->WEB_BUFFERS, TNC->WEB_TRAFFIC, TNC->WebBuffer);
 	Len = DoScanLine(TNC, Buff, Len);
 
 	return Len;

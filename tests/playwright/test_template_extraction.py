@@ -182,6 +182,7 @@ EXTRACTED_TEMPLATES = (
     ("WinRPRWebProc.txt",    1, "WinRPR.c::WebProc (consolidated)"),
     ("FreeDATAWebProc.txt",  1, "FreeDATA.c::WebProc (consolidated)"),
     ("FLDigiWebProc.txt",    1, "FLDigi.c::WebProc (consolidated)"),
+    ("SCSTrackerWebProc.txt", 1, "SCSTracker.c::WebProc (consolidated)"),
 )
 
 
