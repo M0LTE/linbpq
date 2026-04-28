@@ -44,7 +44,12 @@ _INTEG_DIR = Path(__file__).resolve().parents[1] / "integration"
 sys.path.insert(0, str(_INTEG_DIR))
 from helpers.linbpq_instance import pick_free_port  # type: ignore  # noqa: E402
 
-from web_helpers import mail_signon, chat_signon  # noqa: E402
+from web_helpers import (  # noqa: E402
+    add_bbs_user,
+    chat_signon,
+    mail_signon,
+    send_bbs_message_via_telnet,
+)
 
 
 LINBPQ_BIN = os.environ.get("LINBPQ_BIN", "linbpq.bin")
@@ -286,6 +291,77 @@ def chat_session(linbpq_web):
     return {"port": port, "key": key, "base": linbpq_web["base_url"]}
 
 
+# ── Seeded fixture: BBS pre-populated with users + messages ──────
+
+
+SEEDED_USERS = ["M0XYZ", "M0ABC", "G8BPQ"]
+
+SEEDED_MESSAGES = [
+    {
+        "to": "ALL",
+        "subject": "Test bulletin one",
+        "body": ["This is the body of test bulletin number one.", "73 de N0CALL"],
+    },
+    {
+        "to": "M0XYZ",
+        "subject": "Personal test message",
+        "body": ["Hello M0XYZ, this is a test.", "Please ignore."],
+    },
+    {
+        "to": "ALL",
+        "subject": "Second bulletin",
+        "body": ["Another bulletin for the test corpus."],
+    },
+]
+
+
+@pytest.fixture
+def linbpq_web_seeded(linbpq_web):
+    """Boot linbpq + seed the BBS with non-empty state.
+
+    Adds 3 BBS users via /Mail/UserSave (Add=<call>) and attempts
+    to send a few messages via the telnet command line.
+
+    Yields a dict including ``users``: the list of seeded
+    callsigns, and ``messages``: the list of message specs that
+    were attempted.  Tests can use these to assert the rendered
+    list pages contain real data, not just empty-state shells.
+
+    Telnet-driven message seeding is best-effort — if the BBS
+    prompt sequence doesn't match the expected pattern, the
+    helper times out silently rather than failing the test.
+    """
+    port = linbpq_web["http_port"]
+    telnet_port = linbpq_web["telnet_port"]
+    key = mail_signon(port)
+
+    for call in SEEDED_USERS:
+        add_bbs_user(port, key, call)
+
+    seeded_msgs = []
+    for spec in SEEDED_MESSAGES:
+        try:
+            send_bbs_message_via_telnet(
+                telnet_port,
+                "test",
+                "test",
+                to=spec["to"],
+                subject=spec["subject"],
+                body_lines=spec["body"],
+            )
+            seeded_msgs.append(spec)
+        except (RuntimeError, OSError):
+            # Best-effort — telnet automation timing is fragile.
+            pass
+
+    return {
+        **linbpq_web,
+        "key": key,
+        "users": SEEDED_USERS,
+        "messages": seeded_msgs,
+    }
+
+
 # ── Browser-tier fixtures (pytest-playwright) ─────────────────────
 
 
@@ -311,3 +387,43 @@ def authed_page(page, linbpq_web):
     page.fill('input[name="password"]', "test")
     page.click('input[type="submit"][value="Submit"]')
     return page
+
+
+class _ConsoleErrorCapture:
+    """Helper: collect JS errors / console-error messages from a
+    Playwright ``Page`` so tests can assert "no JS errors fired
+    while we did X".  Use it as a context manager:
+
+        with capture_js_errors(page) as errors:
+            page.goto(...)
+            page.click(...)
+        assert not errors, f"JS errors during interaction: {errors}"
+    """
+
+    def __init__(self, page):
+        self.page = page
+        self.errors: list[str] = []
+        self._on_pageerror = lambda exc: self.errors.append(f"pageerror: {exc}")
+        self._on_console = lambda msg: (
+            self.errors.append(f"console.error: {msg.text}")
+            if msg.type == "error"
+            else None
+        )
+
+    def __enter__(self):
+        self.page.on("pageerror", self._on_pageerror)
+        self.page.on("console", self._on_console)
+        return self.errors
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # pytest-playwright cleans the page up; no need to detach
+        # listeners (the page itself is per-test).
+        return False
+
+
+@pytest.fixture
+def capture_js_errors():
+    """Yield a callable that, given a Page, returns a context
+    manager collecting JS errors during the with-block.  See
+    ``_ConsoleErrorCapture`` docstring for usage."""
+    return _ConsoleErrorCapture
