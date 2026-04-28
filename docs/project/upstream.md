@@ -29,9 +29,9 @@ behaviour change in the binary that needs an issue filed.
 
 | Upstream page | Status | This site |
 |---------------|--------|-----------|
-| [BPQ32 Installation][BPQ32-Installation] | Out of scope | Windows-only — this site documents LinBPQ |
-| [BPQ Quickstart Guide (Ken KD6PGI)][Quickstart_Guide] | Out of scope | Windows-only walkthrough |
-| [LinBPQ Installation][InstallingLINBPQ] | Rewritten | [Getting started](../getting-started/index.md) |
+| [BPQ32 Installation][BPQ32-Installation] | Rewritten | [Getting started — Windows](../getting-started/windows.md) |
+| [BPQ Quickstart Guide (Ken KD6PGI)][Quickstart_Guide] | Rewritten | Folded into [Getting started — Windows](../getting-started/windows.md) |
+| [LinBPQ Installation][InstallingLINBPQ] | Rewritten | [Getting started — Linux](../getting-started/index.md) |
 
 [BPQ32-Installation]: https://www.cantab.net/users/john.wiseman/Documents/BPQ32%20Installation.htm
 [Quickstart_Guide]: https://www.cantab.net/users/john.wiseman/Documents/Quickstart_Guide.html
@@ -62,7 +62,7 @@ behaviour change in the binary that needs an issue filed.
 | [BPQ Mail Server Changelog][BBSChangeLog] | Out of scope | Upstream changelog; not re-presented here |
 | [BBS User Commands][BBSUserCommands] | Rewritten | [BBS user commands](../subsystems/bbs-user-commands.md) |
 | [APRS Digipeater/IGate][APRSDigiGate] | Rewritten | [APRS](../subsystems/aprs.md) |
-| [APRS Mapping and Messaging Application][BPQAPRS] | Out of scope | Windows-only desktop map client; QtBPQAPRS or third-party clients on Linux |
+| [APRS Mapping and Messaging Application][BPQAPRS] | Rewritten | [BPQAPRS map client](../clients/bpqaprs.md) (Windows; QtBPQAPRS / Xastir / YAAC for Linux) |
 | [Guide to Chat Network Map System][BPQChatMap] | Rewritten | Folded into [Chat node](../subsystems/chat.md) "Chat network map" |
 | [IP Gateway Feature][IPGateway] | Rewritten | [IP gateway](../subsystems/ipgateway.md) |
 
@@ -88,11 +88,11 @@ behaviour change in the binary that needs an issue filed.
 | [BPQAXIP Configuration][BPQAXIPConfiguration] | Rewritten | [AX/IP over UDP](../protocols/axip.md) |
 | [BPQtoAGW][BPQtoAGW] | Rewritten | [BPQtoAGW](../protocols/bpqtoagw.md) |
 | [BPQ Host Mode Emulator][BPQHostModeEmulator] | Rewritten | [Host Mode Emulator](../protocols/host-mode.md) |
-| [BPQ Ethernet][BPQEthernet] | Out of scope (proposed) | Windows-only WINPCAP-based driver; Linux has its own BPQETHER but not via this driver |
-| [BPQ Virtual Serial Port Driver][VirtualSerial] | Out of scope (proposed) | Windows-only kernel driver |
+| [BPQ Ethernet][BPQEthernet] | Rewritten | [BPQ Ethernet](../protocols/ethernet.md) (Linux + Windows; same wire format, different kernel mechanism) |
+| [BPQ Virtual Serial Port Driver][VirtualSerial] | Out of scope | Windows-only kernel driver; doesn't work on 64-bit Windows either. |
 | [Using Pactor with BPQ32][UsingPactor] | Rewritten | [Pactor / WINMOR / ARDOP / VARA](../protocols/pactor.md) |
 | [Using WINMOR with BPQ32][UsingWINMOR] | Rewritten | [Pactor / WINMOR / ARDOP / VARA](../protocols/pactor.md) (WINMOR is deprecated; ARDOP recommended) |
-| [Airmail to WINMOR][AirmailtoWINMOR] | Out of scope (proposed) | Windows-specific desktop integration; Linux equivalent is Pat winlink-go talking to LinBPQ directly |
+| [Airmail to WINMOR][AirmailtoWINMOR] | Out of scope | Windows-specific desktop integration; Linux equivalent is Pat winlink-go talking to LinBPQ directly |
 
 [BPQAXIPConfiguration]: https://www.cantab.net/users/john.wiseman/Documents/BPQAXIP%20Configuration.htm
 [BPQtoAGW]: https://www.cantab.net/users/john.wiseman/Documents/BPQtoAGW.htm
@@ -107,9 +107,9 @@ behaviour change in the binary that needs an issue filed.
 
 | Upstream page | Status | This site |
 |---------------|--------|-----------|
-| [BPQTerminal][BPQTerminal] | Out of scope (proposed) | Windows-only desktop terminal app; Linux users use telnet / any TCP terminal |
-| [BPQTermTCP][BPQTermTCP] | Out of scope (proposed) | Windows-only desktop terminal app; need an `FBBPORT=` configured on the LinBPQ side, but that's covered in the Configuration reference |
-| [BPQ OCX Programming][BPQOCX] | Out of scope (proposed) | Obsolete Windows ActiveX control (2005); not relevant to LinBPQ |
+| [BPQTerminal][BPQTerminal] | Rewritten | [BPQTerminal](../clients/bpqterminal.md) (Windows; Linux users use any TCP terminal) |
+| [BPQTermTCP][BPQTermTCP] | Out of scope | Windows-only desktop terminal app; FBBPORT setup is covered in the Configuration reference |
+| [BPQ OCX Programming][BPQOCX] | Out of scope | Obsolete Windows ActiveX control (2005); not relevant to LinBPQ |
 
 [BPQTerminal]: https://www.cantab.net/users/john.wiseman/Documents/BPQTerminal.htm
 [BPQTermTCP]: https://www.cantab.net/users/john.wiseman/Documents/BPQTermTCP.htm
@@ -119,8 +119,8 @@ behaviour change in the binary that needs an issue filed.
 
 | Upstream page | Status | This site |
 |---------------|--------|-----------|
-| [BPQ32 Node Changelog][NodeChangeLog] | Out of scope (proposed) | Upstream changelog; this site cites versions inline where relevant. |
-| [Support Programs Changelog][SupportProgsChangeLog] | Out of scope (proposed) | Upstream changelog for Windows-only support programs. |
+| [BPQ32 Node Changelog][NodeChangeLog] | Out of scope | Upstream changelog; this site cites versions inline where relevant. |
+| [Support Programs Changelog][SupportProgsChangeLog] | Out of scope | Upstream changelog for Windows-only support programs. |
 
 [NodeChangeLog]: https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html
 [SupportProgsChangeLog]: https://www.cantab.net/users/john.wiseman/Documents/SupportProgsChangeLog.html

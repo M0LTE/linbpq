@@ -75,7 +75,8 @@ plugins:
 nav:
   - Home: index.md
   - Getting started:
-      - getting-started/index.md
+      - Linux: getting-started/index.md
+      - Windows (BPQ32): getting-started/windows.md
   - Configuration:
       - configuration/reference.md
   - Subsystems:
@@ -96,9 +97,13 @@ nav:
       - BPQtoAGW: protocols/bpqtoagw.md
       - Pactor / WINMOR / ARDOP / VARA: protocols/pactor.md
       - Host Mode Emulator: protocols/host-mode.md
+      - BPQ Ethernet: protocols/ethernet.md
       - FBB inter-BBS forwarding: protocols/fbb-forwarding.md
   - Node prompt commands:
       - node-commands.md
+  - Windows companion programs:
+      - BPQTerminal: clients/bpqterminal.md
+      - BPQAPRS map client: clients/bpqaprs.md
 
 extra:
   social:
