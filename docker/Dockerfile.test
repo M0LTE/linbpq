@@ -21,15 +21,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /src
 COPY . .
 
-# Build linbpq.bin from source inside the container. .dockerignore in the
+# Build linbpq from source inside the container. .dockerignore in the
 # context root excludes host-built object files / binaries so we always do
 # a clean compile. The makefile's setcap step requires sudo and is allowed
 # to fail (- prefix); in-container we don't need raw-sockets capabilities.
 RUN make -j"$(nproc)" \
-    && test -x linbpq.bin \
+    && test -x linbpq \
     || (echo "linbpq build failed"; exit 1)
 
-ENV LINBPQ_BIN=/src/linbpq.bin
+ENV LINBPQ_BIN=/src/linbpq
 WORKDIR /src/tests/integration
 
 CMD ["python3", "-m", "pytest"]

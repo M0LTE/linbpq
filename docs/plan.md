@@ -236,7 +236,7 @@ Plan (rough — refine as we go):
    the as-found jumble.  Cross-link instead of duplicating.
 3. **Rewrite to Markdown.**  Per page: convert HTML, modernise
    the prose, keep the technical content faithful.  Fact-check
-   each non-trivial statement against `linbpq.bin` or the
+   each non-trivial statement against `linbpq` or the
    integration suite.  Where a doc claim disagrees with the
    binary, file or link to a `M0LTE/linbpq` issue and capture
    the empirical truth.
@@ -273,7 +273,7 @@ The tests must:
 ## Background: what `linbpq` is
 
 `linbpq` is a Linux/Unix port of John Wiseman G8BPQ's BPQ32 packet-radio
-node software. It is a long-running daemon (`linbpq.bin`) built from
+node software. It is a long-running daemon (`linbpq`) built from
 ~150 C source files into a single binary, configured by `bpq32.cfg`. It
 implements an AX.25 / NET-ROM packet switch, a BBS, a chat node and an
 APRS gateway.
@@ -315,7 +315,7 @@ without real radios. Out of scope until network-side tests are mature.
 
 1. Generates a per-test `bpq32.cfg` in a temp directory with free TCP
    ports chosen at runtime.
-2. Spawns `linbpq.bin` as a subprocess.
+2. Spawns `linbpq` as a subprocess.
 3. Waits for readiness (TCP probe loop on the configured ports).
 4. Drives the daemon through its protocols (telnet, HTTP, AGW, KISS,
    AX/IP).
@@ -392,7 +392,7 @@ Phase 1 once the harness produces useful output.
 
 | Phase | Scope                                                                                                                    | Status |
 | ----: | ------------------------------------------------------------------------------------------------------------------------ | ------ |
-|     0 | Drop misdirected prior work; confirm `linbpq.bin` builds locally; identify a minimal cfg that boots clean                | done   |
+|     0 | Drop misdirected prior work; confirm `linbpq` builds locally; identify a minimal cfg that boots clean                | done   |
 |     1 | `tests/integration/` skeleton + Docker test image + `linbpq_instance` pytest fixture + one telnet smoke test             | done   |
 |     2 | Breadth-first interface coverage — telnet, HTTP, AGW, NET/ROM-TCP, FBB-TCP, JSON API; KISS-TCP and AX/IP-UDP deferred  | done\* |
 |     3 | Telnet node-command coverage driven by `docs/node-commands.md` (every command, sysop gating, state-changing round-trips) | done\* |
@@ -422,7 +422,7 @@ outbound connection is established.
 plus persistence across reboot, and Chat lifecycle (enter, register
 name, /U users, /T topics, /H help) all covered.  Despite
 ``bpqchat`` shipping as its own binary too, the chat-server code is
-linked into ``linbpq.bin`` and turned on by passing ``chat`` on the
+linked into ``linbpq`` and turned on by passing ``chat`` on the
 command line — confirmed empirically.  Cross-instance forwarding (an
 A-side BBS forwarding mail to a B-side BBS) is the natural deeper
 test once we want to exercise BBS routing.
@@ -729,7 +729,7 @@ docs/
 `tests/unit/nodemaptest_test.c`, `tests/unit/nodemap_fixture_test.c`,
 `tests/Makefile`, root `makefile` test target. The targets these
 tested — `CmdLineAuth.c` and `NodeMapTest.c` — are *not* compiled
-into `linbpq.bin` (see the `OBJS` list in `makefile`). They are
+into `linbpq` (see the `OBJS` list in `makefile`). They are
 dormant utilities. Investing in tests for them did not move the needle
 on the actual goal.
 

@@ -1,6 +1,6 @@
 """Phase 4 — BBS lifecycle: enter, register name, list / read / kill.
 
-Linbpq's BBS is the BPQMail subsystem inside ``linbpq.bin`` — enabled
+Linbpq's BBS is the BPQMail subsystem inside ``linbpq`` — enabled
 by passing ``mail`` on the command line and registering the BBS as an
 ``APPLICATIONS=BBS`` entry with ``BBSCALL`` / ``BBSALIAS`` set.
 

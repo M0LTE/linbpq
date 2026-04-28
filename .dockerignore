@@ -1,7 +1,7 @@
 .git
 *.o
 *.d
-linbpq.bin
+linbpq
 output.map
 logs/
 BPQNODES.dat

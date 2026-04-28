@@ -1,6 +1,6 @@
 """Phase 6 — two linbpq instances connected via AX/IP-over-UDP.
 
-A and B each run their own linbpq.bin in their own tempdir, with an
+A and B each run their own linbpq in their own tempdir, with an
 AX/IP MAP entry pointing at the other and a static ROUTES: entry that
 declares the peer as a NET/ROM neighbour with high quality.
 
