@@ -61,9 +61,9 @@ behaviour change in the binary that needs an issue filed.
 | [BPQ Mail Server email Gateway][ISPGateway] | Rewritten | [BBS email gateways](../subsystems/bbs-email.md) |
 | [BPQ Mail Server Changelog][BBSChangeLog] | Out of scope | Upstream changelog; not re-presented here |
 | [BBS User Commands][BBSUserCommands] | Rewritten | [BBS user commands](../subsystems/bbs-user-commands.md) |
-| [APRS Digipeater/IGate][APRSDigiGate] | Pending | [APRS](../subsystems/aprs.md) |
-| [APRS Mapping and Messaging Application][BPQAPRS] | Pending | — |
-| [Guide to Chat Network Map System][BPQChatMap] | Pending | — |
+| [APRS Digipeater/IGate][APRSDigiGate] | Rewritten | [APRS](../subsystems/aprs.md) |
+| [APRS Mapping and Messaging Application][BPQAPRS] | Out of scope | Windows-only desktop map client; QtBPQAPRS or third-party clients on Linux |
+| [Guide to Chat Network Map System][BPQChatMap] | Rewritten | Folded into [Chat node](../subsystems/chat.md) "Chat network map" |
 | [IP Gateway Feature][IPGateway] | Rewritten | [IP gateway](../subsystems/ipgateway.md) |
 
 [MailServer]: https://www.cantab.net/users/john.wiseman/Documents/MailServer.html
