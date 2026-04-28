@@ -174,6 +174,76 @@ def test_webmail_compose_view_loads_clean(
 # ── /Node admin pages: nav-bar links don't throw ─────────────────
 
 
+def test_webmail_compose_posts_to_correct_url(
+    linbpq_web, page, capture_js_errors
+):
+    """Drive the WebMail composer end-to-end and verify the
+    submit POST lands on ``/WebMail/EMSave?<key>`` — the URL that
+    the route handler in ``WebMail.c`` exact-matches.
+
+    Regression test for an extraction artefact: the original C
+    source had ``action=/WebMail/EMSave\\?%s`` where the C
+    compiler resolved ``\\?`` to ``?``.  When the template was
+    extracted to ``HTML/MsgInputPage.txt`` the ``\\`` was kept
+    verbatim, so browsers parsed the action as
+    ``/WebMail/EMSave\\?<key>`` and (via slash-normalisation)
+    POSTed to ``/WebMail/EMSave/?<key>`` — which the handler's
+    ``_stricmp(NodeURL, "/WebMail/EMSave")`` exact match
+    rejects.  Result: clicking Send silently lost the message.
+
+    The test checks the final POST URL — not whether the
+    message persists, because that depends on multipart file
+    data we don't supply here.  The URL match is the part that
+    pinned down whether the route handler ran.
+    """
+    import re as _re
+    posts: list[str] = []
+    page.on(
+        "request",
+        lambda r: posts.append(r.url) if r.method == "POST" else None,
+    )
+    with capture_js_errors(page) as js_errors:
+        page.goto("/WebMail", wait_until="domcontentloaded")
+        page.wait_for_timeout(400)
+        body = page.content()
+        m = _re.search(r"newmsg\('([^']+)'\)", body)
+        if not m:
+            import pytest
+            pytest.skip("WebMail entry page didn't expose newmsg() — auth?")
+        key = m.group(1)
+        page.evaluate(f"newmsg({key!r})")
+        page.wait_for_load_state("domcontentloaded")
+        page.wait_for_timeout(400)
+        action = page.locator("form#myform").get_attribute("action")
+        assert action and "\\" not in action, (
+            f"form action contains a backslash: {action!r}"
+        )
+        page.fill("input[name=To]", "N0CALL")
+        page.fill("input[name=Subj]", "regression-test")
+        page.fill("textarea[name=Msg]", "body")
+        page.locator("input[name=Send]").click()
+        page.wait_for_load_state("domcontentloaded")
+        page.wait_for_timeout(400)
+
+    assert posts, "no POST captured during compose-and-send"
+    submit_url = next((u for u in posts if "EMSave" in u), None)
+    assert submit_url is not None, (
+        f"no POST to anything containing 'EMSave': {posts!r}"
+    )
+    # Critical: must NOT be /WebMail/EMSave/?... (the slash-
+    # normalised buggy form).  Must be /WebMail/EMSave?...
+    assert "/WebMail/EMSave?" in submit_url, (
+        f"submit POST went to {submit_url!r}; expected exact "
+        f"'/WebMail/EMSave?<key>'.  Trailing slash means the "
+        f"route handler skipped it."
+    )
+    assert "/WebMail/EMSave/?" not in submit_url, (
+        f"submit POST has the buggy trailing-slash variant: "
+        f"{submit_url!r}"
+    )
+    assert not js_errors, f"JS errors during WebMail submit: {js_errors}"
+
+
 def test_node_admin_pages_nav_no_js_errors(
     linbpq_web, page, capture_js_errors
 ):
