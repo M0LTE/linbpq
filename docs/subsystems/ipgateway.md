@@ -14,9 +14,8 @@ old-school KA9Q / NOS interop.
     This page documents the cfg surface and command set
     accurately.  End-to-end behaviour depends on having a real
     Ethernet interface, a 44/8 IP allocation, and a peer node
-    you can route to over RF — none of which the integration
-    suite stands up.  If you find this page disagrees with what
-    LinBPQ actually does, please open an issue.
+    you can route to over RF.  If you find this page disagrees
+    with what LinBPQ actually does, please open an issue.
 
 !!! note "Upstream and source"
     Re-presentation of John Wiseman's [IP Gateway Feature][upstream]
