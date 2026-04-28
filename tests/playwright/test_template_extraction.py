@@ -40,7 +40,8 @@ _HTML_DIR = _REPO_ROOT / "HTML"
 
 
 EXTRACTED_TEMPLATES = (
-    # (filename, expected version, source function in old templatedefs.c)
+    # (filename, expected version, source function/array in C)
+    # --- Phase 1: templatedefs.c functions ---
     ("WebMailMsg.txt",   5, "WebMailMsgtxt"),
     ("FwdPage.txt",      4, "FwdPagetxt"),
     ("FwdDetail.txt",    3, "FwdDetailtxt"),
@@ -54,6 +55,9 @@ EXTRACTED_TEMPLATES = (
     ("WP.txt",           1, "WPtxt"),
     ("ChatConfig.txt",   2, "ChatConfigtxt"),
     ("ChatStatus.txt",   1, "ChatStatustxt"),
+    # --- Phase 2: ChatHTMLConfig.c inline arrays ---
+    ("ChatSignon.txt",   1, "ChatHTMLConfig.c::ChatSignon[]"),
+    ("ChatPage.txt",     1, "ChatHTMLConfig.c::ChatPage[]"),
 )
 
 
@@ -140,6 +144,29 @@ def test_htmlcommoncode_no_longer_calls_inline_template_functions():
         assert fn not in src, (
             f"HTMLCommonCode.c still calls {fn} — fast-path return "
             "to inline template not removed."
+        )
+
+
+def test_chathtmlconfig_no_inline_html_arrays():
+    """``ChatHTMLConfig.c`` previously had ``ChatSignon[] = "<html>...";``
+    and ``ChatPage[] = "<html>...";`` declarations as inline char
+    arrays.  Phase 2 of the extraction moved them to
+    ``HTML/ChatSignon.txt`` and ``HTML/ChatPage.txt``, replacing
+    the declarations with cached file-loaded pointers.  Locking
+    in: any future PR that re-introduces an inline ``char Foo[]
+    = "<...>"`` HTML literal in this file should fail this test."""
+    src = (_REPO_ROOT / "ChatHTMLConfig.c").read_text()
+    # The previous declarations had the form `char ChatSignon[] = "<html>...`
+    # and `char ChatPage[] = "<html>...`.  After extraction those are gone;
+    # the surviving references are static char* template pointers.
+    forbidden = (
+        'char ChatSignon[] = "<',
+        'char ChatPage[] = "<',
+    )
+    for pattern in forbidden:
+        assert pattern not in src, (
+            f"ChatHTMLConfig.c still has inline-HTML decl {pattern!r}; "
+            "extract to HTML/ via GetTemplateFromFile."
         )
 
 
