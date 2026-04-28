@@ -174,27 +174,18 @@ def test_webmail_compose_view_loads_clean(
 # ── /Node admin pages: nav-bar links don't throw ─────────────────
 
 
-def test_node_admin_pages_nav_no_new_js_errors(
+def test_node_admin_pages_nav_no_js_errors(
     linbpq_web, page, capture_js_errors
 ):
-    """Visit each /Node/*.html page and confirm no *new* JS
-    errors appear beyond the known set.
+    """Visit each /Node/*.html page and confirm no JS errors fire
+    on load.
 
-    Known upstream issue (M0LTE/linbpq#22): every node menu page
-    embeds the View Logs dropdown via ``HTML/NodeTail.txt``,
-    whose lines all end with a stray ``\\`` (left over from when
-    the template was a C string literal).  Inside the inner
-    ``<script>`` block those backslashes form an invalid JS
-    statement and the browser reports a ``SyntaxError: Invalid
-    or unexpected token`` once per page load.
-
-    The error is identical for anonymous and authenticated
-    visitors — confirmed by curling each variant: the rendered
-    bytes are byte-for-byte the same, because ``SetupNodeMenu``
-    appends ``NodeTail.txt`` unconditionally.
-
-    We accept that specific error and fail only on anything
-    novel.  When #22 is fixed, drop the allow-list.
+    Previously needed an allow-list for ``Invalid or unexpected
+    token`` because ``HTML/NodeTail.txt`` had stray ``\\`` line
+    continuations leftover from when it was a C string literal —
+    introduced during the templatedefs.c → HTML/ extraction work,
+    not present in the original code.  The HTML file has been
+    cleaned up; the gate is now strict.
     """
     pages = [
         "/Node/NodeIndex.html",
@@ -205,13 +196,10 @@ def test_node_admin_pages_nav_no_new_js_errors(
         "/Node/Stats.html",
         "/Node/MH.html",
     ]
-    KNOWN_ERROR = "Invalid or unexpected token"
     with capture_js_errors(page) as js_errors:
         for path in pages:
             page.goto(path, wait_until="domcontentloaded")
             page.wait_for_timeout(150)
-    novel = [e for e in js_errors if KNOWN_ERROR not in e]
-    assert not novel, (
-        f"Novel JS errors on admin pages (beyond the known "
-        f"{KNOWN_ERROR!r}): {novel}"
+    assert not js_errors, (
+        f"JS errors on admin pages: {js_errors}"
     )
