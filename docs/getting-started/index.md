@@ -16,6 +16,122 @@ on Mac (`make -f makefile_mac`) and the runtime is identical.
 [upstream]: https://www.cantab.net/users/john.wiseman/Documents/InstallingLINBPQ.html
 [bpq32docs]: https://www.cantab.net/users/john.wiseman/Documents/BPQ32%20Documents.htm
 
+## Two ways to install
+
+Pick whichever fits your situation.  Both end up running the
+same binary; the difference is who owns the install lifecycle.
+
+| Path | Best for | Notes |
+|---|---|---|
+| **Hibbian apt repo** *(recommended)* | Debian 11/12/13, Ubuntu derivatives, Raspberry Pi OS | Maintained by a Debian packager.  Ships with a `systemd` unit, a service user, and standard FHS paths.  `apt upgrade` for updates. |
+| **Build from source** | macOS, the BSDs, non-Debian Linux distros, or when you want to run a patched fork | What John publishes; what this repo's `make` produces.  You own start-up, paths and updates. |
+
+Both produce a binary that reads `bpq32.cfg` and exposes the
+same wire protocols.  Only the file layout and the start/stop
+mechanics differ.
+
+## Install via the Hibbian apt repo (recommended)
+
+[Hibbian][hibbian] is a Debian package repository for amateur-
+radio software, maintained alongside packages for Direwolf,
+QtSoundModem, NinoTNC firmware, QtTermTCP, and others.
+Supported on Debian 11 (Bookworm), 12 (Bullseye), 13 (Trixie),
+and Ubuntu / Raspberry Pi OS derivatives of those.
+
+[hibbian]: https://guide.hibbian.org/
+
+### Add the repo
+
+The maintainer's [setup script][hibbian-setup] handles keyring
+download and `sources.list` entry.  Or do it manually per the
+[repo guide][hibbian-repo]:
+
+```bash
+# Fetch the keyring .deb that matches your distro release,
+# then:
+sudo apt install ./keyring-file.deb
+sudo apt update
+```
+
+[hibbian-setup]: https://guide.hibbian.org/repo/
+[hibbian-repo]: https://guide.hibbian.org/repo/
+
+### Install LinBPQ
+
+```bash
+sudo apt install linbpq
+```
+
+The package installs:
+
+- The `linbpq` binary.
+- A `linbpq` system user the daemon runs as.
+- A `systemd` unit at `/usr/lib/systemd/system/linbpq.service`.
+- A skeleton config at `/etc/bpq32.cfg` — edit before first start.
+
+### Edit the config
+
+```bash
+sudo "$EDITOR" /etc/bpq32.cfg
+```
+
+Set at minimum your callsign, alias, locator, sysop password,
+and the Telnet port-block credentials.  See the
+[Configuration reference][cfg] for the full keyword list.
+
+Make the file readable by the service:
+
+```bash
+sudo chown :linbpq /etc/bpq32.cfg
+sudo chmod 644 /etc/bpq32.cfg
+```
+
+### Start the service
+
+```bash
+sudo systemctl start linbpq
+sudo systemctl enable linbpq        # start on boot
+journalctl -u linbpq -f             # follow the log
+```
+
+The default Hibbian config exposes:
+
+- HTTP web admin on `http://127.0.0.1:8008/`
+- Telnet on `127.0.0.1:8010`
+- FBB-mode (raw TCP for inter-BBS forwarding) on `127.0.0.1:8011`
+
+You can change these in `/etc/bpq32.cfg`'s Telnet `PORT` block.
+
+[cfg]: ../configuration/reference.md
+
+### Updating
+
+```bash
+sudo apt update && sudo apt upgrade
+sudo systemctl restart linbpq
+```
+
+### Quirks vs the build-from-source layout
+
+- Config lives at `/etc/bpq32.cfg`, not next to the binary —
+  match that when reading the rest of the docs.
+- Persistent state and logs land under `/var/lib/linbpq/` and
+  `/var/log/linbpq/` respectively (rather than the working
+  directory model used by a hand-built install).  If you want to
+  override paths, edit the systemd unit's `WorkingDirectory=`
+  and `ExecStart=` line.
+- The daemon runs as the `linbpq` user, not as `root` and not
+  as the human operating the machine.  Files written by the
+  daemon are owned by `linbpq:linbpq`; if you edit one by hand
+  you may need to fix ownership before restart.
+
+## Build from source
+
+For macOS, the BSDs, non-Debian Linux distros, or to run a
+patched fork (this repo, for example), build from source.
+What follows is what `make` does in this checkout — same shape
+as John's upstream build.
+
 ## Build dependencies
 
 Debian / Ubuntu / Raspberry Pi OS:
@@ -181,9 +297,10 @@ pkill -INT linbpq
 Persistent state (NODES table, MH list, BBS message store, chat
 rooms) is checkpointed periodically and reloaded on next boot.
 
-## Run as a service
+## Run as a service (source-build only)
 
-For a long-running node, drive it from systemd.  `/etc/systemd/system/linbpq.service`:
+The Hibbian package ships a systemd unit out of the box; this
+section is for hand-built installs.  `/etc/systemd/system/linbpq.service`:
 
 ```ini
 [Unit]
