@@ -29,9 +29,9 @@ behaviour change in the binary that needs an issue filed.
 
 | Upstream page | Status | This site |
 |---------------|--------|-----------|
-| [BPQ32 Installation][BPQ32-Installation] | Pending | — |
-| [BPQ Quickstart Guide (Ken KD6PGI)][Quickstart_Guide] | Pending | — |
-| [LinBPQ Installation][InstallingLINBPQ] | Partial | [Getting started](../getting-started/index.md) |
+| [BPQ32 Installation][BPQ32-Installation] | Out of scope | Windows-only — this site documents LinBPQ |
+| [BPQ Quickstart Guide (Ken KD6PGI)][Quickstart_Guide] | Out of scope | Windows-only walkthrough |
+| [LinBPQ Installation][InstallingLINBPQ] | Rewritten | [Getting started](../getting-started/index.md) |
 
 [BPQ32-Installation]: https://www.cantab.net/users/john.wiseman/Documents/BPQ32%20Installation.htm
 [Quickstart_Guide]: https://www.cantab.net/users/john.wiseman/Documents/Quickstart_Guide.html
