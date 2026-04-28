@@ -60,7 +60,7 @@ LinBPQ's behaviour and have been kept up to date for two decades.
 What this site adds is *organisation by audience and task*: the
 upstream docs are arranged loosely as files-as-found, while this
 site groups material by what someone actually wants to do, with
-deep links into the source and tests.
+deep links into the source.
 
 This is a re-presentation, not a fork.  The technical content is
 faithful to the upstream and we cite John's pages prominently.
