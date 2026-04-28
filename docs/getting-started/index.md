@@ -33,10 +33,10 @@ mechanics differ.
 ## Install via the Hibbian apt repo (recommended)
 
 [Hibbian][hibbian] is a Debian package repository for amateur-
-radio software, maintained alongside packages for Direwolf,
-QtSoundModem, NinoTNC firmware, QtTermTCP, and others.
-Supported on Debian 11 (Bookworm), 12 (Bullseye), 13 (Trixie),
-and Ubuntu / Raspberry Pi OS derivatives of those.
+radio software, alongside packages for Direwolf, QtSoundModem,
+QtTermTCP and similar.  Supported on Debian 11 (Bookworm),
+12 (Bullseye), 13 (Trixie), and Ubuntu / Raspberry Pi OS
+derivatives of those.
 
 [hibbian]: https://guide.hibbian.org/
 
