@@ -7,6 +7,15 @@ on:
     branches: [master]
   workflow_dispatch:
 
+# Cancel an in-flight run on the same ref when a new commit lands.
+# Avoids stacking up CI minutes when a stream of commits hits
+# (e.g. a docs rewrite firing per-page commits).  PR runs get
+# their own group so they don't cancel master pushes and vice
+# versa.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
 # Opt every action in this workflow into the Node.js 24 runtime.
 # GitHub will force this on by default starting June 2026; setting
 # it explicitly here clears the deprecation warnings now and is a
