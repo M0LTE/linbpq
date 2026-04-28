@@ -41,8 +41,8 @@ behaviour change in the binary that needs an issue filed.
 
 | Upstream page | Status | This site |
 |---------------|--------|-----------|
-| [BPQ32 Configuration File Description][BPQCFGFile] | Pending | [Reference](../configuration/reference.md) |
-| [BPQ32 RS232 Cabling][rs232-cabling] | Pending | — |
+| [BPQ32 Configuration File Description][BPQCFGFile] | Rewritten | [Configuration reference](../configuration/reference.md) |
+| [BPQ32 RS232 Cabling][rs232-cabling] | Out of scope | Hardware-specific RS232 cabling guide for now-uncommon HDLC cards; defer until someone needs it. |
 
 [BPQCFGFile]: https://www.cantab.net/users/john.wiseman/Documents/BPQCFGFile.html
 [rs232-cabling]: https://www.cantab.net/users/john.wiseman/Documents/BPQ32%20RS232%20Cabling.htm
