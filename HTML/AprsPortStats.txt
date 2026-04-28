@@ -1,0 +1,158 @@
+<!-- Version 1 -->
+<!DOCTYPE html>
+<html>
+
+<head>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"> </script>
+</head>
+
+
+<body>
+<H2 id="h1"> Last hour's stats for Port </h2>
+<p>
+<canvas id="myCanvas" width="600" height="250" style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML canvas tag.</canvas>
+<br>
+<canvas id="myCanvas2" width="600" height="250" style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML canvas tag.</canvas>
+
+<script>
+var c = document.getElementById("myCanvas");
+var ctx = c.getContext("2d");
+
+var port = window.location.search.slice(1);
+
+document.getElementById("h1").innerHTML = "Last hour's stats for Port " + port;;
+
+var oReq = new XMLHttpRequest();
+oReq.open("GET", "/portstats.txt?" + port, true);
+oReq.responseType = "arraybuffer";
+
+oReq.onload = function(oEvent)
+ {
+  var arrayBuffer = oReq.response;
+
+  var byteArray = new Uint8Array(arrayBuffer);
+  
+ 
+  // Draw it. Do last hour for testing. Plot each value for 10 pixels
+  
+	ctx.strokeStyle = "green";
+	ctx.beginPath();
+	
+	ctx.moveTo(0,200);
+	var y = 2880 - 60;
+	var val;
+	
+	for (i = 0; i < 600; i+=10)
+	{
+		val = byteArray[y] * 2;
+		
+		ctx.lineTo(i, 200 - val);
+		ctx.lineTo(i+10, 200 - val);
+		y++;
+	}
+	
+	ctx.stroke();
+	
+	ctx.strokeStyle = "gray";
+	ctx.setLineDash([5, 3]);
+	
+	ctx.beginPath();
+  	ctx.moveTo(0,100);
+	ctx.lineTo(600,100);
+ 	ctx.moveTo(0,50);
+	ctx.lineTo(600,50);
+ 	ctx.moveTo(0,150);
+	ctx.lineTo(600,150);
+	ctx.stroke();
+
+
+	
+	ctx.fillText("100%",0,10);
+	ctx.fillText("50%",0,100);
+	ctx.fillText("0%",0,200);	
+	ctx.fillText("-60 mins",0,220);	
+	ctx.fillText("-30 mins",300,220);	
+	ctx.fillText("Now",580,220);	
+
+	
+	// Do TX
+	
+	
+	c = document.getElementById("myCanvas2");
+	ctx = c.getContext("2d");
+
+	ctx.fillText("100%",0,10);
+	ctx.fillText("50%",0,100);
+	ctx.fillText("0%",0,200);	
+	ctx.fillText("-60 mins",0,220);	
+	ctx.fillText("-30 mins",300,220);	
+	ctx.fillText("Now",580,220);	
+
+
+	ctx.strokeStyle = "red";
+	ctx.beginPath();
+	
+	ctx.moveTo(0,200);
+	var y = 1440 - 60;
+	var val;
+	
+	for (i = 0; i < 600; i+=10)
+	
+	{
+		val = byteArray[y] * 2;
+		
+		ctx.lineTo(i, 200 - val);
+		ctx.lineTo(i+10, 200 - val);
+		y++;
+	}
+	
+	ctx.stroke();
+
+	ctx.strokeStyle = "gray";
+	ctx.setLineDash([5, 3]);
+	
+	ctx.beginPath();
+  	ctx.moveTo(0,100);
+	ctx.lineTo(600,100);
+ 	ctx.moveTo(0,50);
+	ctx.lineTo(600,50);
+ 	ctx.moveTo(0,150);
+	ctx.lineTo(600,150);
+	ctx.stroke();
+
+
+};
+
+oReq.send();
+
+
+function draw(Data)
+{
+
+	// Data has 4 bytes of index to current position the 1440 bytes of load info
+	
+
+	view = new Int8Array(Data);
+	
+alert(view[3]);
+
+ctx.moveTo(0,200);
+var y = 0;
+for (i = 0; i < 720; i+=30)
+{
+	ctx.lineTo(i, 200 - y);
+	ctx.lineTo(i+30, 200 - y);
+	y += 10;
+}
+
+
+ctx.stroke();
+}
+
+</script>
+
+</body>
+</html>
+

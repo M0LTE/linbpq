@@ -1,0 +1,322 @@
+<!-- Version 1 -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+<title>G8BPQ APRS Display</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<link href="https://unpkg.com/maplibre-gl@2.2.1/dist/maplibre-gl.css" rel='stylesheet' />
+<script src="https://unpkg.com/maplibre-gl@2.2.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.17/leaflet-maplibre-gl.js"></script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="leaflet.rotatedMarker.js"></script>
+
+<style type="text/css">
+html, body {height: 100%; width: 100%; margin: 0;}
+#map {position: absolute; top:40px; bottom: 0;width: 100%; margin: 0;}
+.topnav { overflow: hidden; height: 40px; background-color: white; margin: 0;}
+.topnav a {float: left; color: black; text-align: center; padding: 14px 16px; text-decoration: none; font-size: 17px;}
+.topnav form{float: left; color: black; text-align: center; padding: 14px 16px; text-decoration: none; font-size: 17px;}
+.popup {border: 1px solid black;margin: 0; padding: 0; font-size: 12px; min-height:16px; box-shadow: none;}
+.leaflet-tooltip-left.popup::before {border-left-color: transparent;}
+.leaflet-tooltip-right.popup::before {border-right-color: transparent;}
+</style>
+  
+<script>
+var map;
+var layergroup;
+var redIcon;
+var greenIcon;
+var blueIcon;
+var whiteIcon;
+var transIcon;
+var navIcon;
+var sarIcon;
+var planeIcon;
+var greenplaneIcon;
+var lat = 0; 
+var lon = 0;
+var zoom = 2;
+var ais = 0;
+var adsb = 0;
+var aprs = 0;
+var homeLat = 0;var homeLon = 0;var homePoint;
+
+var myTimeout;
+
+var server1 = "http://server1.g8bpq.net:7383"
+var server2 = "http://server2.g8bpq.net:7383"
+var server1 = "tile.openstreetmap.org"
+var server2 = "tile.openstreetmap.org"
+
+function getMap(p)
+{
+	L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(p);
+  var gl = L.maplibreGL({style: server1 + '/styles/G8BPQ/style.json'});
+  gl.addTo(p);
+   var maplibreMap = gl.getMaplibreMap();
+
+  // if load from first server fails, switch to backup
+
+  maplibreMap.on('error', e =>
+   {
+	console.log(e.error);
+
+		if (e && e.error == 'Error: Failed to fetch')
+		{
+		  console.log('failed to load from ' + server1 + ', trying ' + server2);
+		  var gl2 = L.maplibreGL({style: server2 + '/styles/G8BPQ/style.json'});
+		  p.removeLayer(gl)
+		  gl2.addTo(p);
+		}
+    });
+
+	p.attributionControl.addAttribution('Map data from <a  href=https://www.openstreetmap.org/copyright>OpenStreetMap</a><a href=https://github.com/maplibre/maplibre-gl-leaflet> using maplibre-gl</a> <a href=https://github.com/mapbox/mapbox-gl-styles>Styles based on Mapbox gl');
+	L.control.scale().addTo(p);
+}
+
+
+function initialize()
+{
+ redIcon = L.icon({iconUrl: 'aisred.png',iconSize: [21, 34],iconAnchor: [11, 17],popupAnchor: [0, 0]});
+ greenIcon = L.icon({iconUrl: 'aisgreen.png',iconSize: [21, 34],iconAnchor: [11, 17],popupAnchor: [0, 0]});
+ blueIcon = L.icon({iconUrl: 'aisblue.png',iconSize: [21, 34],iconAnchor: [11, 17],popupAnchor: [0, 0]});
+ whiteIcon = L.icon({iconUrl: 'aiswhite.png',iconSize: [21, 34],iconAnchor: [11, 17],popupAnchor: [0, 0]});
+ transIcon = L.icon({iconUrl: 'aistrans.png',iconSize: [21, 34],iconAnchor: [11, 17],popupAnchor: [0, 0]});
+ navIcon = L.icon({iconUrl: 'aisnavaid.png',iconSize: [21, 21],iconAnchor: [11, 11],popupAnchor: [0, 0]});
+ sarIcon = L.icon({iconUrl: 'helicopter.png',iconSize: [31, 31],iconAnchor: [15, 15],popupAnchor: [0, 0]});
+ planeIcon = L.icon({iconUrl: 'plane.png',iconSize: [39, 39],iconAnchor: [19, 19],popupAnchor: [0, 0]});
+ greenplaneIcon = L.icon({iconUrl: 'greenplane.png',iconSize: [39, 39],iconAnchor: [19, 19],popupAnchor: [0, 0]});
+ 
+ lat = getCookie("Lat");
+ lon = getCookie("Lng");
+ 
+ if (lat != "")
+  zoom = getCookie("Zoom");
+   	
+ aprs = getCookie("aprs");
+ ais = getCookie("ais");
+ adsb = getCookie("adsb");
+ 
+ if (aprs == 0 && ais == 0 && adsb == 0) 
+	aprs = 1; if (aprs == 1)
+  document.getElementById("aprsid").checked = true;
+ if (ais == 1)
+  document.getElementById("aisid").checked = true;
+ if (adsb == 1)
+  document.getElementById("adsbid").checked = true;
+  
+   map = L.map('map', {zoomSnap: 0, zoomDelta: 0.25, wheelPxPerZoomLevel: 180}).setView([lat, lon], zoom);
+ 
+ map.on('moveend zoomend', function()
+ {  
+  clearTimeout(myTimeout);
+  myTimeout = setTimeout(Refresh, 500);
+  });
+  
+ getMap(map)
+ layergroup = L.layerGroup().addTo(map);
+}
+
+function getCookie(cname)
+ {
+ var name = cname + "=";
+ var decodedCookie = decodeURIComponent(document.cookie);
+ var ca = decodedCookie.split(';');
+   	
+ for(var i = 0; i < ca.length; i++)
+ {
+  var c = ca[i];
+  while (c.charAt(0) == ' ')
+  {
+   c = c.substring(1);
+  }
+  if (c.indexOf(name) == 0)
+   return c.substring(name.length, c.length);
+ }
+ return "";
+}
+
+
+// Refresh map every 60 seconds
+ 
+setInterval( "Refresh()", 60000 );
+
+function Refresh( )
+{
+ var latlng = map.getCenter();
+ zoom = map.getZoom();
+ 
+ lat = latlng.lat;
+ lon = latlng.lng
+ 
+ document.cookie = "Lat=" + lat;
+ document.cookie = "Lng=" + lon;
+ document.cookie = "Zoom=" + zoom;
+ 
+ 	document.cookie = "aprs=" + aprs;
+ 	document.cookie = "ais=" + ais;
+ 	document.cookie = "adsb=" + adsb;
+
+ GetData();
+}
+
+ 
+function GetData()
+{
+ var N = map.getBounds().getNorth();
+ var S = map.getBounds().getSouth();
+ var W = map.getBounds().getWest();
+ var E = map.getBounds().getEast();
+ $.ajax({url: "aprsdata.txt?" + N + '|' + S + '|' + W + '|' + E + '|' + aprs + '|' + ais + '|' + adsb, cache: false})
+ .done(function(Nodes){processData(Nodes);})	
+ .fail(function(jqXHR, textStatus, errorThrown){alert("Failed to load aprs data");})
+ ;
+ }
+ 
+function processData(Nodes)
+{
+ var i = 0;
+ layergroup.clearLayers();
+ 
+ var lines = Nodes.split("|");
+  
+ while (i < lines.length)
+ {
+  if (lines[i].length < 5)
+  {
+     i++;
+     continue;
+  }
+   	
+  var elements = lines[i].split(",");
+  i++;	
+   	
+if (elements[0] == "H")				// Home Position
+{ homeLat = elements[1]; homeLon = elements[2]; homePoint = L.latLng(homeLat, homeLon); var m = L.circleMarker([elements[1], elements[2]], {radius: 6, color: '#000000', fillOpacity: 0.3})
+  .addTo(layergroup)
+ .bindPopup(elements[3])
+  .on('click', function (e) {alert(this.getLatLng());})
+  .on('mouseover', function (e) {this.openPopup();})
+  .on('mouseout', function (e) {this.closePopup();});
+  if (lat == 0  || lat == "")		// Not Set
+    map.setView([elements[1], elements[2]], 8);
+}
+
+  if (elements[0] == "N")   	// Navaid
+  {
+     var m = L.marker([elements[1], elements[2]], {rotationAngle: 0, icon: navIcon})
+   .addTo(layergroup)
+   .bindPopup(elements[3])
+   .on('click', function (e) {alert(this.getLatLng());})
+   .on('mouseover', function (e) {this.openPopup();})
+   .on('mouseout', function (e) {this.closePopup();});
+
+  }
+  else if (elements[0] == "A")   	// APRS
+  {
+   var Icon = L.icon({iconUrl: 'Icon' + elements[5] + '.png',iconSize: [22, 22],iconAnchor: [11, 11],popupAnchor: [0, 0]});
+   
+     var m = L.marker([elements[1], elements[2]], {rotationAngle: 0, icon: Icon})
+   .addTo(layergroup)
+   .bindPopup(elements[4], {minWidth: 280, maxWidth: 500})
+   .bindTooltip(elements[3], {className: 'popup', permanent: true, direction: 'right', offset: [10, 0]}).openTooltip()	
+   .on('click', function (e) {alert(this.getLatLng());})
+   .on('mouseover', function (e) {this.openPopup();})
+   .on('mouseout', function (e) {this.closePopup();});
+
+  }
+  else if (elements[0] == "V")  // Vessel
+  {
+   var icon;
+   
+var dist = homePoint.distanceTo([elements[1], elements[2]]) / 1609.34;
+var popup = elements[3] + '<br>Distance ' + dist.toFixed(0) + ' Miles';   if (elements[6] < 900)
+   	icon = blueIcon;
+   else if (elements[6] < 1800)
+   	icon = redIcon;
+   else
+   	icon = whiteIcon;
+   	
+     var m = L.marker([elements[1], elements[2]], {rotationAngle: elements[4], icon: icon})
+   .addTo(layergroup)
+   .bindPopup(popup)
+   .on('click', function (e) {alert(this.getLatLng());})
+   .on('mouseover', function (e) {this.openPopup();})
+   .on('mouseout', function (e) {this.closePopup();});
+  }
+
+  else if (elements[0] == "S")  // SAR Aircraft
+  {
+     var m = L.marker([elements[1], elements[2]], {icon: sarIcon})
+   .addTo(layergroup)
+   .bindPopup(elements[3])
+   .on('click', function (e) {alert(this.getLatLng());})
+   .on('mouseover', function (e) {this.openPopup();})
+   .on('mouseout', function (e) {this.closePopup();});
+  }
+  
+  else if (elements[0] == "P")
+  {
+var dist = homePoint.distanceTo([elements[1], elements[2]]) / 1609.34;
+var popup = elements[3] + '<br>Distance ' + dist.toFixed(0) + ' Miles';   var icon;
+   
+   if (elements[7] < 120)
+   	icon = greenplaneIcon;
+   else
+   	icon = planeIcon;
+
+   var m = L.marker([elements[1], elements[2]], {rotationAngle: elements[5], icon: icon})
+   .addTo(layergroup)
+ .bindPopup(popup)
+ .on('mouseover', function (e) {this.openPopup();})
+ .on('mouseout', function (e) {this.closePopup();});
+  }
+   
+  else if (elements[0] == "T")
+  {
+   var points = [];
+   var point;
+   var n = 1;
+   var l = elements.length;
+   
+   while (n < l)
+   {
+   	point = L.latLng(elements[n], elements[n + 1]);
+   	points.push(point);
+   	n += 2;
+   }
+   points.pop();	//  null entry on end
+   
+   L.polyline(points, {color: 'black'}).addTo(layergroup);
+  }
+ }
+
+}
+function resize()
+{}
+</script>
+</head>
+
+<BODY onload=initialize() onresize='resize()'>
+<div class="topnav" id=menu>
+  <a href="/">Home</a>
+  <a href="/aprs">APRS Pages</a>
+  <a href="Node/NodeMenu.html">Node Menu</a>
+  <form>
+  <input type="checkbox" id= "aprsid" onchange='aprs=this.checked | 0;	myTimeout = setTimeout(Refresh, 500);'>
+  <label for="vehicle1"> APRS</label>
+  <input type="checkbox" id= "aisid" onchange='ais=this.checked | 0; myTimeout = setTimeout(Refresh, 500);'>
+  <label for="vehicle2"> AIS</label>
+  <input type="checkbox" id= "adsbid" onchange='adsb=this.checked | 0; myTimeout = setTimeout(Refresh, 500);'>
+  <label for="vehicle3"> ADSB</label>
+</form>
+</div>
+  <div id="map"></div>
+</body>
+</html>

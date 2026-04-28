@@ -145,6 +145,23 @@ EXTRACTED_TEMPLATES = (
     ("NewGroup.txt",         1, "WebMail.c::SendTemplateSelectScreen NewGroup[]"),
     ("SelectPromptPopup.txt", 1, "WebMail.c::DoSelectPrompt popuphddr (renamed)"),
     ("AttachmentListPopup.txt", 1, "WebMail.c::getAttachmentList popuphddr (renamed)"),
+    # --- Phase 6: APRSStdPages.c ---
+    ("AprsInfoCall.txt",     1, "APRSStdPages.c::get_info_call"),
+    ("AprsInfoMobileCall.txt", 1, "APRSStdPages.c::get_infomobile_call"),
+    ("AprsInfoObjCall.txt",  1, "APRSStdPages.c::get_infoobj_call"),
+    ("AprsInfoWxCall.txt",   1, "APRSStdPages.c::get_infowx_call"),
+    ("AprsAll.txt",          1, "APRSStdPages.c::get_all"),
+    ("AprsMobileAll.txt",    1, "APRSStdPages.c::get_mobileall"),
+    ("AprsObj.txt",          1, "APRSStdPages.c::get_obj"),
+    ("AprsNoInfo.txt",       1, "APRSStdPages.c::get_noinfo"),
+    ("AprsWxAll.txt",        1, "APRSStdPages.c::get_wxall"),
+    ("AprsInfo.txt",         1, "APRSStdPages.c::get_info"),
+    ("AprsAllRf.txt",        1, "APRSStdPages.c::get_allrf"),
+    ("AprsMobilesRf.txt",    1, "APRSStdPages.c::get_mobilesrf"),
+    ("AprsObjRf.txt",        1, "APRSStdPages.c::get_objrf"),
+    ("AprsWxRf.txt",         1, "APRSStdPages.c::get_wxrf"),
+    ("AprsPortStats.txt",    1, "APRSStdPages.c::get_portstats"),
+    ("AprsMain.txt",         1, "APRSStdPages.c::get_aprs"),
 )
 
 
