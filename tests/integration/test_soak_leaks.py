@@ -374,37 +374,52 @@ def two_instance_soak(tmp_path: Path):
 
 
 @pytest.mark.long_runtime
-def test_two_instance_axip_no_leak_on_connect_cycles(two_instance_soak):
-    """Cycle ``C 2 N0BBB`` → ``BYE`` from A → B over AX/IP-UDP.
+@pytest.mark.parametrize(
+    "direction,target_call",
+    [
+        pytest.param("a_to_b", "N0BBB", id="a_to_b"),
+        pytest.param("b_to_a", "N0AAA", id="b_to_a"),
+    ],
+)
+def test_two_instance_axip_no_leak_on_connect_cycles(
+    two_instance_soak, direction, target_call
+):
+    """Cycle ``C 2 <peer>`` → ``BYE`` over AX/IP-UDP.
 
-    Catches AX/IP-UDP-side leaks the single-instance variants
-    miss: per-cycle SABM/UA over UDP, L4 link-state on both sides,
+    Catches AX/IP-UDP-side leaks the single-instance variants miss:
+    per-cycle SABM/UA over UDP, L4 link-state on both sides,
     NET/ROM neighbour-table churn, the per-peer ARP-cache row in
     bpqaxip.c.  Each BPQ is monitored independently — a leak that
     shows on only one side still fails the test.
+
+    Parametrised on direction so xdist can run the two halves in
+    parallel on separate workers — each spawns its own pair of
+    BPQs, halving wallclock vs the merged single-test variant.
     """
     a, b = two_instance_soak
+    client_inst = a if direction == "a_to_b" else b
     a_pid = a.proc.pid
     b_pid = b.proc.pid
 
     rss_a_before, fd_a_before = _warm_up(a_pid)
     rss_b_before, fd_b_before = _measure(b_pid)
     # Each cross-instance connect runs ~6 s wallclock (telnet
-    # login + AX/IP-UDP SABM/UA + BYE + close); 100 cycles
-    # took ~11 min in local runs.  50 cycles keeps the leak
-    # signal worth ~5 min while leaving room for the test under
-    # the 30-min CI integration budget alongside the other
-    # long_runtime tests.
-    cycles = 50
+    # login + AX/IP-UDP SABM/UA + BYE + close).  25 cycles per
+    # direction × 2 directions = 50 total — same total signal as
+    # the previous single-direction 50-cycle test, but the two
+    # halves run in parallel on different xdist workers, halving
+    # wallclock from ~12 min → ~6 min.
+    cycles = 25
+    connected_marker = f"Connected to {target_call}".encode("ascii")
 
     for _ in range(cycles):
         try:
             with TelnetClient(
-                "127.0.0.1", a.telnet_port, timeout=10
+                "127.0.0.1", client_inst.telnet_port, timeout=10
             ) as client:
                 client.login("test", "test")
-                client.write_line("C 2 N0BBB")
-                client.read_until(b"Connected to N0BBB", timeout=8)
+                client.write_line(f"C 2 {target_call}")
+                client.read_until(connected_marker, timeout=8)
                 client.write_line("BYE")
                 client.read_idle(idle_timeout=0.5, max_total=2.0)
         except (ConnectionError, OSError, TimeoutError):
