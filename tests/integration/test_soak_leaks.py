@@ -9,7 +9,7 @@ leaks compound.  These tests catch the class of bug nothing else
 in the suite would: nothing observable changes from a wire-
 protocol perspective, but the daemon's footprint creeps upward.
 
-Per ``docs/plan.md`` the policy is to *file findings as issues*,
+Per ``notes/plan.md`` the policy is to *file findings as issues*,
 not fix in C.  These tests carry generous thresholds so they
 won't flag glibc heap fragmentation noise; if they fire, it's
 a real growth signal worth investigating.
