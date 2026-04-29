@@ -23,7 +23,7 @@ PORT
  ID=AGWPE Port 1 (left soundcard)
  TYPE=EXTERNAL
  DRIVER=BPQtoAGW
- IOADDR=1F40        ; 8000 decimal — AGW default
+ IOADDR=8000        ; AGW default TCP port
  CHANNEL=A          ; A => AGW port 1, B => AGW port 2, ...
  QUALITY=192
  MAXFRAME=7
@@ -58,7 +58,7 @@ the CONFIG line empty (or omit `CONFIG ... ENDPORT` entirely).
 
 | Keyword | Effect |
 |---|---|
-| `IOADDR=<hex>` | AGW server TCP port, expressed in hexadecimal.  `1F40` = 8000 (the AGW default), `1F41` = 8001. |
+| `IOADDR=<port>` | AGW server TCP port (decimal).  `8000` is the AGW default; `8001` for a second AGW process.  Historically expressed in hex on Windows BPQ32 because the field was an I/O port address; LinBPQ's parser is decimal-only (`config.c::doSerialPortName`). |
 | `CHANNEL=<A..>` | Which AGW port-letter this BPQ port maps to. |
 
 `MAXFRAME` / `FRACK` / `RESPTIME` / `RETRIES` / `PACLEN` /
@@ -79,7 +79,7 @@ PORT
  ID=AGW left
  TYPE=EXTERNAL
  DRIVER=BPQtoAGW
- IOADDR=1F40
+ IOADDR=8000
  CHANNEL=A
  ; ...
 ENDPORT
@@ -89,7 +89,7 @@ PORT
  ID=AGW right
  TYPE=EXTERNAL
  DRIVER=BPQtoAGW
- IOADDR=1F40
+ IOADDR=8000
  CHANNEL=B
  ; ...
 ENDPORT

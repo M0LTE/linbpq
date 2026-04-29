@@ -119,8 +119,13 @@ by default.
 |---------|--------|--------|
 | `KEEPALIVE <seconds>` (on a MAP) | Send keepalive packets at this interval to maintain NAT mappings | `bpqaxip.c::SendFrame` |
 | `AUTOADDMAP` | Auto-add MAP entries for previously unknown peers | `bpqaxip.c::AutoAddARP` |
+| `AUTOADDQUIET` | Same as `AUTOADDMAP` but suppress the log line | `bpqaxip.c::ProcessConfig` |
 | `DONTCHECKSOURCECALL` | Skip the source-call resolution check on inbound frames | `bpqaxip.c::Checkifcanreply` |
-| `EXCLUDE <call>` | Drop frames from this call | — |
+
+For dropping frames from a specific call, use the **top-level**
+``EXCLUDE=`` keyword in ``bpq32.cfg`` (not in this CONFIG block).
+The list applies globally across drivers — see
+``config.c:1104``.
 
 ## NODES propagation gotchas
 

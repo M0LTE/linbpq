@@ -787,20 +787,32 @@ until after the Critical/High security-issue regression tests
   the existing strict mkdocs build.  Doc-only PRs adding a
   bad keyword now fail CI before merge.
 
-- **Smaller cleanups.**  Three concrete items:
-  - An `AgwSession` helper class wrapping the
-    register/connect/wait/send boilerplate that
-    `test_two_instance_agw_tunnel.py` and
-    `test_apps_interface_transparency.py` repeat.  Probably
-    30 LoC.
-  - Two-instance soak/leak tests — extend
-    `test_soak_leaks.py` to cover scenarios where one BPQ
-    cycles connections to another.  Catches AX/IP-UDP-side
-    leaks the single-instance variant misses.
-  - Spot-check the 24 Rewritten upstream pages in
-    `docs/project/upstream.md` — particularly the binary /
-    protocol-spec ones — for any subtle drift between the
-    rewritten doc and the binary's actual behaviour.
+- ~~**Smaller cleanups.**~~  Done.  Three sub-items:
+
+  - ``AgwSession`` helper class added to
+    ``tests/integration/helpers/agw_client.py`` — wraps
+    register / connect / send_data / wait_for / drain_data.
+    Migrated the six module-level helpers in
+    ``test_two_instance_agw_tunnel.py`` plus the AGW soak loop
+    in ``test_soak_leaks.py``.  ``test_agw.py`` /
+    ``test_kiss_serial.py`` / ``test_security_regressions.py``
+    keep their inline ``AgwClient`` / ``AgwFrame`` calls (one-off
+    info-query and crash-safety probes, not the session pattern).
+
+  - Two-instance soak test added in ``test_soak_leaks.py`` as
+    ``test_two_instance_axip_no_leak_on_connect_cycles``.
+    Cycles ``C 2 N0BBB`` → ``BYE`` from instance A → B over
+    AX/IP-UDP, 100 iterations, asserts bounded RSS+FD growth on
+    both sides independently.  Marked ``long_runtime``.
+
+  - Spot-check landed in ``notes/upstream-spotcheck.md``.  Two
+    real drifts fixed in-place: ``protocols/bpqtoagw.md``
+    claimed ``IOADDR`` is hex (parser is decimal-only via
+    ``atoi``); ``protocols/axip.md`` listed ``EXCLUDE`` as an
+    AXIP CONFIG-block keyword (it's actually a top-level
+    keyword in ``config.c:1104``).  Three docs verified clean
+    against the C source.  One Linux-vs-Windows behavioural
+    subtlety on ``PROMISCUOUS`` flagged but not changed.
 
 ## Open questions and risks
 
