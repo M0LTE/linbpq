@@ -24,7 +24,6 @@ def test_webmail_signon_form_renders(linbpq_web):
     port = linbpq_web["http_port"]
     status, body = http_get(port, "/WebMail")
     assert b"200" in status
-    assert b"<!-- Version 6" in body[:80]
     assert b"WebMail" in body, "missing WebMail title"
 
 
@@ -36,7 +35,6 @@ def test_webmail_signon_post_returns_message_list(linbpq_web):
         port, "/WebMail/Signon", b"User=test&password=test"
     )
     assert b"200" in status
-    assert b"<!-- Version 6" in body[:80]
     assert b"Message List" in body
 
 
@@ -55,8 +53,10 @@ def test_webmail_views_render_same_outer_frame(linbpq_web):
     ):
         status, body = http_get(port, path)
         assert b"200" in status, f"GET {path}: {status!r}"
-        assert b"<!-- Version 6" in body[:80], (
-            f"GET {path}: WebMailPage v6 marker missing"
+        # All views render the same outer WebMail frame — pin the
+        # title rather than the (fork-only) version marker.
+        assert b"WebMail" in body, (
+            f"GET {path}: WebMail title missing — {body[:200]!r}"
         )
 
 

@@ -45,6 +45,12 @@ from web_helpers import http_get as _http_get
 from web_helpers import http_post as _http_post
 
 
+# Whole-module fork gate: every test here is about the M0LTE
+# fork's HTML/ extraction, which doesn't apply to upstream
+# g8bpq/linbpq.  See conftest.py::pytest_collection_modifyitems.
+pytestmark = pytest.mark.fork_only
+
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _HTML_DIR = _REPO_ROOT / "HTML"
 

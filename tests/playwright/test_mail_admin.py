@@ -45,7 +45,6 @@ def test_mail_main_config_form_round_trips_bbs_name(mail_session):
     port, key = mail_session["port"], mail_session["key"]
     status, body = http_get(port, f"/Mail/Conf?{key}")
     assert b"200" in status
-    assert b"<!-- Version 7" in body[:80]
     assert b"Main Configuration" in body
     assert b"N0CALL" in body, "BBSName not echoed into config form"
 
@@ -56,7 +55,6 @@ def test_mail_users_page_table_headers(mail_session):
     port, key = mail_session["port"], mail_session["key"]
     status, body = http_get(port, f"/Mail/Users?{key}")
     assert b"200" in status
-    assert b"<!-- Version 4" in body[:80]
     # Some flavour of user list / select form.
     assert b"User" in body or b"Callsign" in body
 
@@ -67,7 +65,11 @@ def test_mail_messages_page_renders(mail_session):
     port, key = mail_session["port"], mail_session["key"]
     status, body = http_get(port, f"/Mail/Msgs?{key}")
     assert b"200" in status
-    assert b"<!-- Version 2" in body[:80]
+    # MsgPage shell must render even with no messages — at minimum
+    # a form/table reference, since the JS later fills the rows.
+    assert b"<form" in body or b"<table" in body, (
+        f"MsgPage missing list shell: {body[:300]!r}"
+    )
 
 
 def test_mail_housekeeping_form_renders(mail_session):
@@ -76,7 +78,6 @@ def test_mail_housekeeping_form_renders(mail_session):
     port, key = mail_session["port"], mail_session["key"]
     status, body = http_get(port, f"/Mail/HK?{key}")
     assert b"200" in status
-    assert b"<!-- Version 2" in body[:80]
     assert b"<form" in body, "Housekeeping page should be a form"
 
 
@@ -86,15 +87,23 @@ def test_mail_forwarding_page_renders(mail_session):
     port, key = mail_session["port"], mail_session["key"]
     status, body = http_get(port, f"/Mail/FWD?{key}")
     assert b"200" in status
-    assert b"<!-- Version 4" in body[:80]
+    # FwdPage carries either a partner table (if any partners
+    # configured) or an empty-state form.  Pin the form/table.
+    assert b"<form" in body or b"<table" in body, (
+        f"FwdPage missing form/table: {body[:300]!r}"
+    )
 
 
 def test_mail_wp_page_renders(mail_session):
-    """WP.txt v1 — White Pages update form."""
+    """WP.txt v1 — White Pages update form.  Page is JS-driven so
+    the static HTML is just the outer frame + ``#sidebar`` /
+    ``#main`` divs that the JS fills; pin the page title."""
     port, key = mail_session["port"], mail_session["key"]
     status, body = http_get(port, f"/Mail/WP?{key}")
     assert b"200" in status
-    assert b"<!-- Version 1" in body[:80]
+    assert b"White Pages" in body, (
+        f"WP page missing White Pages title: {body[:300]!r}"
+    )
 
 
 def test_mail_welcome_page_renders(mail_session):

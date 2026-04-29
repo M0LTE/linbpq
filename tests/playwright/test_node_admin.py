@@ -88,7 +88,10 @@ def test_node_signon_form(linbpq_web):
     port = linbpq_web["http_port"]
     status, body = http_get(port, "/Node/Signon")
     assert b"200" in status
-    assert b"<!-- Version 1" in body[:30]
+    # Node signon should include a callsign / password input form.
+    assert b"<form" in body, (
+        f"Node signon page missing form: {body[:300]!r}"
+    )
 
 
 def test_node_index_carries_branding(linbpq_web):

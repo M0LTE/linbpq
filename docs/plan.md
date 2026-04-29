@@ -745,16 +745,23 @@ Three streams of work raised in review and explicitly parked
 until after the Critical/High security-issue regression tests
 (#25–#38) land:
 
-- **Vanilla-BPQ-compat sweep.**  About 30 playwright tests
-  depend on the HTML-extraction work this fork has done.  An
-  unmodified upstream `g8bpq/linbpq` binary doesn't have
-  `<!-- Version N -->` markers in the inline templates, so
-  those version-marker assertions don't apply to it.  Either
-  gate the affected tests on a "this is our extracted build"
-  marker, or weaken the assertions to "rendered HTML
-  contains expected substring" without the version check.
-  About a half-day's work.  Keeps the suite portable to
-  upstream so it can serve as a vendor-neutral oracle.
+- ~~**Vanilla-BPQ-compat sweep.**~~  Done.  Two-pronged: the
+  files whose entire premise is the extraction
+  (`test_template_extraction.py`, `test_template_render_matrix.py`)
+  carry a module-level ``pytestmark = pytest.mark.fork_only``;
+  a ``pytest_collection_modifyitems`` hook in
+  ``tests/playwright/conftest.py`` skips those when
+  ``LINBPQ_VANILLA=1`` is set in the environment.  The
+  remaining incidental ``<!-- Version N`` assertions across
+  ``test_chat_web.py`` / ``test_mail_admin.py`` /
+  ``test_webmail.py`` / ``test_seeded_data.py`` /
+  ``test_node_admin.py`` were dropped in favour of structural
+  checks (form/table presence, page titles, branding) that
+  hold on both fork and vanilla.  ``_wait_for_bbs_ready``
+  switched from polling for ``<!-- Version 6`` to polling
+  the linbpq stdout log for ``Mail Started`` (printed by
+  ``LinBPQ.c::main`` on both fork and vanilla).  Run against
+  upstream with ``LINBPQ_VANILLA=1 LINBPQ_BIN=/path/to/upstream/linbpq pytest tests/playwright/``.
 
 - **CFG snippet boot check** (option 2 from the
   doc-divergence CI gate sketch).  Extract every fenced

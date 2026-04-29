@@ -30,6 +30,13 @@ import pytest
 from web_helpers import http_get, http_post, mail_signon, chat_signon
 
 
+# Whole-module fork gate: every test here asserts a
+# ``<!-- Version N`` marker that only exists on the M0LTE fork's
+# extracted HTML/ templates.  Vanilla upstream serves the inline
+# templatedefs.c versions which don't carry the comment.
+pytestmark = pytest.mark.fork_only
+
+
 def _version_marker(version: int) -> bytes:
     """Match ``<!-- Version N`` followed by a separator (space or
     ``--`` close).  The published templates have either

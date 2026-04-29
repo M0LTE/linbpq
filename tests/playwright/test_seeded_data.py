@@ -52,7 +52,6 @@ def test_users_page_renders_with_real_data(linbpq_web_seeded):
     port, key = linbpq_web_seeded["http_port"], linbpq_web_seeded["key"]
     status, body = http_get(port, f"/Mail/Users?{key}")
     assert b"200" in status
-    assert b"<!-- Version 4" in body[:80]
     assert b"GetData" in body, "users page missing JS data-loader"
 
 
