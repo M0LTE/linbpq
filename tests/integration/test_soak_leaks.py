@@ -212,7 +212,7 @@ def test_agw_listener_no_leak_on_register_cycles(soak_linbpq):
     (``BPQConnectionInfo`` slots, callsign tables); a leak in
     that path would compound across many short-lived clients.
     """
-    from helpers.agw_client import AgwClient, AgwFrame
+    from helpers.agw_client import AgwSession
 
     pid = soak_linbpq.proc.pid
     rss_before, fd_before = _warm_up(pid)
@@ -220,24 +220,13 @@ def test_agw_listener_no_leak_on_register_cycles(soak_linbpq):
 
     for i in range(cycles):
         try:
-            with AgwClient(
+            with AgwSession.connect(
                 "127.0.0.1", soak_linbpq.agw_port, timeout=3
-            ) as client:
+            ) as session:
                 # Register a unique-ish call to avoid any de-dup that
                 # might mask a leak.
-                client.send(
-                    AgwFrame(
-                        port=0,
-                        data_kind=b"X",
-                        pid=0,
-                        callfrom=f"S{i:05X}".encode("ascii"),
-                        callto=b"",
-                        data=b"",
-                    )
-                )
-                # Drain the success reply.
-                client.recv()
-        except (ConnectionError, OSError):
+                session.register(f"S{i:05X}")
+        except (ConnectionError, OSError, AssertionError):
             # If the listener gets temporarily refused, skip the
             # cycle — but if it happens often we want to know.
             time.sleep(0.05)
@@ -306,4 +295,141 @@ def test_http_listener_no_leak_on_request_cycles(soak_linbpq):
     )
     assert rss_after - rss_before < 5 * 1024, (
         f"RSS leak on HTTP listener: {summary}"
+    )
+
+
+# ── Two-instance: cross-AX/IP-UDP connect cycles ─────────────────
+
+
+@pytest.fixture
+def two_instance_soak(tmp_path: Path):
+    """Two BPQs over AX/IP-UDP with bidirectional MAP entries.
+    Trimmed-down twin of ``test_two_instance.py::two_instances`` —
+    same config shape, no extra fixtures, fast teardown.
+    """
+    from helpers.linbpq_instance import PEER_CONFIG
+
+    def _peer_template(*, node_call, node_alias, peer_call, peer_axip_port):
+        base = PEER_CONFIG.template
+
+        class _T(Template):
+            def substitute(self, **kw):
+                return Template.substitute(
+                    self,
+                    node_call=node_call,
+                    node_alias=node_alias,
+                    peer_call=peer_call,
+                    peer_axip_port=peer_axip_port,
+                    **kw,
+                )
+
+        return _T(base)
+
+    a_dir = tmp_path / "A"
+    b_dir = tmp_path / "B"
+    a_dir.mkdir()
+    b_dir.mkdir()
+
+    a = LinbpqInstance(
+        a_dir,
+        config_template=_peer_template(
+            node_call="N0AAA",
+            node_alias="AAA",
+            peer_call="N0BBB",
+            peer_axip_port=0,
+        ),
+    )
+    b = LinbpqInstance(
+        b_dir,
+        config_template=_peer_template(
+            node_call="N0BBB",
+            node_alias="BBB",
+            peer_call="N0AAA",
+            peer_axip_port=a.axip_port,
+        ),
+    )
+    a.config_template = _peer_template(
+        node_call="N0AAA",
+        node_alias="AAA",
+        peer_call="N0BBB",
+        peer_axip_port=b.axip_port,
+    )
+
+    a.start(ready_timeout=15.0)
+    b.start(ready_timeout=15.0)
+    try:
+        # Let NODES propagation settle so the first connect doesn't
+        # race the route-discovery exchange.
+        time.sleep(2.0)
+        yield a, b
+    finally:
+        for inst in (a, b):
+            try:
+                if inst.proc:
+                    inst.proc.terminate()
+                    inst.proc.wait(timeout=5)
+            except Exception:
+                if inst.proc:
+                    inst.proc.kill()
+
+
+@pytest.mark.long_runtime
+def test_two_instance_axip_no_leak_on_connect_cycles(two_instance_soak):
+    """Cycle ``C 2 N0BBB`` → ``BYE`` from A → B over AX/IP-UDP.
+
+    Catches AX/IP-UDP-side leaks the single-instance variants
+    miss: per-cycle SABM/UA over UDP, L4 link-state on both sides,
+    NET/ROM neighbour-table churn, the per-peer ARP-cache row in
+    bpqaxip.c.  Each BPQ is monitored independently — a leak that
+    shows on only one side still fails the test.
+    """
+    a, b = two_instance_soak
+    a_pid = a.proc.pid
+    b_pid = b.proc.pid
+
+    rss_a_before, fd_a_before = _warm_up(a_pid)
+    rss_b_before, fd_b_before = _measure(b_pid)
+    # Each cross-instance connect runs ~6 s wallclock (telnet
+    # login + AX/IP-UDP SABM/UA + BYE + close); 100 cycles
+    # took ~11 min in local runs.  50 cycles keeps the leak
+    # signal worth ~5 min while leaving room for the test under
+    # the 30-min CI integration budget alongside the other
+    # long_runtime tests.
+    cycles = 50
+
+    for _ in range(cycles):
+        try:
+            with TelnetClient(
+                "127.0.0.1", a.telnet_port, timeout=10
+            ) as client:
+                client.login("test", "test")
+                client.write_line("C 2 N0BBB")
+                client.read_until(b"Connected to N0BBB", timeout=8)
+                client.write_line("BYE")
+                client.read_idle(idle_timeout=0.5, max_total=2.0)
+        except (ConnectionError, OSError, TimeoutError):
+            time.sleep(0.05)
+
+    time.sleep(2.0)
+    rss_a_after, fd_a_after = _measure(a_pid)
+    rss_b_after, fd_b_after = _measure(b_pid)
+
+    summary_a = _format(
+        rss_a_before, fd_a_before, rss_a_after, fd_a_after, cycles
+    )
+    summary_b = _format(
+        rss_b_before, fd_b_before, rss_b_after, fd_b_after, cycles
+    )
+    print(f"A: {summary_a}")
+    print(f"B: {summary_b}")
+
+    assert fd_a_after <= fd_a_before + 2, f"FD leak on A: {summary_a}"
+    assert fd_b_after <= fd_b_before + 2, f"FD leak on B: {summary_b}"
+    # AX/IP + L4 + NET/ROM allocate per-cycle state buffers.  15 MiB
+    # of slack tolerates glibc heap variance over the cycle count.
+    assert rss_a_after - rss_a_before < 15 * 1024, (
+        f"RSS leak on A: {summary_a}"
+    )
+    assert rss_b_after - rss_b_before < 15 * 1024, (
+        f"RSS leak on B: {summary_b}"
     )
