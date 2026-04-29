@@ -427,24 +427,272 @@ serial ports linking out to APRS clients like Xastir.
 
 ## Driver-specific blocks
 
-Drivers consume their own keywords inside `CONFIG ... ENDPORT`.
-The shape varies wildly per driver; each gets its own page on
-this site as the rewrite progresses:
+The keywords inside ``CONFIG ... ENDPORT`` are interpreted by
+the driver, not the main parser, and the shape varies per
+driver.  This section covers each built-in driver — what it's
+for, what its CONFIG block looks like, and a worked example.
+Drivers with a dedicated page on this site are linked there for
+the deeper-dive content; the rest are documented inline below.
 
-- [AX/IP over UDP](../protocols/axip.md) — `BPQAXIP`
-- KISS over TCP / UDP — `KISSHF`, `UZ7HO`
-- AGW emulator (outbound) — `BPQtoAGW`
-- Pactor families — `KAMPactor`, `SCSPactor`, `SCSTracker`,
-  `TrackeMulti`, `AEAPactor`, `HALDriver`
-- VARA / ARDOP — `VARA`, `ARDOP`
-- FLDigi / FLARQ — `FLDigi`
-- WinRPR — `WinRPR`
-- HSMODEM — `HSMODEM`
+Common pattern: most TCP-based modem drivers follow the
+"`ADDR <host> <port> [PTT <opts>] [PATH <prog>]` then init-script
+lines" shape, terminated either by ``ENDPORT`` or a ``****``
+sentinel.  Drivers that share the HF code base
+(``HFCommon.c::standardParams``) accept a common keyword set —
+``SESSIONTIMELIMIT``, ``BUSYHOLD``, ``BUSYWAIT``, ``MYCALLS``,
+``RADIO`` / ``TXRadio`` / ``RXRadio``, ``WL2KREPORT``,
+``SendTandRtoRelay``, ``DefaultRadioCommand``, ``MaxConReq``,
+``DisconnectScript``, ``PTTONHEX`` / ``PTTOFFHEX`` — alongside
+their driver-specific keywords.
 
-See the [Protocols and interfaces][protos] section for what's
-been written up so far.
+### Telnet — ``DRIVER=Telnet``
 
-[protos]: ../protocols/index.md
+The Telnet driver handles five listeners in one PORT block —
+TCPPORT (telnet), HTTPPORT (web admin), NETROMPORT
+(NET/ROM-over-TCP), FBBPORT (host-mode FBB), APIPORT (JSON API).
+Plus the user table (``USER=name,password,call,…``) and the
+SECURETELNET / DisconnectOnClose / LOCALNET / RELAYAPPL / CMS
+keyword family.
+
+```ini
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=8010
+ HTTPPORT=8080
+ MAXSESSIONS=10
+ USER=test,test,N0CALL,,SYSOP
+ENDPORT
+```
+
+### BPQAXIP — AX.25 over IP / UDP / TCP
+
+See [AX/IP over UDP](../protocols/axip.md) for the full keyword
+set.  Key keywords: ``UDP <port>`` to listen, ``MAP`` to route
+outbound to a peer, ``BROADCAST NODES`` to fan NODES out to
+peers with the ``B`` flag.
+
+```ini
+PORT
+ ID=AXIP
+ DRIVER=BPQAXIP
+ QUALITY=200
+ CONFIG
+ UDP 10093
+ BROADCAST NODES
+ MAP N0PEER 198.51.100.1 UDP 10093 B
+ENDPORT
+```
+
+### BPQtoAGW — outbound AGW client
+
+See [BPQtoAGW](../protocols/bpqtoagw.md).  This driver makes
+LinBPQ a client to any AGW server (Direwolf, SoundModem,
+AGWPE).  The CONFIG block is one optional line:
+``<host> <port> [<user> [<password>]]``.  Combine with the
+port-level ``IOADDR=<port>`` (decimal) for the AGW TCP port
+and ``CHANNEL=A/B/...`` for the AGW port-letter.
+
+```ini
+PORT
+ ID=AGW
+ TYPE=EXTERNAL
+ DRIVER=BPQtoAGW
+ IOADDR=8000
+ CHANNEL=A
+ CONFIG
+ 127.0.0.1 8000
+ENDPORT
+```
+
+### BPQETHER — AX.25 over Ethernet
+
+See [BPQ Ethernet](../protocols/ethernet.md).  Linux opens an
+``AF_PACKET`` raw socket bound to the EtherType (default
+``08FF``).  Keywords: ``ADAPTER`` (interface name),
+``TYPE`` (EtherType in hex), ``RXMODE`` / ``TXMODE`` (BPQ or
+RLI framing), ``DEST`` (destination MAC, default broadcast),
+``SOURCE`` (accepted but ignored on Linux).
+
+```ini
+PORT
+ ID=BPQ Ethernet
+ TYPE=EXTERNAL
+ DRIVER=BPQETHER
+ CONFIG
+ ADAPTER eth0
+ TYPE 08FF
+ RXMODE BPQ
+ TXMODE BPQ
+ENDPORT
+```
+
+### KISSHF — KISS over TCP
+
+For SCS-Tracker, soundcard modems exposing KISS over TCP, and
+similar.  Driver source: ``KISSHF.c``.
+
+CONFIG opener: ``ADDR <host> <port> [PTT <opts>] [PATH <prog>]``
+where ``<port>`` is the TNC's TCP listener.  Lines after that
+are init-script lines sent to the TNC verbatim, plus the
+``standardParams`` keywords; ``UPDATEMAP`` enables sending
+periodic position updates to the m0lte map.
+
+```ini
+PORT
+ ID=KISS-TCP
+ DRIVER=KISSHF
+ QUALITY=192
+ CONFIG
+ ADDR 127.0.0.1 8011
+ SESSIONTIMELIMIT 60
+ENDPORT
+```
+
+### UZ7HO — UZ7HO SoundModem
+
+UZ7HO's HF/VHF soundmodem suite (``soundmodem`` /
+``high-speed-soundmodem``) speaks an AGW-like control protocol.
+Driver source: ``UZ7HODrv.c``.  CONFIG opener is the same
+``ADDR`` shape as KISSHF; additional CONFIG-block keywords:
+
+| Keyword | Effect |
+|---|---|
+| ``MAXSESSIONS=n`` | Concurrent connections cap. |
+| ``CONTIMEOUT=s`` | Connect-attempt timeout in seconds. |
+| ``UPDATEMAP`` | Publish to the m0lte map. |
+| ``BEACONAFTERSESSION`` | Send a beacon after each connected session. |
+| ``WINDOW=n`` | Override the L2 window. |
+| ``DEFAULTMODEM=name`` | Default modem name (forwarded to UZ7HO via the SET command). |
+| ``MODEMCENTER=hz`` (or ``MODEMCENTRE``) | Default centre frequency. |
+| ``FX25 <modes>`` / ``IL2P <modes>`` / ``CRC`` / ``NOCRC`` | Per-mode toggles. |
+
+```ini
+PORT
+ ID=UZ7HO
+ DRIVER=UZ7HO
+ QUALITY=192
+ CONFIG
+ ADDR 127.0.0.1 8000
+ MAXSESSIONS=4
+ DEFAULTMODEM 1200
+ENDPORT
+```
+
+### Pactor / WINMOR / ARDOP / VARA — HF data modems
+
+See [Pactor / WINMOR / ARDOP / VARA](../protocols/pactor.md) for
+the full driver-by-driver keyword set.  Drivers covered there:
+``KAMPactor``, ``AEAPactor``, ``SCSPactor``, ``SCSTracker``,
+``TrackeMulti``, ``HALDriver``, ``WINMOR``, ``ARDOP``, ``VARA``.
+Serial drivers (KAM / AEA / SCS / TrackeMulti / HAL) take
+``COMPORT=`` + ``SPEED=``; TCP drivers (WINMOR / ARDOP / VARA)
+take the ``ADDR <host> <port>`` form plus driver-specific init
+lines.
+
+```ini
+PORT
+ ID=ARDOP
+ TYPE=EXTERNAL
+ DRIVER=ARDOP
+ QUALITY=80
+ CONFIG
+ ADDR 127.0.0.1 8515
+ BW 500
+ LISTEN TRUE
+ENDPORT
+```
+
+### FLDigi / FLARQ — ``DRIVER=FLDigi``
+
+ARQ-mode integration with [FLDigi](http://www.w1hkj.com/) /
+FLARQ.  Driver source: ``FLDigi.c``.  Two non-adjacent sockets:
+ARQ on ``<port>`` (default 7322), XML-RPC on ``<port>+40``
+(default 7362).  CONFIG block requires ``ARQMODE`` to disable
+the default KISS/UDP fallback.
+
+CONFIG keywords:
+
+| Keyword | Effect |
+|---|---|
+| ``ADDR <host> <port>`` | FLDigi ARQ socket; XML-RPC is at ``<port>+40``. |
+| ``ARQMODE`` | Enable ARQ mode (required). |
+| ``TIMEOUT=s`` | ARQ inactivity timeout. |
+| ``RETRIES=n`` | ARQ retry limit. |
+| ``WINDOW=n`` | ARQ window override. |
+| ``DEFAULTMODEM=name`` | Initial FLDigi modem mode. |
+| ``PATH=...`` (on the ADDR line) | Auto-launch the named binary if FLDigi isn't running. |
+
+```ini
+PORT
+ ID=FLDigi
+ DRIVER=FLDigi
+ QUALITY=128
+ CONFIG
+ ADDR 127.0.0.1 7322
+ ARQMODE
+ DEFAULTMODEM PSK63
+ENDPORT
+```
+
+### WinRPR — SCS Tracker DSP
+
+SCS-Tracker / DSP-4100 over TCP (Wine-hosted SCS Tracker app).
+Driver source: ``WinRPR.c``.  CONFIG opener is the standard
+``ADDR <host> <port> [PTT ...] [PATH ...]``; additional
+CONFIG-block keywords:
+
+| Keyword | Effect |
+|---|---|
+| ``APPL <n>`` / ``USEAPPLCALLS`` | Bind the port to an application slot. |
+| ``SWITCHMODES <list>`` | Comma-separated list of mode names that auto-switch on inbound calls. |
+| ``DEFAULT ROBUST`` / ``FORCE ROBUST`` | Robust-Pactor mode handling. |
+| ``BEACONAFTERSESSION`` | Send a beacon after each connected session. |
+| ``DEBUGLOG`` | Write driver-level debug log. |
+| ``UPDATEMAP`` | Publish to the m0lte map. |
+| ``WL2KREPORT`` | Inherited from ``standardParams``. |
+
+```ini
+PORT
+ ID=WinRPR
+ DRIVER=WinRPR
+ QUALITY=80
+ CONFIG
+ ADDR 127.0.0.1 8090
+ APPL 1
+ DEFAULT ROBUST
+ENDPORT
+```
+
+### HSMODEM — UDP-attached HSMODEM
+
+HSMODEM (Linux UDP-attached high-speed soundcard modem).
+Driver source: ``HSMODEM.c``.  Configuration is via the
+top-level ``ADDR=`` keyword on the PORT block — no inner
+``CONFIG ... ENDPORT`` block.  Sends a ~260-byte poll datagram
+every ~2 s with the node call in the payload.
+
+!!! warning "Audio-device required"
+    HSMODEM dereferences NULL on startup if neither ``CAPTURE``
+    nor ``PLAYBACK`` is set —
+    [#6](https://github.com/M0LTE/linbpq/issues/6).
+
+### FreeData
+
+FreeData / TNC-FreeDV.  Driver source: ``FreeDATA.c``.  CONFIG
+opener: ``ADDR <host> <port> [PTT ...] [PATH ...]``.  Keywords
+inside the CONFIG block include ``CAPTURE``, ``PLAYBACK``,
+``LOGDIR``, ``HAMLIBHOST``, ``HAMLIBPORT``, ``TuningRange``,
+``TXLevel``, ``Explorer``, ``LimitBandWidth``, ``USEBASECALL``,
+``RXDIRECTORY``.
+
+### MULTIPSK
+
+TCP single-socket dial-out to MULTIPSK.  Driver source: there
+isn't a ``MULTIPSK.c`` — handled by the legacy serial-driver
+shim.  Cfg coverage is canary-level; the full handshake isn't
+exercised by the integration suite.
 
 ## Obsolete and ignored keywords
 

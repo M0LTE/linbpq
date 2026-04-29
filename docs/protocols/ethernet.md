@@ -107,9 +107,22 @@ into `bpq32.cfg`.
 | `TYPE <hex>` | EtherType in hexadecimal (default `08FF`). |
 | `RXMODE <BPQ|RLI>` | Inbound framing variant.  Default `BPQ`. |
 | `TXMODE <BPQ|RLI>` | Outbound framing variant.  Default `BPQ`. |
-| `PROMISCUOUS <0|1>` | If `1`, put the interface in promiscuous mode (lets you receive frames not addressed to your MAC). |
+| `PROMISCUOUS <0\|1>` | **Windows only.**  If `1`, put the interface in promiscuous mode (lets you receive frames not addressed to your MAC).  Linux parses the keyword but never reads the field — the AF_PACKET socket relies on the EtherType filter only.  See note below. |
 | `DEST <mac>` | Destination MAC for outbound frames.  Default broadcast. |
-| `SOURCE <mac>` | Source MAC.  Default the interface's own MAC. |
+| `SOURCE <mac>` | Source MAC.  Linux: parsed but ignored — the kernel uses the interface's own MAC. |
+
+!!! note "PROMISCUOUS on Linux"
+    `bpqether.c:580-586` (Windows) passes the `Promiscuous`
+    field through to `pcap_open_live`.  `linether.c:416-422`
+    (Linux) parses the keyword into `PCAPInfo[Port].Promiscuous`
+    but no code reads that field — the kernel's
+    `setsockopt(SOL_PACKET, PACKET_ADD_MEMBERSHIP, ...,
+    PACKET_MR_PROMISC)` call that would actually enable
+    promiscuous mode isn't wired up.  AX-over-Ethernet typically
+    works fine without it because the EtherType filter catches
+    the frames you care about; this is only relevant if you're
+    using LinBPQ as a raw-frame collector and need to see traffic
+    addressed to other MACs.
 
 ## Use cases (ish)
 
