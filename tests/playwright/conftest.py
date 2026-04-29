@@ -55,6 +55,24 @@ from web_helpers import (  # noqa: E402
 LINBPQ_BIN = os.environ.get("LINBPQ_BIN", "linbpq.bin")
 
 
+def pytest_collection_modifyitems(config, items):
+    """Auto-skip ``fork_only`` tests when ``LINBPQ_VANILLA=1`` is
+    set in the environment.  Lets this suite serve as a vendor-
+    neutral oracle: contributors testing against an unmodified
+    upstream ``g8bpq/linbpq`` build set the env var and only the
+    tests that depend on this fork's HTML/ extraction are
+    skipped.
+    """
+    if not os.environ.get("LINBPQ_VANILLA"):
+        return
+    skip = pytest.mark.skip(
+        reason="LINBPQ_VANILLA=1 — fork-only test"
+    )
+    for item in items:
+        if "fork_only" in item.keywords:
+            item.add_marker(skip)
+
+
 _BASE_CFG = """\
 SIMPLE=1
 NODECALL=N0CALL
@@ -174,31 +192,21 @@ def _wait_for_http(http_port: int, proc: subprocess.Popen, log_path: Path) -> No
 
 def _wait_for_bbs_ready(http_port: int, log_path: Path) -> None:
     """The HTTP port opens before the BBS subsystem finishes
-    starting up.  /WebMail returns the WebMailPage (Version 6)
-    once the BBS is registered; until then it serves a fallback
-    that looks like the WebMailSignon page (Version 1).  Poll the
-    log for "Mail Started" and verify /WebMail renders the right
-    template before letting tests run.
+    starting up.  Wait for ``Mail Started`` in the linbpq stdout
+    log (printed by ``LinBPQ.c::main`` after BPQMailStart returns —
+    same on fork and vanilla).
     """
-    import urllib.request
-
     deadline = time.monotonic() + 10.0
     while time.monotonic() < deadline:
         try:
-            req = urllib.request.Request(
-                f"http://127.0.0.1:{http_port}/WebMail",
-                headers={"Accept-Encoding": "deflate"},
-            )
-            with urllib.request.urlopen(req, timeout=1.0) as resp:
-                body = resp.read()
-                if resp.headers.get("Content-Encoding", "").lower() == "deflate":
-                    import zlib as _zlib
-                    body = _zlib.decompress(body)
-                if b"<!-- Version 6" in body[:300]:
-                    return
-        except (OSError, ValueError):
+            if b"Mail Started" in log_path.read_bytes():
+                # Tiny grace period for the HTTP layer to register
+                # the BBS-aware handlers after the log line fires.
+                time.sleep(0.2)
+                return
+        except OSError:
             pass
-        time.sleep(0.2)
+        time.sleep(0.1)
     raise TimeoutError(
         f"BBS subsystem didn't reach ready state within 10s; see {log_path}"
     )

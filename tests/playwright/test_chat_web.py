@@ -27,7 +27,6 @@ def test_chat_status_renders(chat_session):
     port, key = chat_session["port"], chat_session["key"]
     status, body = http_get(port, f"/Chat/ChatStatus?{key}")
     assert b"200" in status
-    assert b"<!-- Version 1" in body[:80]
     # Status page should include the Status / Configuration / Node Menu
     # nav row even if the status table is empty.
     assert b"Status" in body
@@ -40,7 +39,6 @@ def test_chat_config_form_renders(chat_session):
     port, key = chat_session["port"], chat_session["key"]
     status, body = http_get(port, f"/Chat/ChatConf?{key}")
     assert b"200" in status
-    assert b"<!-- Version 2" in body[:80]
     assert b"Chat Configuration" in body
     # Welcome message we seeded should round-trip into the form.
     assert b"Welcome to the test chat node" in body, (
