@@ -43,7 +43,7 @@ from string import Template
 
 import pytest
 
-from helpers.agw_client import AgwClient, AgwFrame
+from helpers.agw_client import AgwSession
 from helpers.linbpq_instance import LinbpqInstance
 
 
@@ -199,117 +199,24 @@ def _safe_stop(linbpq: LinbpqInstance) -> None:
 # ── AGW helpers ──────────────────────────────────────────────────
 
 
-def _register(client: AgwClient, callsign: str) -> None:
-    client.send(
-        AgwFrame(
-            port=0,
-            data_kind=b"X",
-            pid=0,
-            callfrom=callsign.encode("ascii"),
-            callto=b"",
-            data=b"",
-        )
-    )
-    reply = client.recv()
-    assert reply.data_kind == b"X" and reply.data == b"\x01", (
-        f"AGW register {callsign!r} failed: {reply!r}"
-    )
-
-
-def _connect(client: AgwClient, port_index: int, callfrom: str, callto: str) -> None:
-    client.send(
-        AgwFrame(
-            port=port_index,
-            data_kind=b"C",
-            pid=0,
-            callfrom=callfrom.encode("ascii"),
-            callto=callto.encode("ascii"),
-            data=b"",
-        )
-    )
-
-
-def _wait_for_kind(
-    client: AgwClient, kind: bytes, timeout: float = 10.0
-) -> AgwFrame:
-    """Read AGW frames until one with ``data_kind == kind`` arrives."""
-    deadline = time.monotonic() + timeout
-    client.sock.settimeout(0.5)
-    while time.monotonic() < deadline:
-        try:
-            frame = client.recv()
-        except (TimeoutError, socket.timeout):
-            continue
-        if frame.data_kind == kind:
-            return frame
-        if frame.data_kind == b"d":
-            raise RuntimeError(f"got disconnect while waiting for {kind!r}: {frame!r}")
-    raise TimeoutError(f"no AGW {kind!r} frame within {timeout}s")
-
-
-def _send_data(
-    client: AgwClient, port_index: int, callfrom: str, callto: str, data: bytes
-) -> None:
-    client.send(
-        AgwFrame(
-            port=port_index,
-            data_kind=b"D",
-            pid=0xF0,
-            callfrom=callfrom.encode("ascii"),
-            callto=callto.encode("ascii"),
-            data=data,
-        )
-    )
-
-
-def _drain_data(
-    client: AgwClient, expected_min: int, timeout: float = 8.0
-) -> bytes:
-    """Read AGW frames until ``expected_min`` bytes of 'D' data
-    have accumulated, or timeout.  Returns the concatenated
-    payload; ignores other frame kinds.
+def _establish_session(
+    a: LinbpqInstance, b: LinbpqInstance
+) -> tuple[AgwSession, AgwSession]:
+    """Open AGW sessions on both sides, register the APPL calls,
+    initiate the connect, wait for both ``C`` confirms.  Returns
+    ``(app_a, app_b)`` ready for ``send_data`` / ``drain_data``.
     """
-    deadline = time.monotonic() + timeout
-    payload = b""
-    client.sock.settimeout(0.5)
-    while time.monotonic() < deadline and len(payload) < expected_min:
-        try:
-            frame = client.recv()
-        except (TimeoutError, socket.timeout):
-            continue
-        if frame.data_kind == b"D":
-            payload += frame.data
-        elif frame.data_kind == b"d":
-            break
-    # Brief drain for any trailing data.
-    client.sock.settimeout(0.5)
-    deadline2 = time.monotonic() + 1.0
-    while time.monotonic() < deadline2:
-        try:
-            frame = client.recv()
-        except (TimeoutError, socket.timeout):
-            break
-        if frame.data_kind == b"D":
-            payload += frame.data
-    return payload
+    app_a = AgwSession.connect("127.0.0.1", a.agw_port, timeout=15)
+    app_b = AgwSession.connect("127.0.0.1", b.agw_port, timeout=15)
 
+    app_a.register(A_APPL_CALL)
+    app_b.register(B_APPL_CALL)
 
-def _establish_session(a: LinbpqInstance, b: LinbpqInstance) -> tuple[AgwClient, AgwClient]:
-    """Open AGW clients on both sides, register the APPL calls,
-    initiate the connect, wait for both 'C' confirms.  Returns
-    ``(app_a, app_b)`` ready for ``_send_data`` / ``_drain_data``.
-    """
-    app_a = AgwClient("127.0.0.1", a.agw_port, timeout=15)
-    app_b = AgwClient("127.0.0.1", b.agw_port, timeout=15)
-
-    _register(app_a, A_APPL_CALL)
-    _register(app_b, B_APPL_CALL)
-
-    _connect(app_a, AGW_AXIP_PORT_INDEX, A_APPL_CALL, B_APPL_CALL)
+    app_a.connect_call(AGW_AXIP_PORT_INDEX, A_APPL_CALL, B_APPL_CALL)
 
     # Both sides should see a 'C' confirm.
-    confirm_a = _wait_for_kind(app_a, b"C", timeout=10.0)
-    confirm_b = _wait_for_kind(app_b, b"C", timeout=10.0)
+    confirm_a = app_a.wait_for(b"C", timeout=10.0)
+    confirm_b = app_b.wait_for(b"C", timeout=10.0)
     assert b"CONNECTED" in confirm_a.data.upper(), confirm_a
     assert b"CONNECTED" in confirm_b.data.upper(), confirm_b
     return app_a, app_b
@@ -333,10 +240,10 @@ def test_agw_two_instance_data_round_trip(two_instance_agw):
     app_a, app_b = _establish_session(a, b)
     try:
         payload = b"Hello two-instance AGW tunnel"
-        _send_data(
-            app_a, AGW_AXIP_PORT_INDEX, A_APPL_CALL, B_APPL_CALL, payload
+        app_a.send_data(
+            AGW_AXIP_PORT_INDEX, A_APPL_CALL, B_APPL_CALL, payload
         )
-        received = _drain_data(app_b, expected_min=len(payload), timeout=8.0)
+        received = app_b.drain_data(expected_min=len(payload), timeout=8.0)
     finally:
         app_a.close()
         app_b.close()
@@ -375,10 +282,10 @@ def test_agw_two_instance_byte_transparency(
     app_a, app_b = _establish_session(a, b)
     sentinel = bytes([0x41, byte_value, 0x5A])
     try:
-        _send_data(
-            app_a, AGW_AXIP_PORT_INDEX, A_APPL_CALL, B_APPL_CALL, sentinel
+        app_a.send_data(
+            AGW_AXIP_PORT_INDEX, A_APPL_CALL, B_APPL_CALL, sentinel
         )
-        received = _drain_data(app_b, expected_min=3, timeout=4.0)
+        received = app_b.drain_data(expected_min=3, timeout=4.0)
     finally:
         app_a.close()
         app_b.close()
@@ -404,11 +311,11 @@ def test_agw_two_instance_full_byte_sweep(two_instance_agw):
     app_a, app_b = _establish_session(a, b)
     payload = bytes(range(256))
     try:
-        _send_data(
-            app_a, AGW_AXIP_PORT_INDEX, A_APPL_CALL, B_APPL_CALL, payload
+        app_a.send_data(
+            AGW_AXIP_PORT_INDEX, A_APPL_CALL, B_APPL_CALL, payload
         )
-        received = _drain_data(
-            app_b, expected_min=len(payload), timeout=10.0
+        received = app_b.drain_data(
+            expected_min=len(payload), timeout=10.0
         )
     finally:
         app_a.close()
@@ -457,16 +364,15 @@ def test_agw_two_instance_burst_ordering_chunked(two_instance_agw):
     chunk_size = 64  # well under default PACLEN of 256
     try:
         for off in range(0, len(payload), chunk_size):
-            _send_data(
-                app_a,
+            app_a.send_data(
                 AGW_AXIP_PORT_INDEX,
                 A_APPL_CALL,
                 B_APPL_CALL,
                 payload[off:off + chunk_size],
             )
             time.sleep(0.05)  # let the receiver drain between sends
-        received = _drain_data(
-            app_b, expected_min=len(payload), timeout=20.0
+        received = app_b.drain_data(
+            expected_min=len(payload), timeout=20.0
         )
     finally:
         app_a.close()
@@ -501,11 +407,11 @@ def test_agw_two_instance_oversized_record_handling(two_instance_agw):
     app_a, app_b = _establish_session(a, b)
     payload = bytes((i & 0xFF) for i in range(512))
     try:
-        _send_data(
-            app_a, AGW_AXIP_PORT_INDEX, A_APPL_CALL, B_APPL_CALL, payload
+        app_a.send_data(
+            AGW_AXIP_PORT_INDEX, A_APPL_CALL, B_APPL_CALL, payload
         )
-        received = _drain_data(
-            app_b, expected_min=len(payload), timeout=10.0
+        received = app_b.drain_data(
+            expected_min=len(payload), timeout=10.0
         )
     finally:
         app_a.close()
