@@ -29,20 +29,15 @@ concurrency:
   group: docs-${{ github.ref }}
   cancel-in-progress: true
 
-# Opt every action in this workflow into the Node.js 24 runtime
-# (GHA forces this June 2026; explicit opt-in clears warnings now).
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
@@ -58,7 +53,7 @@ jobs:
         run: mkdocs build --strict
 
       - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -70,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install build dependencies
         run: |
@@ -89,7 +84,7 @@ jobs:
           make -j"$(nproc)"
           test -x linbpq
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
@@ -119,4 +114,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
