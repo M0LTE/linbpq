@@ -507,6 +507,17 @@ dedicated harnesses.
 - Cross-instance BBS post — A's user posts via downlink-connect
   into B's BBS and the message file lands on B's disk
   (``test_two_instance_bbs.py``).
+- Cross-instance AGW APPL tunnel — AGW client on A registers an
+  APPL call, AGW client on B registers a different APPL call,
+  ``C`` from A's APPL to B's APPL delivers the connect
+  notification to B's listener and bidirectional data flows
+  (``test_two_instance_agw_tunnel.py``, ``test_two_instance_apps_tunnel.py``
+  for the LinBPQ Apps Interface counterpart).  Surfaced
+  [#41](https://github.com/M0LTE/linbpq/issues/41) — the published
+  Docker image's default ``CMD ["mail", "chat"]`` claims AGW
+  application slots even when the cfg binds slot 1 to a different
+  ``APPL1CALL``; integration tests pass because they run
+  ``linbpq`` directly without those args.
 
 **NET/ROM discovery** ([#4](https://github.com/M0LTE/linbpq/issues/4))
 now resolved at the test-cfg level — root cause was misconfiguration
@@ -690,18 +701,26 @@ tests/
     helpers/
       linbpq_instance.py     spawn / readiness / teardown
       telnet_client.py
-      agw_client.py
-      kiss_client.py
-    fixtures/
-      configs/               bpq32.cfg templates
-      golden/                golden output for diff tests
+      agw_client.py          + AgwSession session helper
+      bpqmail_cfg.py         render linmail.cfg with forwarding partners
+      pty_kiss_modem.py      KISS-on-serial fake modem (PTY-backed)
+      vara_modem.py          VARA / ARDOP TCP fake modem
+      fldigi_modem.py        FLDigi ARQ + XML-RPC fake
+      kiss_tcp_server.py     outbound KISS-TCP peer
+      udp_listener.py        HSMODEM-style UDP listener
+      netromtcp.py           NET/ROM-over-TCP framing
+      cmdport_app.py         LinBPQ Apps Interface fake client
+      mqtt_broker.py         in-process MQTT broker for publish tests
+      fbb_partner.py         fake FBB BBS for forwarding tests
     test_smoke.py
     test_telnet_*.py         phase 3, command-by-command
     test_http_*.py
     test_agw_*.py
 docker/
-  Dockerfile.test
-  entrypoint.sh
+  Dockerfile.test            builds the test image
+  Dockerfile                 published runtime image (m0lte/linbpq)
+  bpq32.cfg.example          starter cfg shipped at /opt/linbpq/
+  entrypoint.sh              shared by both images
 makefile
   test                       default: runs tests in Docker
   test-native                runs against host-built linbpq
@@ -716,8 +735,12 @@ notes/
 
 1. Identify the interface and the protocol-level behaviour you want to
    lock in.
-2. If no config template covers your scenario, drop one in
-   `tests/integration/fixtures/configs/`.
+2. Cfg goes in the test module itself, typically as a multi-line
+   string passed to the `linbpq_instance` fixture's `cfg` parameter
+   (or rendered via a helper like `helpers/bpqmail_cfg.py` for the
+   BBS-forwarding suite).  No shared fixtures directory — keeping
+   each test's cfg local to its file makes the wire-vs-config
+   relationship easy to read.
 3. Add a `test_*.py` module. Request the `linbpq_instance` fixture
    (parametrised with your config if needed). Drive the protocol.
    Assert on the outcome.
@@ -804,9 +827,12 @@ until after the Critical/High security-issue regression tests
 
   - Two-instance soak test added in ``test_soak_leaks.py`` as
     ``test_two_instance_axip_no_leak_on_connect_cycles``.
-    Cycles ``C 2 N0BBB`` → ``BYE`` from instance A → B over
-    AX/IP-UDP, 100 iterations, asserts bounded RSS+FD growth on
-    both sides independently.  Marked ``long_runtime``.
+    Cycles ``C <port> <peercall>`` → ``BYE`` over AX/IP-UDP and
+    asserts bounded RSS+FD growth on both sides independently.
+    Parametrised on ``direction`` (``a_to_b`` and ``b_to_a``) so
+    xdist runs the two halves in parallel — 25 cycles per
+    direction, same total signal as the previous single-direction
+    50-cycle test.  Marked ``long_runtime``.
 
   - Spot-check landed in ``notes/upstream-spotcheck.md``.  Two
     real drifts fixed in-place: ``protocols/bpqtoagw.md``
