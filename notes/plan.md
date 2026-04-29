@@ -149,9 +149,12 @@ a comment in the test pointing at the section anchor so a reader
 can find the spec quickly.
 
 First audit pass landed: see
-[`test-coverage-audit.md`](test-coverage-audit.md).  Currently 101 /
-115 commands covered; the remaining 14 are documented there with
-reasons (need a fixture, no clean cfg round-trip, or out-of-scope).
+[`test-coverage-audit.md`](test-coverage-audit.md).  Currently 112 /
+115 commands covered; the remaining 3 (`FINDBUFFS`, `*** LINKED`,
+`..FLMSG`) are out-of-scope for telnet integration tests by
+design — they'd need either debug-log parsing (rejected) or a
+fake BPQ host-stream client (significant new infrastructure for
+two niche commands).
 
 When adding a new test
 that exercises a node-prompt command, check whether the doc's
