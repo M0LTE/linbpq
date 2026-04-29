@@ -739,6 +739,48 @@ on the actual goal.
 clean, harmless seam left over from prior work. Reverting it is more
 churn than it is worth.
 
+## Deferred — pick up after the security-regression batch
+
+Three streams of work raised in review and explicitly parked
+until after the Critical/High security-issue regression tests
+(#25–#38) land:
+
+- **Vanilla-BPQ-compat sweep.**  About 30 playwright tests
+  depend on the HTML-extraction work this fork has done.  An
+  unmodified upstream `g8bpq/linbpq` binary doesn't have
+  `<!-- Version N -->` markers in the inline templates, so
+  those version-marker assertions don't apply to it.  Either
+  gate the affected tests on a "this is our extracted build"
+  marker, or weaken the assertions to "rendered HTML
+  contains expected substring" without the version check.
+  About a half-day's work.  Keeps the suite portable to
+  upstream so it can serve as a vendor-neutral oracle.
+
+- **CFG snippet boot check** (option 2 from the
+  doc-divergence CI gate sketch).  Extract every fenced
+  ``ini`` cfg block from `docs/**/*.md`, boot a real
+  `linbpq` with each, verify "Conversion (probably)
+  successful" + no "Unknown keyword" warnings.  Catches
+  docs that drift from the parser when keywords are renamed
+  or removed upstream.  Half a day.  Complements the static
+  citation gate (test_repo_audits.py) which already covers
+  the source-line side.
+
+- **Smaller cleanups.**  Three concrete items:
+  - An `AgwSession` helper class wrapping the
+    register/connect/wait/send boilerplate that
+    `test_two_instance_agw_tunnel.py` and
+    `test_apps_interface_transparency.py` repeat.  Probably
+    30 LoC.
+  - Two-instance soak/leak tests — extend
+    `test_soak_leaks.py` to cover scenarios where one BPQ
+    cycles connections to another.  Catches AX/IP-UDP-side
+    leaks the single-instance variant misses.
+  - Spot-check the 24 Rewritten upstream pages in
+    `docs/project/upstream.md` — particularly the binary /
+    protocol-spec ones — for any subtle drift between the
+    rewritten doc and the binary's actual behaviour.
+
 ## Open questions and risks
 
 - **Setcap requirement.** The build runs
