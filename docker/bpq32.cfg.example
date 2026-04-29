@@ -1,0 +1,30 @@
+; Minimal linbpq config — copy to /data/bpq32.cfg and edit.
+;
+; Replace N0CALL with your licensed callsign and IO91WM with your
+; Maidenhead locator.  Set a real password on the SYSOP user before
+; exposing the HTTP / Telnet ports beyond localhost.
+;
+; Reference: https://www.cantab.net/users/john.wiseman/Documents/BPQCFGFile.html
+
+SIMPLE=1
+NODECALL=N0CALL
+NODEALIAS=NODE
+LOCATOR=IO91WM
+
+APPLICATIONS=BBS,CHAT
+BBSCALL=N0CALL-1
+BBSALIAS=BBS
+APPL1CALL=N0CALL-1
+APPL1ALIAS=BBS
+APPL2CALL=N0CALL-2
+APPL2ALIAS=CHT
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=8010
+ HTTPPORT=8008
+ MAXSESSIONS=10
+ USER=admin,changeme,N0CALL,,SYSOP
+ENDPORT
