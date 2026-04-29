@@ -54,6 +54,9 @@ WORKDIR /data
 EXPOSE 8008/tcp 8010/tcp
 
 ENTRYPOINT ["/usr/local/bin/linbpq-entrypoint.sh"]
-# Pass through to linbpq.  ``mail chat`` enables the BBS + Chat
-# subsystems by default; override at ``docker run`` time as needed.
-CMD ["mail", "chat"]
+# No default CMD: the entrypoint execs ``linbpq`` with whatever args
+# you pass to ``docker run``.  Pass ``mail chat`` (or any subset) to
+# enable the BBS / Chat subsystems — but only when the cfg actually
+# registers BBSCALL / CHATCALL.  Starting them unconditionally claims
+# AGW application slots and can hijack inbound 'C' frames destined
+# for other APPLn registrations (issue #41).
