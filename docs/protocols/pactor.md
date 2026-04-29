@@ -82,64 +82,110 @@ A connected-script BBS forwarding example:
 
 ## Driver-specific keywords
 
+!!! note "Serial drivers: COMPORT and SPEED are PORT-level"
+    For all the serial drivers below (KAM, AEA, SCS, Tracker,
+    HAL), ``COMPORT=`` and ``SPEED=`` belong **inside the
+    PORT block but before the CONFIG keyword** — they're parsed
+    by the main parser, not the driver's CONFIG-block handler.
+    Put them after ``DRIVER=`` and before ``CONFIG``; the
+    CONFIG block then carries only the driver-specific
+    keywords (or is empty).
+
 ### KAMPactor (Kantronics KAM)
 
 Serial-attached.  KAM commands are case-insensitive and identical
-in normal and host mode.
+in normal and host mode.  CONFIG-block keywords (``KAMPactor.c``):
+``DEBUGLOG``, ``APPL <n>`` (bind to APPLICATION slot),
+``OLDMODE`` / ``VERYOLDMODE`` (legacy KAM firmware), ``BUSYWAIT``,
+``WL2KREPORT`` plus the ``standardParams`` set.
 
-```
-CONFIG
-COMPORT=/dev/ttyUSB0
-SPEED=9600
+```ini
+PORT
+ ID=KAM
+ TYPE=EXTERNAL
+ DRIVER=KAMPACTOR
+ COMPORT=/dev/ttyUSB0
+ SPEED=9600
+ CONFIG
+ APPL 1
+ENDPORT
 ```
 
 ### AEAPactor (PK-232 family)
 
 Serial.  Init bytes go out within seconds of the port coming up;
-`AEAExtInit` opens the PTY synchronously.
+``AEAExtInit`` opens the PTY synchronously.  CONFIG-block
+keywords: ``APPL`` plus ``standardParams``; the rest of the
+init script goes verbatim to the TNC.
 
-```
-CONFIG
-COMPORT=/dev/ttyUSB0
-SPEED=4800
-MYCALL=N0CALL
+```ini
+PORT
+ ID=PK-232
+ TYPE=EXTERNAL
+ DRIVER=AEAPACTOR
+ COMPORT=/dev/ttyUSB0
+ SPEED=4800
+ CONFIG
+ APPL 1
+ENDPORT
 ```
 
 ### SCSPactor (PTC family)
 
 Serial.  Uses DED Host Mode command set — different from the
-KAM "AT command" style.
+KAM "AT command" style.  CONFIG-block keywords (``SCSPactor.c``):
+``APPL``, ``DEBUGLOG``, ``PACKETCHANNELS``,
+``SCANFORROBUSTPACKET``, ``USEAPPLCALLS`` /
+``USEAPPLCALLSFORPACTOR``, ``DRAGON``, ``DEFAULT ROBUST`` /
+``FORCE ROBUST``, ``DontAddPDUPLEX``, plus ``standardParams``.
 
-```
-CONFIG
-COMPORT=/dev/ttyUSB0
-SPEED=57600
-PSKAMPL=140        ; PSK transmit amplitude
-FSKAMPL=140        ; FSK transmit amplitude
+```ini
+PORT
+ ID=PTC-II
+ TYPE=EXTERNAL
+ DRIVER=SCSPACTOR
+ COMPORT=/dev/ttyUSB0
+ SPEED=57600
+ CONFIG
+ APPL 1
+ DEFAULT ROBUST
+ENDPORT
 ```
 
 ### SCSTracker / TrackeMulti
 
 The same DSP-4100 hardware.  Pick the driver based on whether
-you want one session at a time (`SCSTracker`) or multiple
-(`TrackeMulti`).
+you want one session at a time (``SCSTracker``) or multiple
+(``TrackeMulti``).
 
-```
-CONFIG
-COMPORT=/dev/ttyUSB0
-SPEED=38400
+```ini
+PORT
+ ID=Tracker
+ TYPE=EXTERNAL
+ DRIVER=SCSTRACKER
+ COMPORT=/dev/ttyUSB0
+ SPEED=38400
+ CONFIG
+ENDPORT
 ```
 
 ### HALDriver
 
 Clover or Pactor mode on HAL Communications hardware.  Older
-gear, rare in 2026.
+gear, rare in 2026.  CONFIG-block keywords (``HALDriver.c``):
+``APPL``, ``WL2KREPORT``, ``NEEDXONXOFF``, ``TONES``,
+``DEFAULTMODE <CLOVER|PACTOR|AMTOR>``, plus ``standardParams``.
 
-```
-CONFIG
-COMPORT=/dev/ttyUSB0
-SPEED=4800
-MODE=CLOVER         ; or PACTOR
+```ini
+PORT
+ ID=HAL
+ TYPE=EXTERNAL
+ DRIVER=HALDRIVER
+ COMPORT=/dev/ttyUSB0
+ SPEED=4800
+ CONFIG
+ DEFAULTMODE CLOVER
+ENDPORT
 ```
 
 ### WINMOR (deprecated)

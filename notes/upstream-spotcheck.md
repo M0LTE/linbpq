@@ -11,12 +11,12 @@ does.
 |---|---|---|
 | `protocols/axip.md` | One drift | Fixed in-place |
 | `protocols/bpqtoagw.md` | One drift | Fixed in-place |
-| `protocols/ethernet.md` | Minor caveat | Noted below; doc unchanged |
+| `protocols/ethernet.md` | Linux PROMISCUOUS unused | Doc clarified (admonition + table footnote) |
 | `protocols/host-mode.md` | Clean | — |
 | `subsystems/aprs.md` | Already caught by `test_doc_cfg_snippets` (port-2 fragment in harness) | — |
 | `subsystems/ipgateway.md` | Clean | — |
-| `protocols/pactor.md` | Not deeply checked — sample configs only | Open |
-| `configuration/reference.md` | Clean (cfg-snippet test covers it) | — |
+| `protocols/pactor.md` | One drift (COMPORT/SPEED placement) | Fixed in-place; CONFIG-block keyword sets fleshed out per driver |
+| `configuration/reference.md` | "Driver-specific blocks" was a stub | Fleshed out — per-driver subsection with worked example, links to dedicated pages |
 
 ## Findings
 
@@ -96,13 +96,40 @@ No drift detected.
 `ROUTE`, `ENABLESNMP`, `UDPTunnel`, `44Encap`, `NoDefaultRoute`
 all recognised by `IPCode.c:3314-3586`.  No drift detected.
 
-### `protocols/pactor.md` — not deeply checked
+### `protocols/pactor.md` — `COMPORT`/`SPEED` placement was wrong
 
-The cfg-snippets test boots the fragments cleanly so the
-keyword-acceptance side is solid.  Modem-driver-init wire-format
-claims (KAM cmd: prompts, SCS init banners, etc.) would need
-either driver-by-driver source review or a behavioural test
-against the existing modem helpers — not done in this pass.
+**Doc claim** (before fix): every serial-driver example placed
+``COMPORT=`` and ``SPEED=`` *inside* ``CONFIG ... ENDPORT``.
+
+**Reality**: ``COMPORT`` and ``SPEED`` are PORT-level keywords
+(in the keyword table at ``config.c:376-387``), parsed by the
+main parser, not by the driver's CONFIG-block handler.  Verified
+empirically: with COMPORT inside CONFIG, the KAMPactor driver
+logs ``NOPORT could not be opened``; moving it before
+``CONFIG`` makes the port open at the configured device.
+
+**Action**: rewrote each serial-driver example
+(``KAMPactor``, ``AEAPactor``, ``SCSPactor``,
+``SCSTracker`` / ``TrackeMulti``, ``HALDriver``) so
+``COMPORT=`` / ``SPEED=`` sit between ``DRIVER=`` and
+``CONFIG``.  Added a "Serial drivers: COMPORT and SPEED are
+PORT-level" admonition at the head of the section.  Fleshed out
+per-driver CONFIG-block keyword sets (``APPL``, ``DEFAULT
+ROBUST``, ``DEFAULTMODE``, etc.) cross-referencing the relevant
+``.c`` files.
+
+### `configuration/reference.md` — "Driver-specific blocks" stub
+
+**State** (before fix): the section was a bullet list naming
+each driver and linking out, with no per-driver content.
+
+**Action**: rewrote into per-driver subsections with
+purpose, CONFIG-block shape, key keywords, and a worked example.
+Drivers with a dedicated page link out for depth (``BPQAXIP``,
+``BPQtoAGW``, ``BPQETHER``, Pactor family); drivers without a
+dedicated page (``KISSHF``, ``UZ7HO``, ``FLDigi``, ``WinRPR``,
+``HSMODEM``, ``FreeData``, ``MULTIPSK``) get inline coverage
+keyed off their ``.c`` source.
 
 ## Methodology
 
