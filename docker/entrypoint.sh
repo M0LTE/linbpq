@@ -12,7 +12,10 @@
 #       -p 8008:8008 -p 8010:8010 \
 #       <image>:latest
 #
-# Pass extra linbpq arguments at the end (default: ``mail chat``).
+# Pass extra linbpq arguments at the end (e.g. ``mail chat`` to
+# enable the BBS / Chat subsystems — only when your cfg registers
+# BBSCALL / CHATCALL).  By default no subsystems are started, so
+# AGW application slots stay free for APPLn registrations.
 
 set -e
 
