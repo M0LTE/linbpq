@@ -3,8 +3,33 @@ name: tests
 on:
   push:
     branches: [master]
+    # Run on any code/test change.  The ignore list catches the things
+    # that demonstrably can't break the suite: pure docs / planning /
+    # markdown, the docs workflow + mkdocs config, the docker-publish
+    # workflow, and the runtime-image artefacts (the test image is
+    # docker/Dockerfile.test, not docker/Dockerfile).
+    paths-ignore:
+      - 'docs/**'
+      - 'notes/**'
+      - '**.md'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+      - '.github/workflows/docker-publish.yml'
+      - 'docker/Dockerfile'
+      - 'docker/entrypoint.sh'
+      - 'docker/bpq32.cfg.example'
   pull_request:
     branches: [master]
+    paths-ignore:
+      - 'docs/**'
+      - 'notes/**'
+      - '**.md'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+      - '.github/workflows/docker-publish.yml'
+      - 'docker/Dockerfile'
+      - 'docker/entrypoint.sh'
+      - 'docker/bpq32.cfg.example'
   workflow_dispatch:
 
 # Cancel an in-flight run on the same ref when a new commit lands.

@@ -15,6 +15,18 @@ on:
   push:
     branches: [master]
     tags: ['v*']
+    # Only rebuild when something that ends up in the runtime image
+    # actually changes.  Use ``workflow_dispatch`` to force a rebuild
+    # without a relevant change (e.g. base-image security rebuilds).
+    paths:
+      - '*.c'
+      - '*.h'
+      - 'makefile'
+      - 'HTML/**'
+      - 'docker/Dockerfile'
+      - 'docker/entrypoint.sh'
+      - 'docker/bpq32.cfg.example'
+      - '.github/workflows/docker-publish.yml'
   workflow_dispatch:
 
 concurrency:
