@@ -13,6 +13,14 @@ edit_uri: edit/master/docs/
 docs_dir: docs
 site_dir: site
 
+# Internal docs that live alongside the public reference but aren't
+# meant to ship to the published site.  Anything matched here is
+# skipped at build time — no rendered HTML, no entry in the search
+# index, no URL.
+exclude_docs: |
+  plan.md
+  test-coverage-audit.md
+
 theme:
   name: material
   features:
