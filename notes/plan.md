@@ -765,15 +765,27 @@ until after the Critical/High security-issue regression tests
   ``LinBPQ.c::main`` on both fork and vanilla).  Run against
   upstream with ``LINBPQ_VANILLA=1 LINBPQ_BIN=/path/to/upstream/linbpq pytest tests/playwright/``.
 
-- **CFG snippet boot check** (option 2 from the
-  doc-divergence CI gate sketch).  Extract every fenced
-  ``ini`` cfg block from `docs/**/*.md`, boot a real
-  `linbpq` with each, verify "Conversion (probably)
-  successful" + no "Unknown keyword" warnings.  Catches
-  docs that drift from the parser when keywords are renamed
-  or removed upstream.  Half a day.  Complements the static
-  citation gate (test_repo_audits.py) which already covers
-  the source-line side.
+- ~~**CFG snippet boot check**~~  Done in
+  ``tests/integration/test_doc_cfg_snippets.py``.  Discovers
+  every fenced ``ini`` block under ``docs/**/*.md`` (36
+  blocks across 17 files at landing time), classifies each
+  as full cfg / fragment / placeholder / systemd unit, wraps
+  fragments in a two-port harness (Telnet on port 1, BPQAXIP
+  loopback on port 2 so APRS / Digimap / per-port snippets
+  bind cleanly), spawns real linbpq with each, and asserts:
+
+  - ``Conversion (probably) successful`` present
+  - no ``not recognised - Ignored:`` lines (the parser's
+    ground-truth signal for an unknown keyword — emitted from
+    config.c:1236 / 2332 / 2960)
+  - no ``Bad config record`` (per-driver rejection)
+  - no ``Conversion failed`` / ``Missing NODECALL`` /
+    ``Please enter a LOCATOR``
+
+  Wired into ``.github/workflows/docs.yml`` as a parallel
+  ``cfg-snippets`` job that gates the Pages deploy alongside
+  the existing strict mkdocs build.  Doc-only PRs adding a
+  bad keyword now fail CI before merge.
 
 - **Smaller cleanups.**  Three concrete items:
   - An `AgwSession` helper class wrapping the
