@@ -12,7 +12,7 @@ from string import Template
 LINBPQ_BIN = os.environ.get("LINBPQ_BIN", "linbpq")
 
 # A bpq32.cfg that boots cleanly with the standard set of interfaces
-# enabled, no radio, all on loopback.  See docs/plan.md.
+# enabled, no radio, all on loopback.  See notes/plan.md.
 #
 # Telnet/HTTP/NETROM/FBB/API all share one DRIVER=Telnet PORT block
 # (TelnetV6.c hands them the same CONFIG section).  AGW is a separate

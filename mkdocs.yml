@@ -10,16 +10,14 @@ edit_uri: edit/master/docs/
 
 # Build into site/, not site/ inside docs/.  CI builds with --strict so
 # any dead nav link or missing page lands red.
+#
+# Internal-only docs (test plan, coverage audits, etc.) live in the
+# repo's top-level ``notes/`` directory rather than under ``docs/`` —
+# that way they're structurally outside ``docs_dir`` and can't leak to
+# the public site.  Public reference content goes here; planning /
+# scratch / contributor-only material goes in ``notes/``.
 docs_dir: docs
 site_dir: site
-
-# Internal docs that live alongside the public reference but aren't
-# meant to ship to the published site.  Anything matched here is
-# skipped at build time — no rendered HTML, no entry in the search
-# index, no URL.
-exclude_docs: |
-  plan.md
-  test-coverage-audit.md
 
 theme:
   name: material
@@ -99,6 +97,7 @@ nav:
       - Chat node: subsystems/chat.md
       - APRS gateway: subsystems/aprs.md
       - IP gateway: subsystems/ipgateway.md
+      - MQTT output: mqtt-output.md
   - Protocols and interfaces:
       - protocols/index.md
       - AX.25: protocols/ax25.md
@@ -117,6 +116,9 @@ nav:
   - Windows companion programs:
       - BPQTerminal: clients/bpqterminal.md
       - BPQAPRS map client: clients/bpqaprs.md
+  - Project:
+      - Contributing: project/contributing.md
+      - Upstream attribution: project/upstream.md
 
 extra:
   social:

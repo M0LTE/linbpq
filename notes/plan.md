@@ -703,8 +703,10 @@ makefile
   test                       default: runs tests in Docker
   test-native                runs against host-built linbpq
 docs/
-  plan.md                    this file
-  node-commands.md
+  node-commands.md           public reference (built into the site)
+notes/
+  plan.md                    this file (internal — not in mkdocs site)
+  test-coverage-audit.md     audit of docs/node-commands.md vs tests
 ```
 
 ## How to add a new test

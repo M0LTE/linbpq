@@ -23,7 +23,7 @@ Limitations / what this *doesn't* cover:
 - The actual Winlink CMS handshake protocol — no docs were given
   for it, so we can't fake the server side beyond the connect+close
   reachability probe.  Full handshake coverage would need a Winlink
-  CMS server simulator and is flagged in plan.md as still open.
+  CMS server simulator and is flagged in notes/plan.md as still open.
 - Cannot run in parallel with another test that wants port 8772 —
   the destination port is hardcoded.  Only one CMS test in the
   suite, kept in this file, so xdist won't double-up.
