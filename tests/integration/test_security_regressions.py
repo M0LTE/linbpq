@@ -898,7 +898,157 @@ def test_37_rhp_websocket_requires_auth(linbpq_basic):
     )
 
 
-# ── #38: PWD weak crypto ─────────────────────────────────────────
+# ── #30: BBS PG command shell injection ──────────────────────────
+
+
+_CFG_PG = Template(
+    """\
+SIMPLE=1
+NODECALL=N0CALL
+NODEALIAS=TEST
+LOCATOR=NONE
+APPLICATIONS=BBS
+BBSCALL=N0CALL-1
+BBSALIAS=BBS
+APPL1CALL=N0CALL-1
+APPL1ALIAS=BBS
+
+PORT
+ ID=Telnet
+ DRIVER=Telnet
+ CONFIG
+ TCPPORT=$telnet_port
+ HTTPPORT=$http_port
+ NETROMPORT=$netrom_port
+ FBBPORT=$fbb_port
+ APIPORT=$api_port
+ MAXSESSIONS=10
+ USER=test,test,N0CALL,,SYSOP
+ENDPORT
+"""
+)
+
+
+@pytest.fixture
+def linbpq_pg(tmp_path: Path):
+    """linbpq with the BBS subsystem and a populated PG/ dir.
+
+    The PG/ subdir holds:
+    - ``PGList.txt`` — a one-line CSV registering a TESTPG
+      pseudo-server.
+    - ``test_pg.sh`` — a trivially-executable shell script
+      so the access(F_OK | X_OK) gate at BBSUtilities.c:12104
+      passes.
+    """
+    pg_dir = tmp_path / "PG"
+    pg_dir.mkdir()
+
+    # Format: progname,filename,description
+    (pg_dir / "PGList.txt").write_text("TESTPG, test_pg.sh, Test PG server\n")
+
+    # The PG "server" is just a stub that prints "ok" — it
+    # never gets to run cleanly because run_pg invokes
+    # ``sh -c "<line> <data>"`` and our injected
+    # data corrupts the command line; the side effect we're
+    # testing for is the *injection* (touching a sentinel
+    # file), not whatever the PG server itself does.
+    server = pg_dir / "test_pg.sh"
+    server.write_text("#!/bin/sh\necho ok\n")
+    server.chmod(0o755)
+
+    instance = LinbpqInstance(
+        tmp_path,
+        config_template=_CFG_PG,
+        extra_args=("mail",),
+    )
+    instance.start(ready_timeout=20.0)
+    try:
+        yield instance
+    finally:
+        try:
+            if instance.proc:
+                instance.proc.terminate()
+                instance.proc.wait(timeout=5)
+        except Exception:
+            if instance.proc:
+                instance.proc.kill()
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "M0LTE/linbpq#30: run_pg builds ``sh -c \"<line> <data>\"`` "
+        "where <data> includes the user's InputBuffer with only "
+        "``;`` stripped — every other shell metacharacter passes "
+        "through (backticks, $(...), &&, ||, |, etc.)"
+    ),
+)
+def test_30_bbs_pg_no_shell_injection(linbpq_pg, tmp_path):
+    """Connect to BBS, select TESTPG, inject a ``$(touch <sentinel>)``
+    expression in the same line as ``PG TESTPG``.  A secure
+    implementation either rejects the input or escapes it; today
+    the side-effect file appears.
+    """
+    # Short /tmp path — pytest's tmp_path is too long for the
+    # 80-byte InputBuffer.  PID keeps parallel runs independent.
+    sentinel = Path(f"/tmp/pwn_pg_{os.getpid()}")
+    sentinel.unlink(missing_ok=True)
+
+    # The PG dispatcher does ``sprintf(InputBuffer, "%s", Context)``
+    # where Context points 10 bytes into InputBuffer (overlapping
+    # copy), then computes ``InputLen = strlen(Context)`` AFTER the
+    # copy — so it reads 10 bytes of post-copy garbage and reports
+    # a length that is 10 short.  ``InputBuffer[InputLen] = 0``
+    # then truncates the buffer to N-10 chars.  Append 10 padding
+    # chars so the truncation lops off only the padding and the
+    # ``$(...)`` expression survives intact.
+    #
+    # ``${IFS}`` instead of a literal space avoids the BBS
+    # tokenizer (which splits on whitespace) eating the rest of
+    # the payload.
+    payload = (
+        f"x$(touch${{IFS}}{sentinel})x" + "Z" * 10
+    ).encode("ascii")
+    assert len(payload) < 70, f"payload too long: {len(payload)}"
+
+    with TelnetClient(
+        "127.0.0.1", linbpq_pg.telnet_port, timeout=15
+    ) as client:
+        client.login("test", "test")
+        # Switch to BBS application.
+        client.write_line("BBS")
+        time.sleep(0.5)
+        r1 = client.read_idle(idle_timeout=0.8, max_total=3.0)
+        # BBS first prompts for a name on first connect.
+        client.write_line("Tester")
+        time.sleep(0.5)
+        r2 = client.read_idle(idle_timeout=0.8, max_total=3.0)
+        # Select PG server AND deliver the payload in one line
+        # so the dispatcher copies Context into InputBuffer and
+        # run_pg shells out with our injection embedded.  After
+        # the script exits 0 InputMode resets to 0, so a second
+        # line of input would just be a BBS command.
+        client.sock.sendall(b"PG TESTPG " + payload + b"\r")
+        # Give run_pg time to fork/exec the shell.
+        time.sleep(3.0)
+        r3 = client.read_idle(idle_timeout=0.8, max_total=3.0)
+        try:
+            client.write_line("BYE")
+        except OSError:
+            pass
+
+    # Debug output (printed on failure).
+    debug = (
+        f"after BBS: {r1!r}\n"
+        f"after name: {r2!r}\n"
+        f"after PG+payload: {r3!r}"
+    )
+
+    assert not sentinel.exists(), (
+        f"PG shell injection landed: {sentinel} was created via "
+        f"$() expansion in the user's PG input.  Payload: {payload!r}\n"
+        f"--- transcript ---\n{debug}"
+    )
 
 
 _CFG_PWD = Template(
