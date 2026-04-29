@@ -49,19 +49,20 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
-  # Integration suite — runs inside the Docker image so the test
-  # environment matches what `make test` does locally.  The image
-  # builds linbpq from source as part of `docker build`, which
-  # also doubles as a build smoke test.
-  integration:
+  # Integration suite — split into two parallel jobs by the
+  # ``long_runtime`` marker.  The "fast" job runs everything except
+  # long_runtime in ~10-12 min; the "long" job runs only
+  # long_runtime tests (beacons, soak/leak — 2-3 min each, 6 of
+  # them, ~10-15 min wallclock).  Splitting halves wallclock vs
+  # the merged single-job arrangement and keeps each job under a
+  # comfortable timeout.
+  #
+  # Both jobs share the same Docker image (built once, then each
+  # job runs its slice).
+  integration-fast:
+    name: integration (fast)
     runs-on: ubuntu-latest
-    # The long_runtime tests (beacons, soak/leak) hold a worker
-    # for 2-3 minutes each, and with two-instance + modem-driver
-    # coverage the whole suite is now ~12-15 min on a healthy
-    # runner.  20-min was hitting the cancel threshold on slow
-    # runners; 30 gives headroom while still flagging genuine
-    # hangs.
-    timeout-minutes: 30
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
@@ -79,31 +80,72 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Run integration suite
-        # Mount a host directory so junit output survives the container
-        # for the upload step below.  The image's WORKDIR is
-        # /src/tests/integration, so this picks up the integration
-        # suite by default.
+      - name: Run integration suite (not long_runtime)
         run: |
           mkdir -p reports
           docker run --rm \
             -v "$PWD/reports:/reports" \
             linbpq-test:ci \
-            python3 -m pytest -n auto --junitxml=/reports/junit-integration.xml
+            python3 -m pytest -n auto -m "not long_runtime" \
+              --junitxml=/reports/junit-integration-fast.xml
 
-      - name: Upload integration junit report
+      - name: Upload junit report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: junit-integration
-          path: reports/junit-integration.xml
+          name: junit-integration-fast
+          path: reports/junit-integration-fast.xml
           if-no-files-found: warn
 
       - name: Publish test summary
         if: always()
         uses: test-summary/action@v2
         with:
-          paths: reports/junit-integration.xml
+          paths: reports/junit-integration-fast.xml
+
+  integration-long:
+    name: integration (long_runtime)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build test image (with layer cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.test
+          tags: linbpq-test:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run long_runtime integration tests
+        run: |
+          mkdir -p reports
+          docker run --rm \
+            -v "$PWD/reports:/reports" \
+            linbpq-test:ci \
+            python3 -m pytest -n auto -m long_runtime \
+              --junitxml=/reports/junit-integration-long.xml
+
+      - name: Upload junit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-integration-long
+          path: reports/junit-integration-long.xml
+          if-no-files-found: warn
+
+      - name: Publish test summary
+        if: always()
+        uses: test-summary/action@v2
+        with:
+          paths: reports/junit-integration-long.xml
 
   # Playwright suite — runs natively rather than in Docker so we
   # don't have to ship Chromium in the integration image.  The
