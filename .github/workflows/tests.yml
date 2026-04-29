@@ -55,7 +55,13 @@ jobs:
   # also doubles as a build smoke test.
   integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The long_runtime tests (beacons, soak/leak) hold a worker
+    # for 2-3 minutes each, and with two-instance + modem-driver
+    # coverage the whole suite is now ~12-15 min on a healthy
+    # runner.  20-min was hitting the cancel threshold on slow
+    # runners; 30 gives headroom while still flagging genuine
+    # hangs.
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
