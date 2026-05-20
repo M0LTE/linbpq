@@ -974,20 +974,15 @@ def linbpq_pg(tmp_path: Path):
                 instance.proc.kill()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "M0LTE/linbpq#30: run_pg builds ``sh -c \"<line> <data>\"`` "
-        "where <data> includes the user's InputBuffer with only "
-        "``;`` stripped — every other shell metacharacter passes "
-        "through (backticks, $(...), &&, ||, |, etc.)"
-    ),
-)
 def test_30_bbs_pg_no_shell_injection(linbpq_pg, tmp_path):
     """Connect to BBS, select TESTPG, inject a ``$(touch <sentinel>)``
     expression in the same line as ``PG TESTPG``.  A secure
-    implementation either rejects the input or escapes it; today
-    the side-effect file appears.
+    implementation either rejects the input or escapes it.
+
+    Fixed upstream in 6.0.25.28 (d84bcda): ``run_pg`` now validates
+    that ``conn->InputBuffer`` contains only alphanumeric characters
+    and spaces before passing it to ``sh -c``.  ``$()`` payloads no
+    longer reach the shell.
     """
     # Short /tmp path — pytest's tmp_path is too long for the
     # 80-byte InputBuffer.  PID keeps parallel runs independent.

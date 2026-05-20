@@ -256,10 +256,18 @@ you'll miss the slot.
 | `MaxFBBBlock` | Maximum block size in B2 binary mode. |
 | `SendCTRLZ` | Use Ctrl/Z (rather than `/EX`) to terminate text-mode messages.  Some partners need this. |
 
+Since 6.0.25.28 (`BBSUtilities.c::SetupForwardingStruct`), setting
+either of `AllowBlocked` or `AllowCompressed` forces the other one
+on as well — the two toggles can no longer be configured
+independently.  And an inbound forwarding session that advertises
+the `F` flag without compression (the previous "blocked
+uncompressed" combination) is now rejected with a hard disconnect
+rather than being silently downgraded to MBL.
+
 When BPQMail dials out, the SID it sends is computed from the
 combination of `AllowCompressed`, `UseB1Protocol`, `UseB2Protocol`
-and `AllowBlocked` — see `BBSUtilities.c:9092` for the exact rule
-(B2 implies-B1 suppression matters for some old partners).
+and `AllowBlocked` — see `BBSUtilities.c::Parse_SID` for the exact
+rule (B2 implies-B1 suppression matters for some old partners).
 
 ## Forwarding to / from Winlink (CMS)
 
