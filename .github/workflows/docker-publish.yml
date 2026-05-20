@@ -12,6 +12,10 @@ name: docker-publish
 #                          users who want the absolute fork tip pull
 #                          ``master-<sha>``.
 #   - On manual dispatch:  publish the branch name.
+#   - On workflow_dispatch with ``version`` + ``source_ref``:
+#     RETROACTIVE build.  Checks out ``source_ref`` for source,
+#     publishes only the explicit ``<version>`` tag.  Does NOT
+#     move ``latest``.  Use this to backfill older releases.
 #
 # Secrets required:
 #   - ``DOCKERHUB_USERNAME`` — Docker Hub user / org owning the image.
@@ -34,6 +38,15 @@ on:
       - 'docker/bpq32.cfg.example'
       - '.github/workflows/docker-publish.yml'
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Retroactive build: image tag to publish (e.g. 6.0.25.23). Empty = normal ref-based behaviour."
+        required: false
+        default: ""
+      source_ref:
+        description: "Retroactive build: git ref to source from (commit SHA, branch, or tag). Empty = github.ref."
+        required: false
+        default: ""
 
 concurrency:
   group: docker-publish-${{ github.ref }}
@@ -50,6 +63,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_ref || github.ref }}
 
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v4
@@ -66,16 +81,19 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/linbpq
           tags: |
+            # Retroactive build via workflow_dispatch.  Only the
+            # explicit version tag is published — ``latest`` is
+            # not moved.
+            type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
             # ``v6.0.25.28`` tag push → ``6.0.25.28`` + ``latest``.
-            # ``{{raw}}`` strips the leading ``v`` so the image tag
-            # is exactly the BPQ version string.
-            type=match,pattern=v(.*),group=1,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # Disabled when a retroactive ``version`` input is set.
+            type=match,pattern=v(.*),group=1,enable=${{ startsWith(github.ref, 'refs/tags/v') && inputs.version == '' }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && inputs.version == '' }}
             # master push → ``master-<sha>`` only.  Does not move
             # ``latest`` — only release tags do.
-            type=sha,prefix=master-,enable=${{ github.ref == 'refs/heads/master' }}
+            type=sha,prefix=master-,enable=${{ github.ref == 'refs/heads/master' && inputs.version == '' }}
             # workflow_dispatch on any other branch → branch name.
-            type=ref,event=branch,enable=${{ github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master' }}
+            type=ref,event=branch,enable=${{ github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master' && inputs.version == '' }}
 
       - name: Build and push
         uses: docker/build-push-action@v7

@@ -10,6 +10,14 @@ name: docs
 #     site-root default.
 #   - pull request                 → strict ``mkdocs build`` only,
 #     no deploy.
+#   - workflow_dispatch with no inputs → re-runs the deploy logic
+#     for the ref it was dispatched on (recovery from a failed
+#     auto-run).
+#   - workflow_dispatch with ``version`` + ``source_ref`` →
+#     RETROACTIVE deploy.  Checks out ``source_ref`` for the docs
+#     content, deploys as ``<version>``, does NOT move ``latest``
+#     or default.  Use this to backfill older releases without
+#     clobbering the current site.
 #
 # Mike pushes to the ``gh-pages`` branch; Pages must be configured
 # to serve from that branch (Settings → Pages → Branch: gh-pages,
@@ -29,6 +37,15 @@ on:
       - 'mkdocs.yml'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Retroactive deploy: version to publish (e.g. 6.0.25.23). Empty = normal ref-based behaviour."
+        required: false
+        default: ""
+      source_ref:
+        description: "Retroactive deploy: git ref to source docs from (commit SHA, branch, or tag). Empty = github.ref."
+        required: false
+        default: ""
 
 permissions:
   contents: write   # mike needs to push to gh-pages
@@ -50,6 +67,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_ref || github.ref }}
 
       - name: Install venv prerequisite
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends python3-venv
@@ -81,6 +100,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_ref || github.ref }}
 
       - name: Install build dependencies
         run: |
@@ -128,7 +149,7 @@ jobs:
     # don't push.  Don't deploy if the cfg-snippets check failed.
     if: >-
       (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) ||
-      (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
+      (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || inputs.version != ''))
     needs: [build, cfg-snippets]
     runs-on: self-hosted
     steps:
@@ -136,6 +157,7 @@ jobs:
         with:
           # mike needs the full history to compute version diffs.
           fetch-depth: 0
+          ref: ${{ inputs.source_ref || github.ref }}
 
       - name: Install venv prerequisite
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends python3-venv
@@ -153,8 +175,15 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Deploy versioned docs
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+          if [[ -n "${INPUT_VERSION:-}" ]]; then
+            # Retroactive deploy.  Publish under the explicit
+            # version name; do NOT update aliases (latest stays
+            # where it is) or set-default.
+            mike deploy --push "${INPUT_VERSION}"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             # Strip the leading ``v`` to get the BPQ version string.
             VERSION="${GITHUB_REF#refs/tags/v}"
             mike deploy --push --update-aliases "${VERSION}" latest
