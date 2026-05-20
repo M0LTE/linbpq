@@ -54,7 +54,7 @@ jobs:
   # job runs its slice).
   integration-fast:
     name: integration (fast)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 25
 
     steps:
@@ -100,7 +100,7 @@ jobs:
 
   integration-long:
     name: integration (long_runtime)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 25
 
     steps:
@@ -149,7 +149,7 @@ jobs:
   # pytest-playwright plugin's ``playwright install`` step is the
   # bulk of the setup; cache the browser binaries.
   playwright:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 20
 
     steps:
