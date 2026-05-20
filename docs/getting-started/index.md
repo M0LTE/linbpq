@@ -236,7 +236,7 @@ network.
 You should see:
 
 ```
-G8BPQ AX25 Packet Switch System Version 6.0.25.23 February 2026
+G8BPQ AX25 Packet Switch System Version 6.0.25.28 April 2026
 Copyright © 2001-2026 John Wiseman G8BPQ
 Current Directory is /…/linbpq
 …

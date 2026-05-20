@@ -24,8 +24,8 @@ on the LinBPQ side, see [Inter-BBS forwarding][bbs-fwd].
 
 ```
 client  →  server : connect
-server  →  client : welcome banner, then SID  e.g.  [BPQMail-6.0.25.23-B1FHM$]
-client  →  server : SID                                 [BPQMail-6.0.25.23-B1FHM$]
+server  →  client : welcome banner, then SID  e.g.  [BPQMail-6.0.25.28-B1FHM$]
+client  →  server : SID                                 [BPQMail-6.0.25.28-B1FHM$]
                     ───── either side may now send ─────
 
 client  →  server : FB P MID FROM TO @BBS SIZE  (proposal)

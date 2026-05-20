@@ -149,3 +149,44 @@ The cfg-snippets test (`tests/integration/test_doc_cfg_snippets.py`)
 provides ongoing protection for the keyword-acceptance side of
 the doc surface — any future drift on a fenced cfg block fires
 the docs CI gate before merge.
+
+## 6.0.25.28 sweep (May 2026 release)
+
+Sweep done against the 225fbb1..d84bcda upstream delta after the
+back-out + merge.  Relevant docs are the BBS-mail / forwarding
+pages and anything that cites version-string examples.
+
+### `protocols/fbb-forwarding.md`
+
+SID example bumped 6.0.25.23 → 6.0.25.28.  No behavioural drift —
+the spec text on F/B/M/`$` flags is unchanged.
+
+The blocked/compressed mutual-dependency tightening in
+`BBSUtilities.c::SetupForwardingStruct` (the new "Don't allow
+blocked uncompressed" guard) doesn't surface on the page yet
+because the doc covers wire protocol, not the cfg parser.
+
+### `subsystems/bbs-forwarding.md`
+
+Upstream now rejects uncompressed-blocked partner sessions with
+a hard disconnect rather than the previous MBL fallback, and
+forces `AllowBlocked` ↔ `AllowCompressed` to track each other in
+`SetupForwardingStruct`.  Added a paragraph below the "FBB
+protocol toggles" table calling out the new mutual-dependency
+and the inbound disconnect.
+
+Direction is the opposite of open issue #8 (which argues for
+decoupling F from `AllowBlocked` per FBB spec §2.3).  6.0.25.28
+tightened, not loosened — #8 needs to be re-discussed with John,
+not just closed.
+
+### `subsystems/bbsmail.md`
+
+No change — page covers user-facing BBS commands; the
+forwarding-protocol changes don't surface there.
+
+### `getting-started/index.md`
+
+Boot-banner example bumped 6.0.25.23 → 6.0.25.28, February → April
+2026.  Once mike versioning lands (#48) the boot banner becomes a
+snippet so future bumps are one-touch.
