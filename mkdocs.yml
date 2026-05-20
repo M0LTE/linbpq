@@ -116,6 +116,7 @@ nav:
   - Windows companion programs:
       - BPQTerminal: clients/bpqterminal.md
       - BPQAPRS map client: clients/bpqaprs.md
+  - Release notes: changelog.md
   - Project:
       - Contributing: project/contributing.md
       - Upstream attribution: project/upstream.md
