@@ -2,10 +2,16 @@ name: docker-publish
 
 # Builds the runtime linbpq Docker image and pushes it to Docker Hub.
 #
-# Tags published:
-#   - ``latest`` and ``master-<short-sha>`` on every master push.
-#   - ``v<x.y.z>`` plus ``<x.y.z>`` and ``latest`` on a ``v*`` tag push.
-#   - On manual dispatch, the branch name (or ``latest`` for master).
+# Tagging scheme (decided in #49):
+#   - The image tag tracks the upstream BPQ version.  A release is
+#     a ``v<x.y.z.w>`` git tag whose value equals the
+#     ``KVerstring`` in ``Versions.h`` — e.g. ``v6.0.25.28``.
+#   - On ``v*`` tag push:  publish ``<x.y.z.w>`` AND move ``latest``.
+#   - On master push:      publish ``master-<short-sha>`` only.
+#                          ``latest`` is *not* moved by master pushes;
+#                          users who want the absolute fork tip pull
+#                          ``master-<sha>``.
+#   - On manual dispatch:  publish the branch name.
 #
 # Secrets required:
 #   - ``DOCKERHUB_USERNAME`` — Docker Hub user / org owning the image.
@@ -60,12 +66,16 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/linbpq
           tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix=master-,enable={{is_default_branch}}
+            # ``v6.0.25.28`` tag push → ``6.0.25.28`` + ``latest``.
+            # ``{{raw}}`` strips the leading ``v`` so the image tag
+            # is exactly the BPQ version string.
+            type=match,pattern=v(.*),group=1,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # master push → ``master-<sha>`` only.  Does not move
+            # ``latest`` — only release tags do.
+            type=sha,prefix=master-,enable=${{ github.ref == 'refs/heads/master' }}
+            # workflow_dispatch on any other branch → branch name.
+            type=ref,event=branch,enable=${{ github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master' }}
 
       - name: Build and push
         uses: docker/build-push-action@v7

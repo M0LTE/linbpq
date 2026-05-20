@@ -20,6 +20,13 @@
 [thisrepo]: https://github.com/M0LTE/linbpq
 [upstreamrepo]: https://github.com/g8bpq/linbpq
 
+!!! info "Pinning to a specific BPQ release"
+    This site is published per upstream release.  The version
+    switcher in the page header lets you select a snapshot
+    matching a specific `linbpq` build — e.g. `6.0.25.28`.
+    Permalinks like `/6.0.25.28/getting-started/` are stable and
+    safe to bookmark; `latest` always tracks the newest release.
+
 ## LinBPQ vs BPQ32 — same software, different OS
 
 John Wiseman G8BPQ's amateur-radio packet switch is a single
