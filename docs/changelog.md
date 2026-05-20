@@ -21,8 +21,7 @@ Upstream sync to [g8bpq/linbpq `d84bcda`][6.0.25.28].
 ### Behaviour changes from upstream
 
 - **AGW**: digipeater paths longer than 7 hops are now rejected
-  with a clean disconnect instead of an out-of-bounds path scan
-  (`AGWAPI.c::ProcessAGWCommand`).
+  with a clean disconnect (`AGWAPI.c::ProcessAGWCommand`).
 - **BBS forwarding**: `AllowBlocked` and `AllowCompressed`
   partner-config keywords now move together — setting either
   forces the other on.  Inbound forwarding sessions advertising
@@ -33,12 +32,9 @@ Upstream sync to [g8bpq/linbpq `d84bcda`][6.0.25.28].
   [inter-BBS forwarding page](subsystems/bbs-forwarding.md#fbb-protocol-toggles)
   for the new behaviour.
 - **BBS PG commands**: the `PG <server> [args]` command string is
-  now validated to be alphanumeric + spaces only.  Closes the
-  shell-injection vector tracked in
-  [#30](https://github.com/M0LTE/linbpq/issues/30)
-  (`BBSUtilities.c::run_pg`).
-- **NET/ROM**: null-pointer guards added around route-structure
-  dereferences (`BPQINP3.c`).
+  now validated to be alphanumeric + spaces only before being
+  passed to the shell (`BBSUtilities.c::run_pg`).
+- **NET/ROM**: hardened route-structure handling in `BPQINP3.c`.
 - Buffer-size bumps and housekeeping across `Cmd.c`,
   `CommonCode.c`, `HTTPcode.c`, `LinBPQ.c` — no externally
   visible behaviour change.
