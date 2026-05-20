@@ -64,7 +64,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.source_ref || github.ref }}
+          # Defensive: only read inputs.source_ref when actually on
+          # workflow_dispatch.  On push events ``inputs.X`` is
+          # undefined and GHA coerces ``null != ''`` to true (via
+          # 0 → NaN), so naked ``inputs.X || fallback`` is not safe.
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.ref }}
 
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v4
@@ -81,18 +85,20 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/linbpq
           tags: |
-            # Retroactive build via workflow_dispatch.  Only the
-            # explicit version tag is published — ``latest`` is
-            # not moved.
-            type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            # Retroactive build: only fires on workflow_dispatch
+            # with a non-empty ``version`` input.  Publishes just
+            # that explicit tag — ``latest`` is not moved.
+            type=raw,value=${{ inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version != '' }}
             # ``v6.0.25.28`` tag push → ``6.0.25.28`` + ``latest``.
-            # Disabled when a retroactive ``version`` input is set.
-            type=match,pattern=v(.*),group=1,enable=${{ startsWith(github.ref, 'refs/tags/v') && inputs.version == '' }}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && inputs.version == '' }}
-            # master push → ``master-<sha>`` only.  Does not move
-            # ``latest`` — only release tags do.
-            type=sha,prefix=master-,enable=${{ github.ref == 'refs/heads/master' && inputs.version == '' }}
-            # workflow_dispatch on any other branch → branch name.
+            # Strictly push-event only.
+            type=match,pattern=v(.*),group=1,enable=${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=latest,enable=${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+            # master push → ``master-<sha>`` only.  Also fires for a
+            # workflow_dispatch from master with no retroactive
+            # version (manual rebuild).
+            type=sha,prefix=master-,enable=${{ github.ref == 'refs/heads/master' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.version == '')) }}
+            # workflow_dispatch on a non-master branch with no
+            # retroactive version → branch name.
             type=ref,event=branch,enable=${{ github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master' && inputs.version == '' }}
 
       - name: Build and push
