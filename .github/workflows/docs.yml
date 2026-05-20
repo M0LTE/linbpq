@@ -68,7 +68,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.source_ref || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.ref }}
 
       - name: Install venv prerequisite
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends python3-venv
@@ -101,7 +101,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.source_ref || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.ref }}
 
       - name: Install build dependencies
         run: |
@@ -157,7 +157,7 @@ jobs:
         with:
           # mike needs the full history to compute version diffs.
           fetch-depth: 0
-          ref: ${{ inputs.source_ref || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.ref }}
 
       - name: Install venv prerequisite
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends python3-venv
