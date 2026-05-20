@@ -121,6 +121,14 @@ nav:
       - Upstream attribution: project/upstream.md
 
 extra:
+  # ``mike`` provides per-release versioned docs.  The version
+  # switcher renders in the Material header on every page when
+  # this block is present.  Backfilled onto the 6.0.25.23
+  # source tree so the retroactive deploy renders the switcher
+  # — the rest of the docs stay at 6.0.25.23-era content.
+  version:
+    provider: mike
+    default: latest
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/M0LTE/linbpq
