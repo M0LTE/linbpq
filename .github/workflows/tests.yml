@@ -165,7 +165,8 @@ jobs:
             libminiupnpc-dev \
             libconfig-dev \
             libpcap-dev \
-            zlib1g-dev
+            zlib1g-dev \
+            python3-venv
 
       - name: Build linbpq
         run: |
@@ -179,12 +180,14 @@ jobs:
           key: playwright-chromium-${{ runner.os }}
 
       - name: Install pytest + playwright
+        # Per-job venv to dodge PEP 668 on Ubuntu 23.04+ system Python.
         run: |
-          python3 -m pip install --user --upgrade pip
-          python3 -m pip install --user pytest pytest-xdist pytest-playwright
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --upgrade pip
+          "$RUNNER_TEMP/venv/bin/pip" install pytest pytest-xdist pytest-playwright
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
           # Only Chromium — we don't need Firefox / WebKit.
-          "$HOME/.local/bin/playwright" install --with-deps chromium
+          "$RUNNER_TEMP/venv/bin/playwright" install --with-deps chromium
 
       - name: Run playwright suite
         env:
@@ -192,7 +195,7 @@ jobs:
         run: |
           mkdir -p reports
           cd tests/playwright
-          python3 -m pytest -n auto \
+          python -m pytest -n auto \
             --junitxml="$GITHUB_WORKSPACE/reports/junit-playwright.xml"
 
       - name: Upload playwright junit report

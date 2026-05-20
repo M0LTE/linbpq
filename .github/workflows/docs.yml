@@ -51,11 +51,19 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Install venv prerequisite
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends python3-venv
+
       - name: Install MkDocs Material + mike
+        # Use a per-job venv to dodge PEP 668 ("externally managed
+        # environment") on the host system Python.  Ubuntu 23.04+
+        # refuses ``pip install`` against system Python; a venv
+        # sidesteps that without --break-system-packages.
         run: |
-          python3 -m pip install --user --upgrade pip
-          python3 -m pip install --user mkdocs mkdocs-material mike
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --upgrade pip
+          "$RUNNER_TEMP/venv/bin/pip" install mkdocs mkdocs-material mike
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
 
       # --strict turns warnings (dead links, missing nav targets,
       # broken anchors) into hard failures so the docs PR red-flags
@@ -84,7 +92,8 @@ jobs:
             libminiupnpc-dev \
             libconfig-dev \
             libpcap-dev \
-            zlib1g-dev
+            zlib1g-dev \
+            python3-venv
 
       - name: Build linbpq
         run: |
@@ -93,16 +102,17 @@ jobs:
 
       - name: Install pytest
         run: |
-          python3 -m pip install --user --upgrade pip
-          python3 -m pip install --user pytest pytest-xdist
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --upgrade pip
+          "$RUNNER_TEMP/venv/bin/pip" install pytest pytest-xdist
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
 
       - name: Run doc cfg-snippet boot check
         env:
           LINBPQ_BIN: ${{ github.workspace }}/linbpq
         run: |
           cd tests/integration
-          python3 -m pytest test_doc_cfg_snippets.py -n auto
+          python -m pytest test_doc_cfg_snippets.py -n auto
 
   deploy:
     # Publish via ``mike`` on:
@@ -127,11 +137,15 @@ jobs:
           # mike needs the full history to compute version diffs.
           fetch-depth: 0
 
+      - name: Install venv prerequisite
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends python3-venv
+
       - name: Install MkDocs Material + mike
         run: |
-          python3 -m pip install --user --upgrade pip
-          python3 -m pip install --user mkdocs mkdocs-material mike
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --upgrade pip
+          "$RUNNER_TEMP/venv/bin/pip" install mkdocs mkdocs-material mike
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
 
       - name: Configure git for mike
         run: |
