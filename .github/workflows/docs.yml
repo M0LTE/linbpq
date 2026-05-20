@@ -1,8 +1,24 @@
 name: docs
 
+# Versioned docs via ``mike``.
+#
+#   - ``v<x.y.z.w>`` tag push → ``mike deploy <x.y.z.w> latest
+#     --push --update-aliases``.  The new release becomes the
+#     default version served at the site root.
+#   - master push                  → ``mike deploy master --push``.
+#     Bleeding-edge view, available at ``/master/`` but not the
+#     site-root default.
+#   - pull request                 → strict ``mkdocs build`` only,
+#     no deploy.
+#
+# Mike pushes to the ``gh-pages`` branch; Pages must be configured
+# to serve from that branch (Settings → Pages → Branch: gh-pages,
+# Folder: /).
+
 on:
   push:
     branches: [master]
+    tags: ['v*']
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
@@ -15,9 +31,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write   # mike needs to push to gh-pages
 
 # Rapid-fire commits (e.g. the per-page docs rewrite stream)
 # would otherwise queue up N Pages deploys racing each other.
@@ -41,21 +55,17 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install MkDocs Material
+      - name: Install MkDocs Material + mike
         run: |
           python -m pip install --upgrade pip
-          pip install mkdocs mkdocs-material
+          pip install mkdocs mkdocs-material mike
 
       # --strict turns warnings (dead links, missing nav targets,
       # broken anchors) into hard failures so the docs PR red-flags
-      # rot before it lands.
+      # rot before it lands.  Build verification only; mike does
+      # the deploy in the dedicated deploy step below.
       - name: Build docs (strict)
         run: mkdocs build --strict
-
-      - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: site
 
   # Boot a real linbpq with every fenced ``ini`` block under
   # docs/**/*.md and assert the parser accepts it cleanly.  Catches
@@ -101,17 +111,43 @@ jobs:
           python -m pytest test_doc_cfg_snippets.py -n auto
 
   deploy:
-    # Publish to GitHub Pages off master only.  PR builds verify
-    # the site builds + cfg snippets parse; they don't push.  Don't
-    # deploy if the cfg-snippets check failed — a passing parse is a
-    # gate, not just a signal.
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    # Publish via ``mike`` on:
+    #   - master push       → ``master/`` snapshot.
+    #   - ``v*`` tag push   → ``<version>/`` snapshot + ``latest``
+    #                         alias + site-root default.
+    # PR builds verify the site builds + cfg snippets parse; they
+    # don't push.  Don't deploy if the cfg-snippets check failed.
+    if: (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
     needs: [build, cfg-snippets]
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+      - uses: actions/checkout@v6
+        with:
+          # mike needs the full history to compute version diffs.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Install MkDocs Material + mike
+        run: |
+          python -m pip install --upgrade pip
+          pip install mkdocs mkdocs-material mike
+
+      - name: Configure git for mike
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy versioned docs
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            # Strip the leading ``v`` to get the BPQ version string.
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            mike deploy --push --update-aliases "${VERSION}" latest
+            mike set-default --push latest
+          else
+            # master push → publish to ``master/`` slot, no alias move.
+            mike deploy --push master
+          fi

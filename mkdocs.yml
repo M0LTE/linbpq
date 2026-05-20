@@ -121,6 +121,16 @@ nav:
       - Upstream attribution: project/upstream.md
 
 extra:
+  # ``mike`` provides per-release versioned docs.  Each git tag
+  # ``v<x.y.z.w>`` deploys to ``/<x.y.z.w>/``; the ``latest`` alias
+  # always points at the newest tagged release.  Master pushes
+  # publish ``master/`` for the bleeding-edge view.
+  #
+  # The version switcher renders in the Material header on every
+  # page.
+  version:
+    provider: mike
+    default: latest
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/M0LTE/linbpq
