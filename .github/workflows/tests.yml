@@ -172,10 +172,6 @@ jobs:
           make -j"$(nproc)"
           test -x linbpq
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
-
       - name: Cache Playwright browsers
         uses: actions/cache@v5
         with:
@@ -184,10 +180,11 @@ jobs:
 
       - name: Install pytest + playwright
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-xdist pytest-playwright
+          python3 -m pip install --user --upgrade pip
+          python3 -m pip install --user pytest pytest-xdist pytest-playwright
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           # Only Chromium — we don't need Firefox / WebKit.
-          playwright install --with-deps chromium
+          "$HOME/.local/bin/playwright" install --with-deps chromium
 
       - name: Run playwright suite
         env:
@@ -195,7 +192,7 @@ jobs:
         run: |
           mkdir -p reports
           cd tests/playwright
-          python -m pytest -n auto \
+          python3 -m pytest -n auto \
             --junitxml="$GITHUB_WORKSPACE/reports/junit-playwright.xml"
 
       - name: Upload playwright junit report
