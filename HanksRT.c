@@ -2130,7 +2130,7 @@ void text_tellu_Joined(USER * user)
 static void topic_xmit(USER *user, ChatCIRCUIT *circuit)
 {
 	nprintf(circuit, "%c%c%s %s %s\r",
-		FORMAT, id_topic, OurNode, user->call, user->topic->name);
+		FORMAT, id_topic, user->node->call, user->call, user->topic->name);
 }
 
 // Tell another node about one known node on a link add or drop

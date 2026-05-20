@@ -56,32 +56,45 @@ is `main:`.
 | `MapPosition` | Position string for the chat-network map (see below). |
 | `MapPopup` | HTML-formatted hover/popup text on the map. |
 | `PopupMode` | `0` = hover, `1` = click.  Use `1` if the popup contains a clickable link. |
-| `OtherChatNodes` | Comma- or CRLF-separated list of peer chat nodes to link to.  Each entry is a node alias / callsign or a multi-line connect script. |
+| `OtherChatNodes` | Comma- or CRLF-separated list of peer chat nodes.  Each entry is `ALIAS:CALL`, optionally followed by `|`-separated connect-script lines.  See [Linking nodes](#linking-nodes). |
 | `Bells` / `FlashOnBell` / `WarnWrap` / `WrapInput` / `StripLF` | Per-stream display flags inherited from the legacy desktop client. |
 | `CloseWindowOnBye` / `FlashOnConnect` | Same.  Largely irrelevant on Linux. |
 
 ## Linking nodes
 
-Set `OtherChatNodes` on each side to the alias / call of the
-peer.  Two matching configs and a route between them is enough:
+Each entry in `OtherChatNodes` is `ALIAS:CALL`, optionally followed
+by a `|`-separated connect script.  The alias before the colon is
+just a display label; the connect script defaults to `C CALL` so
+the peer's chat callsign needs to be reachable via NET/ROM (or via
+a direct port number — see below).  Comma- or CRLF-separated for
+multiple peers:
 
 ```
-OtherChatNodes = "N0BBB-2";
+OtherChatNodes = "BPQCHT:N0BBB-2, BPQCHT:N0CCC-2";
 ```
+
+For this default connect-form to work, each node must also declare
+chat with an `APPLICATION` line (not just `APPL1CALL`) — the
+explicit quality on the `APPLICATION` line is what puts the chat
+callsign into the NODES table and lets peers `C N0BBB-2` over the
+NET/ROM stack.
 
 Connections come up *lazily* — only when a user is actually using
 the chat — and shut down a few seconds after the last user
 disconnects, so a dormant chat network doesn't waste channel time.
 
-For peers that need a multi-step connect, supply a script with CR
-separators rather than commas:
+For peers that need a multi-step connect, append a connect script
+to the entry, with the lines separated by `|`:
 
 ```
-OtherChatNodes = "C 2 N0BBB\r\nCHAT";
+OtherChatNodes = "BPQCHT:N0BBB-2|C 2 N0BBB|CHAT";
 ```
 
-Each `\r\n`-separated line is fed to the link in turn before the
-chat-server SID exchange begins.
+The first line of the script is sent at the local node prompt; the
+default `C CALL` is replaced by whatever you supply.  Each line is
+fed to the link in turn until the remote chat server's
+`[BPQChatServer-…]` SID arrives, at which point the local end
+sends `*RTL` to promote the session to a peer link.
 
 ### Mutual definitions are required
 
