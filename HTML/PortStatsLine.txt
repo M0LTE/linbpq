@@ -1,2 +1,0 @@
-<!-- Version 1 -->
-<tr><td> %s </td><td> %d </td></tr>

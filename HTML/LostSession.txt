@@ -1,2 +1,0 @@
-<!-- Version 1 -->
-<html><body>Sorry, Session had been lost - refresh page to sign in again
