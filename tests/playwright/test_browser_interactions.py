@@ -181,16 +181,6 @@ def test_webmail_compose_posts_to_correct_url(
     submit POST lands on ``/WebMail/EMSave?<key>`` — the URL that
     the route handler in ``WebMail.c`` exact-matches.
 
-    Regression test for an extraction artefact: the original C
-    source had ``action=/WebMail/EMSave\\?%s`` where the C
-    compiler resolved ``\\?`` to ``?``.  When the template was
-    extracted to ``HTML/MsgInputPage.txt`` the ``\\`` was kept
-    verbatim, so browsers parsed the action as
-    ``/WebMail/EMSave\\?<key>`` and (via slash-normalisation)
-    POSTed to ``/WebMail/EMSave/?<key>`` — which the handler's
-    ``_stricmp(NodeURL, "/WebMail/EMSave")`` exact match
-    rejects.  Result: clicking Send silently lost the message.
-
     The test checks the final POST URL — not whether the
     message persists, because that depends on multipart file
     data we don't supply here.  The URL match is the part that
@@ -249,13 +239,6 @@ def test_node_admin_pages_nav_no_js_errors(
 ):
     """Visit each /Node/*.html page and confirm no JS errors fire
     on load.
-
-    Previously needed an allow-list for ``Invalid or unexpected
-    token`` because ``HTML/NodeTail.txt`` had stray ``\\`` line
-    continuations leftover from when it was a C string literal —
-    introduced during the templatedefs.c → HTML/ extraction work,
-    not present in the original code.  The HTML file has been
-    cleaned up; the gate is now strict.
     """
     pages = [
         "/Node/NodeIndex.html",

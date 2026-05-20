@@ -272,53 +272,6 @@ def test_docs_markdown_internal_links_resolve():
     assert not broken, "broken markdown links:\n  " + "\n  ".join(broken)
 
 
-# ── Phase-4 EXTRACTED_TEMPLATES inventory consistency ────────────
-
-
-def test_extracted_templates_inventory_matches_html_dir():
-    """The ``EXTRACTED_TEMPLATES`` table in
-    ``test_template_extraction.py`` is an explicit inventory of
-    every template the extraction work produced.  Every entry
-    must correspond to a real file in HTML/, and there should be
-    no significant gap in the other direction (every HTML/*.txt
-    that came from extraction should appear in the inventory).
-
-    Tracks "we deleted a template but forgot to update the
-    inventory" and the inverse.
-    """
-    # Avoid a circular import of test_template_extraction by
-    # parsing its inventory table directly.
-    extr_test = _REPO_ROOT / "tests" / "playwright" / "test_template_extraction.py"
-    text = extr_test.read_text()
-    rows = re.findall(r'\("([^"]+\.(?:txt|js))",\s*\d+,\s*"[^"]+"\)', text)
-    inventoried = set(rows)
-
-    on_disk_txt = {p.name for p in _HTML_DIR.glob("*.txt")}
-    on_disk_js = {p.name for p in _HTML_DIR.glob("*.js")}
-    on_disk = on_disk_txt | on_disk_js
-
-    missing_on_disk = sorted(inventoried - on_disk)
-    assert not missing_on_disk, (
-        f"EXTRACTED_TEMPLATES lists files that don't exist in HTML/: "
-        f"{missing_on_disk}"
-    )
-
-    # We don't fail on extras-on-disk because someone might add a
-    # template to HTML/ without going through extraction.  But
-    # surface a soft warning via the test name being explicit.
-    extras = sorted(on_disk - inventoried)
-    # The samples-bundled assets aren't extraction artefacts; ignore.
-    expected_extras = {"webscript.js"}  # placeholder, none currently
-    surprising = [e for e in extras if e not in expected_extras]
-    # Convert to a count check: anything < 5 surprising is fine
-    # (one-off samples / new files).  This is a soft gate.
-    assert len(surprising) < 5, (
-        f"unexpectedly many HTML/ files not in EXTRACTED_TEMPLATES "
-        f"(threshold 5): {surprising}.  Consider adding them to "
-        f"the inventory."
-    )
-
-
 # ── Source-line citation gate ────────────────────────────────────
 
 

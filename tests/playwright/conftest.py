@@ -55,24 +55,6 @@ from web_helpers import (  # noqa: E402
 LINBPQ_BIN = os.environ.get("LINBPQ_BIN", "linbpq.bin")
 
 
-def pytest_collection_modifyitems(config, items):
-    """Auto-skip ``fork_only`` tests when ``LINBPQ_VANILLA=1`` is
-    set in the environment.  Lets this suite serve as a vendor-
-    neutral oracle: contributors testing against an unmodified
-    upstream ``g8bpq/linbpq`` build set the env var and only the
-    tests that depend on this fork's HTML/ extraction are
-    skipped.
-    """
-    if not os.environ.get("LINBPQ_VANILLA"):
-        return
-    skip = pytest.mark.skip(
-        reason="LINBPQ_VANILLA=1 — fork-only test"
-    )
-    for item in items:
-        if "fork_only" in item.keywords:
-            item.add_marker(skip)
-
-
 _BASE_CFG = """\
 SIMPLE=1
 NODECALL=N0CALL
