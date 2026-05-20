@@ -1623,7 +1623,6 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 	char * encPtr = 0;
 	int allowDeflate = 0;
 	char * Compressed = 0;
-	char * HostPtr = 0;
 
 	char * Context, * Method, * NodeURL = 0, * Key;
 	char _REPLYBUFFER[250000];
@@ -1633,7 +1632,7 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 	char Header[256];
 	int HeaderLen;
 	char TimeString[64];
-	BOOL LOCAL = FALSE;
+	BOOL LOCAL = conn->LOCALAuth;
 	BOOL COOKIE = FALSE;
 	int Len;
 	char * WebSock = 0;
@@ -1677,41 +1676,8 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 
 		strcpy(URL, MsgPtr);
 
-		HostPtr = strstr(MsgPtr, "Host: ");
-
 		WebSock = strstr(MsgPtr, "Upgrade: websocket");
 		
-		if (HostPtr)
-		{
-			uint32_t Host;
-			char Hostname[32]= "";
-			struct LOCALNET * LocalNet = conn->TNC->TCPInfo->LocalNets;
-			
-			HostPtr += 6;
-			memcpy(Hostname, HostPtr, 31);
-			strlop(Hostname, ':');
-			Host = inet_addr(Hostname);
-
-			if (strcmp(Hostname, "127.0.0.1") == 0)
-				LOCAL = TRUE;
-			else
-			{
-				if (conn->sin.sin_family != AF_INET6)
-				{
-					while(LocalNet)
-					{
-						uint32_t MaskedHost = conn->sin.sin_addr.s_addr & LocalNet->Mask;
-						if (MaskedHost == LocalNet->Network)
-						{				
-							LOCAL = 1;
-							break;
-						}
-						LocalNet = LocalNet->Next;
-					}
-				}
-			}
-		}
-
 		encPtr = stristr(MsgPtr, "Accept-Encoding:");
 
 		if (encPtr && stristr(encPtr, "deflate"))
@@ -1900,14 +1866,20 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 			}
 		}
 
-
 		// APRS process internally
-
+		
 		if (_memicmp(Context, "/APRS/", 6) == 0 || _stricmp(Context, "/APRS") == 0)
 		{
-			APRSProcessHTTPMessage(sock, MsgPtr, LOCAL, COOKIE);
+			if (APRSActive)
+			{
+				APRSProcessHTTPMessage(sock, MsgPtr, LOCAL, COOKIE);
+				return 0;
+			}
+			Len = sprintf(Header, "HTTP/1.1 404 Not Found\r\nContent-Length: 16\r\n\r\nPage not found\r\n");
+			send(sock, Header, Len, 0);
 			return 0;
 		}
+
 
 
 		if (_stricmp(Context, "/Node/Signon?Node") == 0)
@@ -2019,40 +1991,7 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 			char * input;
 			char * IContext;
 
-
-			HostPtr = strstr(MsgPtr, "Host: ");
-
-			if (HostPtr)
-			{
-				uint32_t Host;
-				char Hostname[32]= "";
-				struct LOCALNET * LocalNet = conn->TNC->TCPInfo->LocalNets;
-
-				HostPtr += 6;
-				memcpy(Hostname, HostPtr, 31);
-				strlop(Hostname, ':');
-				Host = inet_addr(Hostname);
-
-				if (strcmp(Hostname, "127.0.0.1") == 0)
-					LOCAL = TRUE;
-				else while(LocalNet)
-				{
-					uint32_t MaskedHost = Host & LocalNet->Mask;
-					if (MaskedHost == LocalNet->Network)
-					{				
-						char * rest;
-						LOCAL = 1;
-						rest = strchr(HostPtr, 13);
-						if (rest)
-						{
-							memmove(HostPtr + 9, rest, strlen(rest) + 1);
-							memcpy(HostPtr, "127.0.0.1", 9);
-							break;
-						}
-					}
-					LocalNet = LocalNet->Next;
-				}
-			}
+			// LOCAL is already set
 
 			NodeURL = strtok_s(Context, "?", &IContext);
 			Key = strtok_s(NULL, "?", &IContext);
@@ -2310,7 +2249,7 @@ doHeader:
 			if (allowDeflate)
 				Compressed = Compressit(_REPLYBUFFER, ReplyLen, &ReplyLen);
 			else
-				Compressed = Reply;
+				Compressed = _REPLYBUFFER;
 
 			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n%s\r\n", ReplyLen, Encoding);
 			sendandcheck(sock, Header, HeaderLen);
@@ -2498,6 +2437,9 @@ doHeader:
 				int port = atoi(Context);
 
 				if (input == 0)
+					return 1;
+
+				if (LOCAL == FALSE && COOKIE == FALSE)
 					return 1;
 
 				input += 4;
@@ -2701,7 +2643,20 @@ doHeader:
 			{
 				//	Save Config File
 
-				SaveConfigFile(sock, MsgPtr, Key, LOCAL);
+				if (conn->LOCALAuth)
+					SaveConfigFile(sock, MsgPtr, Key, LOCAL);
+				else
+				{
+					char _REPLYBUFFER[4096];	
+					ReplyLen = SetupNodeMenu(_REPLYBUFFER, LOCAL);	
+					ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], "<br><B>Not authorizedxx - please sign in</B>");
+					HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
+					send(sock, Header, HeaderLen, 0);
+					send(sock, _REPLYBUFFER, ReplyLen, 0);
+					send(sock, Tail, (int)strlen(Tail), 0);
+					return 1;
+				}
+
 				return 0;
 			}
 
@@ -2964,6 +2919,12 @@ doHeader:
 				if (port > 0 && port <= MaxBPQPortNo)
 				{
 					struct TNCINFO * TNC = TNCInfo[port];
+
+					if (TNC == 0)
+						return 1;
+
+					if (LOCAL == FALSE && COOKIE == FALSE)
+						return 1;
 
 					KillTNC(TNC);
 					TNC->DontRestart = FALSE;
