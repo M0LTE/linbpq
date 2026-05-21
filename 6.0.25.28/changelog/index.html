@@ -1868,10 +1868,60 @@ integration test suite.
 </li>
         
           <li class="md-nav__item">
-  <a href="#6024-and-earlier-cross-validated-only" class="md-nav__link">
+  <a href="#6024-and-earlier-see-the-release-timeline" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.0.24.* and earlier — cross-validated only
+        6.0.24.* and earlier — see the release timeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tagged-release-timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tagged release timeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tagged release timeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#6023-2022-09-07-to-2023-08-12-28-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.23.* — 2022-09-07 to 2023-08-12 (28 tagged releases)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6024-2023-08-14-to-2025-08-23-68-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.24.* — 2023-08-14 to 2025-08-23 (68 tagged releases)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6025-2025-10-10-to-2026-05-17-8-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.* — 2025-10-10 to 2026-05-17 (8 tagged releases)
       
     </span>
   </a>
@@ -2213,10 +2263,60 @@ integration test suite.
 </li>
         
           <li class="md-nav__item">
-  <a href="#6024-and-earlier-cross-validated-only" class="md-nav__link">
+  <a href="#6024-and-earlier-see-the-release-timeline" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.0.24.* and earlier — cross-validated only
+        6.0.24.* and earlier — see the release timeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tagged-release-timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tagged release timeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tagged release timeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#6023-2022-09-07-to-2023-08-12-28-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.23.* — 2022-09-07 to 2023-08-12 (28 tagged releases)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6024-2023-08-14-to-2025-08-23-68-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.24.* — 2023-08-14 to 2025-08-23 (68 tagged releases)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6025-2025-10-10-to-2026-05-17-8-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.* — 2025-10-10 to 2026-05-17 (8 tagged releases)
       
     </span>
   </a>
@@ -2457,30 +2557,689 @@ the wider diff include:</p>
 notes; the cross-check confirms the diff is just the surface
 of a release that accreted ~80 sub-version commits' worth of
 work in the upstream working tree.</p>
-<h3 id="6024-and-earlier-cross-validated-only">6.0.24.* and earlier — cross-validated only<a class="headerlink" href="#6024-and-earlier-cross-validated-only" title="Permanent link">&para;</a></h3>
-<p>For the 6.0.24.<em> (Aug 2023 — Aug 2025) and 6.0.23.</em> (Jun 2022 —
-Aug 2023) series, the per-major-version diffs are too large to
-analyse meaningfully from this fork's perspective — each "major"
-release spans about a year of fine-grained upstream development
-that gets condensed into a single GitHub commit.  Rather than
-fabricate diff-level detail at that scale, defer to upstream:</p>
-<ul>
-<li><a href="https://github.com/g8bpq/linbpq/commit/0bdcbb4"><code>6.0.24.1</code></a> (10 Aug 2023): NODES wildcard
-  improvements, VARA driver lifecycle commands, RADIO PTT test
-  command, FLDIGI driver improvements, web-socket WebMail
-  autorefresh, GPSD support, FreeBSD compatibility additions,
-  FreeData driver groundwork.  See
-  <a href="https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html">upstream changelog</a>.</li>
-<li>6.0.23.* series (Jun 2022 — Aug 2023): the GitHub mirror's
-  oldest 6.0.23 commit is <a href="https://github.com/g8bpq/linbpq/commit/4a4271c"><code>6.0.23.21</code></a>; earlier
-  sub-versions exist only as upstream sub-version stamps.  The
-  series introduced RTL-SDR rigcontrol, RMS Relay SYNC,
-  AIS/ADSB support, FLRIG backend, DRATS interface basics, and
-  the FreeData modem driver.  See
-  <a href="https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html">upstream changelog</a>.</li>
-</ul>
-<p>For versions older than 6.0.23, <a href="https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html">John's NodeChangeLog</a>
-is the authoritative source going back to 2010.</p>
+<h3 id="6024-and-earlier-see-the-release-timeline">6.0.24.* and earlier — see the release timeline<a class="headerlink" href="#6024-and-earlier-see-the-release-timeline" title="Permanent link">&para;</a></h3>
+<p>For per-sub-version history of the 6.0.24.<em> (Aug 2023 — Aug 2025)
+and 6.0.23.</em> (Sep 2022 — Aug 2023) series, see the <a href="#tagged-release-timeline">Tagged release
+timeline</a> below — each tag is a real
+release point John shipped, with a bounded diff for the curious.</p>
+<p><a href="https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html">John's NodeChangeLog</a> groups changes by major
+version line (6.0.24.1, 6.0.25.1) but tracks individual
+sub-versions in parenthesised notation; the timeline below
+cross-references those sub-versions to commit SHAs so you can
+drill into any specific one.</p>
+<h2 id="tagged-release-timeline">Tagged release timeline<a class="headerlink" href="#tagged-release-timeline" title="Permanent link">&para;</a></h2>
+<p>Every upstream-tagged release point in the GitHub mirror,
+oldest first.  <code>Date</code> is the tagger date (when John pushed
+the tag — his release date).  <code>Versions.h</code> is the
+<code>KVerstring</code> value at the tagged commit, i.e. what the
+binary's <code>-v</code> output reports — note that the <em>tag name</em> and
+the <em>Versions.h value</em> drift by 1-5 sub-versions because John
+tags forward of his commit-time version stamp.</p>
+<p>Hotfix-suffix tags (<code>a</code>, <code>b</code>, <code>c</code>, <code>.1</code>) are
+same-<code>Versions.h</code> follow-up release iterations.</p>
+<h3 id="6023-2022-09-07-to-2023-08-12-28-tagged-releases">6.0.23.* — 2022-09-07 to 2023-08-12 (28 tagged releases)<a class="headerlink" href="#6023-2022-09-07-to-2023-08-12-28-tagged-releases" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Tag</th>
+<th>Versions.h</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2022-09-07</td>
+<td><code>6.0.23.18</code></td>
+<td><code>6.0.23.18</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e3ea58d"><code>e3ea58d</code></a></td>
+</tr>
+<tr>
+<td>2022-09-22</td>
+<td><code>6.0.23.20</code></td>
+<td><code>6.0.23.18</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/9d98903"><code>9d98903</code></a></td>
+</tr>
+<tr>
+<td>2022-10-03</td>
+<td><code>6.0.23.21</code></td>
+<td><code>6.0.23.18</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/9d98903"><code>9d98903</code></a></td>
+</tr>
+<tr>
+<td>2022-10-18</td>
+<td><code>6.0.23.22</code></td>
+<td><code>6.0.23.21</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/4a4271c"><code>4a4271c</code></a></td>
+</tr>
+<tr>
+<td>2022-10-23</td>
+<td><code>6.0.23.24</code></td>
+<td><code>6.0.23.22</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/2bd6071"><code>2bd6071</code></a></td>
+</tr>
+<tr>
+<td>2022-11-12</td>
+<td><code>6.0.23.25</code></td>
+<td><code>6.0.23.24</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/9b5f7cc"><code>9b5f7cc</code></a></td>
+</tr>
+<tr>
+<td>2022-11-14</td>
+<td><code>6.0.23.26</code></td>
+<td><code>6.0.23.25</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e3db09d"><code>e3db09d</code></a></td>
+</tr>
+<tr>
+<td>2022-11-18</td>
+<td><code>6.0.23.27</code></td>
+<td><code>6.0.23.27</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/6c6848b"><code>6c6848b</code></a></td>
+</tr>
+<tr>
+<td>2022-11-23</td>
+<td><code>6.0.23.29</code></td>
+<td><code>6.0.23.27</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/6c6848b"><code>6c6848b</code></a></td>
+</tr>
+<tr>
+<td>2022-11-23</td>
+<td><code>6.0.23.30</code></td>
+<td><code>6.0.23.29</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/be0f2b8"><code>be0f2b8</code></a></td>
+</tr>
+<tr>
+<td>2022-12-09</td>
+<td><code>6.0.23.33</code></td>
+<td><code>6.0.23.30</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e95c1f3"><code>e95c1f3</code></a></td>
+</tr>
+<tr>
+<td>2022-12-31</td>
+<td><code>6.0.23.34</code></td>
+<td><code>6.0.23.33</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/ebc845e"><code>ebc845e</code></a></td>
+</tr>
+<tr>
+<td>2023-01-06</td>
+<td><code>6.0.23.36</code></td>
+<td><code>6.0.23.34</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/90bdcbe"><code>90bdcbe</code></a></td>
+</tr>
+<tr>
+<td>2023-01-25</td>
+<td><code>6.0.23.42</code></td>
+<td><code>6.0.23.36</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/9a44d00"><code>9a44d00</code></a></td>
+</tr>
+<tr>
+<td>2023-02-05</td>
+<td><code>6.0.23.46</code></td>
+<td><code>6.0.23.42</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/c15de2c"><code>c15de2c</code></a></td>
+</tr>
+<tr>
+<td>2023-03-02</td>
+<td><code>6.0.23.51</code></td>
+<td><code>6.0.23.46</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/c32ef4e"><code>c32ef4e</code></a></td>
+</tr>
+<tr>
+<td>2023-03-16</td>
+<td><code>6.0.23.55</code></td>
+<td><code>6.0.23.51</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/39da8ff"><code>39da8ff</code></a></td>
+</tr>
+<tr>
+<td>2023-03-18</td>
+<td><code>6.0.23.56</code></td>
+<td><code>6.0.23.55</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/a792602"><code>a792602</code></a></td>
+</tr>
+<tr>
+<td>2023-04-03</td>
+<td><code>6.0.23.58</code></td>
+<td><code>6.0.23.56</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/814c68f"><code>814c68f</code></a></td>
+</tr>
+<tr>
+<td>2023-04-06</td>
+<td><code>6.0.23.59</code></td>
+<td><code>6.0.23.58</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f1bf68a"><code>f1bf68a</code></a></td>
+</tr>
+<tr>
+<td>2023-05-16</td>
+<td><code>6.0.23.66</code></td>
+<td><code>6.0.23.59</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/60ff21f"><code>60ff21f</code></a></td>
+</tr>
+<tr>
+<td>2023-05-25</td>
+<td><code>6.0.23.70</code></td>
+<td><code>6.0.23.66</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/ac7e6b9"><code>ac7e6b9</code></a></td>
+</tr>
+<tr>
+<td>2023-05-26</td>
+<td><code>6.0.23.71</code></td>
+<td><code>6.0.23.70</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/4924c12"><code>4924c12</code></a></td>
+</tr>
+<tr>
+<td>2023-06-21</td>
+<td><code>6.0.23.76</code></td>
+<td><code>6.0.23.71</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/a21121f"><code>a21121f</code></a></td>
+</tr>
+<tr>
+<td>2023-06-29</td>
+<td><code>6.0.23.77</code></td>
+<td><code>6.0.23.76</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/75b5bcc"><code>75b5bcc</code></a></td>
+</tr>
+<tr>
+<td>2023-07-29</td>
+<td><code>6.0.23.81</code></td>
+<td><code>6.0.23.77</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/ed81fc5"><code>ed81fc5</code></a></td>
+</tr>
+<tr>
+<td>2023-08-06</td>
+<td><code>6.0.23.82</code></td>
+<td><code>6.0.23.81</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/b77dbd8"><code>b77dbd8</code></a></td>
+</tr>
+<tr>
+<td>2023-08-12</td>
+<td><code>6.0.24.1</code></td>
+<td><code>6.0.23.82</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/55dc284"><code>55dc284</code></a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="6024-2023-08-14-to-2025-08-23-68-tagged-releases">6.0.24.* — 2023-08-14 to 2025-08-23 (68 tagged releases)<a class="headerlink" href="#6024-2023-08-14-to-2025-08-23-68-tagged-releases" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Tag</th>
+<th>Versions.h</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2023-08-14</td>
+<td><code>6.0.24.2</code></td>
+<td><code>6.0.24.1</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/0bdcbb4"><code>0bdcbb4</code></a></td>
+</tr>
+<tr>
+<td>2023-09-02</td>
+<td><code>6.0.24.6</code></td>
+<td><code>6.0.24.2</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/084ecb7"><code>084ecb7</code></a></td>
+</tr>
+<tr>
+<td>2023-09-10</td>
+<td><code>6.0.24.8</code></td>
+<td><code>6.0.24.6</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/34b5c72"><code>34b5c72</code></a></td>
+</tr>
+<tr>
+<td>2023-09-14</td>
+<td><code>6.0.24.10</code></td>
+<td><code>6.0.24.9</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/84b3067"><code>84b3067</code></a></td>
+</tr>
+<tr>
+<td>2023-09-14</td>
+<td><code>6.0.24.9</code></td>
+<td><code>6.0.24.8</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/fdc47ca"><code>fdc47ca</code></a></td>
+</tr>
+<tr>
+<td>2023-10-08</td>
+<td><code>6.0.24.13</code></td>
+<td><code>6.0.24.11</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/27fd28f"><code>27fd28f</code></a></td>
+</tr>
+<tr>
+<td>2023-10-08</td>
+<td><code>6.0.24.14</code></td>
+<td><code>6.0.24.13</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/318dbc5"><code>318dbc5</code></a></td>
+</tr>
+<tr>
+<td>2023-10-09</td>
+<td><code>6.0.24.15</code></td>
+<td><code>6.0.24.14</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/b4f82c7"><code>b4f82c7</code></a></td>
+</tr>
+<tr>
+<td>2023-10-26</td>
+<td><code>6.0.24.16</code></td>
+<td><code>6.0.24.15</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/84cbedb"><code>84cbedb</code></a></td>
+</tr>
+<tr>
+<td>2023-11-06</td>
+<td><code>6.0.24.18</code></td>
+<td><code>6.0.24.16</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/7710398"><code>7710398</code></a></td>
+</tr>
+<tr>
+<td>2023-11-15</td>
+<td><code>6.0.24.20</code></td>
+<td><code>6.0.24.18</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/66a5f51"><code>66a5f51</code></a></td>
+</tr>
+<tr>
+<td>2023-11-23</td>
+<td><code>6.0.24.21</code></td>
+<td><code>6.0.24.20</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e134427"><code>e134427</code></a></td>
+</tr>
+<tr>
+<td>2023-12-03</td>
+<td><code>6.0.24.22</code></td>
+<td><code>6.0.24.21</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/35db10e"><code>35db10e</code></a></td>
+</tr>
+<tr>
+<td>2023-12-11</td>
+<td><code>6.0.24.24</code></td>
+<td><code>6.0.24.22</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/bdb1f12"><code>bdb1f12</code></a></td>
+</tr>
+<tr>
+<td>2023-12-13</td>
+<td><code>6.0.24.24a</code></td>
+<td><code>6.0.24.24</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e147a79"><code>e147a79</code></a></td>
+</tr>
+<tr>
+<td>2023-12-17</td>
+<td><code>6.0.24.25</code></td>
+<td><code>6.0.24.24</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/ee5bce0"><code>ee5bce0</code></a></td>
+</tr>
+<tr>
+<td>2024-01-08</td>
+<td><code>6.0.24.26</code></td>
+<td><code>6.0.24.25</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e02ff3e"><code>e02ff3e</code></a></td>
+</tr>
+<tr>
+<td>2024-01-15</td>
+<td><code>6.0.24.27</code></td>
+<td><code>6.0.24.26</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/74433f7"><code>74433f7</code></a></td>
+</tr>
+<tr>
+<td>2024-02-11</td>
+<td><code>6.0.24.29</code></td>
+<td><code>6.0.24.27</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/0b2206c"><code>0b2206c</code></a></td>
+</tr>
+<tr>
+<td>2024-02-21</td>
+<td><code>6.0.24.30</code></td>
+<td><code>6.0.24.29</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/eb4ab64"><code>eb4ab64</code></a></td>
+</tr>
+<tr>
+<td>2024-03-21</td>
+<td><code>6.0.24.33</code></td>
+<td><code>6.0.24.30</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/cbb7a5c"><code>cbb7a5c</code></a></td>
+</tr>
+<tr>
+<td>2024-04-05</td>
+<td><code>6.0.24.34</code></td>
+<td><code>6.0.24.33</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/64a95ea"><code>64a95ea</code></a></td>
+</tr>
+<tr>
+<td>2024-04-24</td>
+<td><code>6.0.24.36</code></td>
+<td><code>6.0.24.34</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f1fe8e6"><code>f1fe8e6</code></a></td>
+</tr>
+<tr>
+<td>2024-05-27</td>
+<td><code>6.0.24.38</code></td>
+<td><code>6.0.24.36</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/2bb96a9"><code>2bb96a9</code></a></td>
+</tr>
+<tr>
+<td>2024-06-28</td>
+<td><code>6.0.24.40</code></td>
+<td><code>6.0.24.38</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/26c4358"><code>26c4358</code></a></td>
+</tr>
+<tr>
+<td>2024-08-27</td>
+<td><code>6.0.24.42</code></td>
+<td><code>6.0.24.40</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f5a7672"><code>f5a7672</code></a></td>
+</tr>
+<tr>
+<td>2024-10-06</td>
+<td><code>6.0.24.45</code></td>
+<td><code>6.0.24.42</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/48544f8"><code>48544f8</code></a></td>
+</tr>
+<tr>
+<td>2024-10-18</td>
+<td><code>6.0.24.46</code></td>
+<td><code>6.0.24.45</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/703ecaf"><code>703ecaf</code></a></td>
+</tr>
+<tr>
+<td>2024-10-19</td>
+<td><code>6.0.24.47</code></td>
+<td><code>6.0.24.46</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/fdfd727"><code>fdfd727</code></a></td>
+</tr>
+<tr>
+<td>2024-10-26</td>
+<td><code>6.0.24.48</code></td>
+<td><code>6.0.24.47</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/033b8fb"><code>033b8fb</code></a></td>
+</tr>
+<tr>
+<td>2024-10-27</td>
+<td><code>6.0.24.48a</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/0a458ce"><code>0a458ce</code></a></td>
+</tr>
+<tr>
+<td>2024-10-27</td>
+<td><code>6.0.24.48b</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/3b6091e"><code>3b6091e</code></a></td>
+</tr>
+<tr>
+<td>2024-10-28</td>
+<td><code>6.0.24.48c</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/c3746d1"><code>c3746d1</code></a></td>
+</tr>
+<tr>
+<td>2024-10-30</td>
+<td><code>6.0.24.48d</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/d642ff5"><code>d642ff5</code></a></td>
+</tr>
+<tr>
+<td>2024-10-31</td>
+<td><code>6.0.24.48e</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/6472165"><code>6472165</code></a></td>
+</tr>
+<tr>
+<td>2024-11-04</td>
+<td><code>6.0.24.49</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/4745452"><code>4745452</code></a></td>
+</tr>
+<tr>
+<td>2024-11-10</td>
+<td><code>6.0.24.50</code></td>
+<td><code>6.0.24.49</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/46adaea"><code>46adaea</code></a></td>
+</tr>
+<tr>
+<td>2024-11-28</td>
+<td><code>6.0.24.51</code></td>
+<td><code>6.0.24.50</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f2ca803"><code>f2ca803</code></a></td>
+</tr>
+<tr>
+<td>2024-11-29</td>
+<td><code>6.0.24.51a</code></td>
+<td><code>6.0.24.51</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/ba4a34b"><code>ba4a34b</code></a></td>
+</tr>
+<tr>
+<td>2024-11-30</td>
+<td><code>6.0.24.52</code></td>
+<td><code>6.0.24.51</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/743e2d8"><code>743e2d8</code></a></td>
+</tr>
+<tr>
+<td>2024-12-02</td>
+<td><code>6.0.24.53</code></td>
+<td><code>6.0.24.52</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/7e50913"><code>7e50913</code></a></td>
+</tr>
+<tr>
+<td>2024-12-14</td>
+<td><code>6.0.24.54</code></td>
+<td><code>6.0.24.53</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/982e2e5"><code>982e2e5</code></a></td>
+</tr>
+<tr>
+<td>2025-01-05</td>
+<td><code>6.0.24.55</code></td>
+<td><code>6.0.24.54</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f7eef80"><code>f7eef80</code></a></td>
+</tr>
+<tr>
+<td>2025-01-06</td>
+<td><code>6.0.24.56</code></td>
+<td><code>6.0.24.55</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/6fda6fd"><code>6fda6fd</code></a></td>
+</tr>
+<tr>
+<td>2025-02-02</td>
+<td><code>6.0.24.59</code></td>
+<td><code>6.0.24.56</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/d42eee0"><code>d42eee0</code></a></td>
+</tr>
+<tr>
+<td>2025-02-02</td>
+<td><code>6.0.24.59a</code></td>
+<td><code>6.0.24.59</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f9898cf"><code>f9898cf</code></a></td>
+</tr>
+<tr>
+<td>2025-02-02</td>
+<td><code>6.0.24.59c</code></td>
+<td><code>6.0.24.59</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/488630c"><code>488630c</code></a></td>
+</tr>
+<tr>
+<td>2025-02-11</td>
+<td><code>6.0.24.61</code></td>
+<td><code>6.0.24.59</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/488630c"><code>488630c</code></a></td>
+</tr>
+<tr>
+<td>2025-02-15</td>
+<td><code>6.0.24.62</code></td>
+<td><code>6.0.24.61</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/d5c89ec"><code>d5c89ec</code></a></td>
+</tr>
+<tr>
+<td>2025-02-20</td>
+<td><code>6.0.24.64</code></td>
+<td><code>6.0.24.62</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/83bc496"><code>83bc496</code></a></td>
+</tr>
+<tr>
+<td>2025-02-21</td>
+<td><code>6.0.24.65</code></td>
+<td><code>6.0.24.64</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/098dc64"><code>098dc64</code></a></td>
+</tr>
+<tr>
+<td>2025-03-03</td>
+<td><code>6.0.24.66</code></td>
+<td><code>6.0.24.65</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/d3c2c5d"><code>d3c2c5d</code></a></td>
+</tr>
+<tr>
+<td>2025-03-13</td>
+<td><code>6.0.24.67</code></td>
+<td><code>6.0.24.66</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f9a9cb1"><code>f9a9cb1</code></a></td>
+</tr>
+<tr>
+<td>2025-03-28</td>
+<td><code>6.0.24.69</code></td>
+<td><code>6.0.24.67</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/eee55a9"><code>eee55a9</code></a></td>
+</tr>
+<tr>
+<td>2025-03-31</td>
+<td><code>6.0.24.69.1</code></td>
+<td><code>6.0.24.69</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/7ed5345"><code>7ed5345</code></a></td>
+</tr>
+<tr>
+<td>2025-04-17</td>
+<td><code>6.0.24.70</code></td>
+<td><code>6.0.24.69</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/5da7d4d"><code>5da7d4d</code></a></td>
+</tr>
+<tr>
+<td>2025-05-16</td>
+<td><code>6.0.24.71</code></td>
+<td><code>6.0.24.70</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/4a7536c"><code>4a7536c</code></a></td>
+</tr>
+<tr>
+<td>2025-06-02</td>
+<td><code>6.0.24.72</code></td>
+<td><code>6.0.24.71</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/2af4cf3"><code>2af4cf3</code></a></td>
+</tr>
+<tr>
+<td>2025-06-05</td>
+<td><code>6.0.24.72a</code></td>
+<td><code>6.0.24.72</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/fcb3973"><code>fcb3973</code></a></td>
+</tr>
+<tr>
+<td>2025-06-09</td>
+<td><code>6.0.24.73</code></td>
+<td><code>6.0.24.73</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/6620d4a"><code>6620d4a</code></a></td>
+</tr>
+<tr>
+<td>2025-06-09</td>
+<td><code>6.0.24.74</code></td>
+<td><code>6.0.24.73</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/7f1f96e"><code>7f1f96e</code></a></td>
+</tr>
+<tr>
+<td>2025-06-26</td>
+<td><code>6.0.24.75</code></td>
+<td><code>6.0.24.74</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/0583ca8"><code>0583ca8</code></a></td>
+</tr>
+<tr>
+<td>2025-07-18</td>
+<td><code>6.0.24.76</code></td>
+<td><code>6.0.24.75</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/48f7c61"><code>48f7c61</code></a></td>
+</tr>
+<tr>
+<td>2025-07-22</td>
+<td><code>6.0.24.77</code></td>
+<td><code>6.0.24.76</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/3143e32"><code>3143e32</code></a></td>
+</tr>
+<tr>
+<td>2025-07-30</td>
+<td><code>6.0.24.78</code></td>
+<td><code>6.0.24.77</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/3103c10"><code>3103c10</code></a></td>
+</tr>
+<tr>
+<td>2025-08-06</td>
+<td><code>6.0.24.80</code></td>
+<td><code>6.0.24.78</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/1571be3"><code>1571be3</code></a></td>
+</tr>
+<tr>
+<td>2025-08-17</td>
+<td><code>6.0.24.82</code></td>
+<td><code>6.0.24.80</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/cbc7974"><code>cbc7974</code></a></td>
+</tr>
+<tr>
+<td>2025-08-23</td>
+<td><code>6.0.25.1</code></td>
+<td><code>6.0.24.82</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/201bc42"><code>201bc42</code></a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="6025-2025-10-10-to-2026-05-17-8-tagged-releases">6.0.25.* — 2025-10-10 to 2026-05-17 (8 tagged releases)<a class="headerlink" href="#6025-2025-10-10-to-2026-05-17-8-tagged-releases" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Tag</th>
+<th>Versions.h</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2025-10-10</td>
+<td><code>6.0.25.6</code></td>
+<td><code>6.0.25.1</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/1e51a39"><code>1e51a39</code></a></td>
+</tr>
+<tr>
+<td>2025-10-22</td>
+<td><code>6.0.25.8</code></td>
+<td><code>6.0.25.6</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/44916f4"><code>44916f4</code></a></td>
+</tr>
+<tr>
+<td>2025-10-28</td>
+<td><code>6.0.25.9</code></td>
+<td><code>6.0.25.8</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/c3e618e"><code>c3e618e</code></a></td>
+</tr>
+<tr>
+<td>2025-11-10</td>
+<td><code>6.0.25.11</code></td>
+<td><code>6.0.25.9</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/8e5adbc"><code>8e5adbc</code></a></td>
+</tr>
+<tr>
+<td>2025-11-16</td>
+<td><code>6.0.25.12</code></td>
+<td><code>6.0.25.11</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/8e3a121"><code>8e3a121</code></a></td>
+</tr>
+<tr>
+<td>2025-11-26</td>
+<td><code>6.0.25.13</code></td>
+<td><code>6.0.25.12</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/513d551"><code>513d551</code></a></td>
+</tr>
+<tr>
+<td>2025-12-26</td>
+<td><code>6.0.25.15</code></td>
+<td><code>6.0.25.13</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f539768"><code>f539768</code></a></td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td><code>6.0.25.28</code></td>
+<td><code>6.0.25.23</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/225fbb1"><code>225fbb1</code></a></td>
+</tr>
+</tbody>
+</table>
 
 
 
