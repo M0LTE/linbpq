@@ -1,0 +1,3316 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Re-presentation of John Wiseman G8BPQ's BPQ32 / LinBPQ documentation,
+organised by user journey and fact-checked against the binary +
+integration test suite.
+">
+      
+      
+      
+        <link rel="canonical" href="https://m0lte.github.io/linbpq/master/changelog/">
+      
+      
+        <link rel="prev" href="../clients/bpqaprs/">
+      
+      
+        <link rel="next" href="../project/contributing/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Release notes - LinBPQ Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#release-notes" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="LinBPQ Documentation" class="md-header__button md-logo" aria-label="LinBPQ Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            LinBPQ Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Release notes
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue-grey" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6m0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4M7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/M0LTE/linbpq" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    M0LTE/linbpq
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../configuration/reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../subsystems/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Subsystems
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../protocols/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Protocols and interfaces
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../node-commands/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Node prompt commands
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../clients/bpqterminal/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Windows companion programs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../project/contributing/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="LinBPQ Documentation" class="md-nav__button md-logo" aria-label="LinBPQ Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    LinBPQ Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/M0LTE/linbpq" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    M0LTE/linbpq
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../getting-started/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/windows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows (BPQ32)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../subsystems/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subsystems
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Subsystems
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../subsystems/bbsmail/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BBS / mail (BPQMail)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../subsystems/bbs-user-commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BBS user commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../subsystems/bbs-forwarding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inter-BBS forwarding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../subsystems/bbs-email/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BBS email gateways
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../subsystems/chat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chat node
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../subsystems/aprs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    APRS gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../subsystems/ipgateway/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mqtt-output/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MQTT output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../protocols/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocols and interfaces
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocols and interfaces
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/ax25/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AX.25
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/netrom/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NET/ROM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/axip/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AX/IP over UDP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/kiss/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KISS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/bpqtoagw/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BPQtoAGW
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/pactor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pactor / WINMOR / ARDOP / VARA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/host-mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host Mode Emulator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/ethernet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BPQ Ethernet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/apps-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Applications Interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/rhp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RHP (Remote Host Protocol)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/fbb-forwarding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FBB inter-BBS forwarding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node prompt commands
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Node prompt commands
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../node-commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LinBPQ Node Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows companion programs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Windows companion programs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../clients/bpqterminal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BPQTerminal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../clients/bpqaprs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BPQAPRS map client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#602528-17-may-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.28 — 17 May 2026
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6.0.25.28 — 17 May 2026">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#behaviour-changes-from-upstream" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behaviour changes from upstream
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fork-side-changes-shipped-alongside" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fork-side changes shipped alongside
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upgrading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrading
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#602523-4-march-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.23 — 4 March 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upstream-releases-before-the-m0lte-forks-tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upstream releases before the M0LTE fork's tracking
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upstream releases before the M0LTE fork&#39;s tracking">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#602522-2-march-2026-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.22 — 2 March 2026 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#602515-26-december-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.15 — 26 December 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#602513-26-november-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.13 — 26 November 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#602512-16-november-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.12 — 16 November 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#602511-10-november-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.11 — 10 November 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#60259-28-october-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.9 — 28 October 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#60258-22-october-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.8 — 22 October 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#60256-10-october-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.6 — 10 October 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#60251-27-august-2025-cross-checked-against-nodechangelog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.1 — 27 August 2025 (cross-checked against NodeChangeLog)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6024-and-earlier-see-the-release-timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.24.* and earlier — see the release timeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tagged-release-timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tagged release timeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tagged release timeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#6023-2022-09-07-to-2023-08-12-28-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.23.* — 2022-09-07 to 2023-08-12 (28 tagged releases)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6024-2023-08-14-to-2025-08-23-68-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.24.* — 2023-08-14 to 2025-08-23 (68 tagged releases)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6025-2025-10-10-to-2026-05-17-8-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.* — 2025-10-10 to 2026-05-17 (8 tagged releases)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../project/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../project/upstream/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upstream attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#602528-17-may-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.28 — 17 May 2026
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6.0.25.28 — 17 May 2026">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#behaviour-changes-from-upstream" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behaviour changes from upstream
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fork-side-changes-shipped-alongside" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fork-side changes shipped alongside
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upgrading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrading
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#602523-4-march-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.23 — 4 March 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upstream-releases-before-the-m0lte-forks-tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upstream releases before the M0LTE fork's tracking
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upstream releases before the M0LTE fork&#39;s tracking">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#602522-2-march-2026-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.22 — 2 March 2026 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#602515-26-december-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.15 — 26 December 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#602513-26-november-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.13 — 26 November 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#602512-16-november-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.12 — 16 November 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#602511-10-november-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.11 — 10 November 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#60259-28-october-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.9 — 28 October 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#60258-22-october-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.8 — 22 October 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#60256-10-october-2025-diff-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.6 — 10 October 2025 (diff-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#60251-27-august-2025-cross-checked-against-nodechangelog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.1 — 27 August 2025 (cross-checked against NodeChangeLog)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6024-and-earlier-see-the-release-timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.24.* and earlier — see the release timeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tagged-release-timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tagged release timeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tagged release timeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#6023-2022-09-07-to-2023-08-12-28-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.23.* — 2022-09-07 to 2023-08-12 (28 tagged releases)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6024-2023-08-14-to-2025-08-23-68-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.24.* — 2023-08-14 to 2025-08-23 (68 tagged releases)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6025-2025-10-10-to-2026-05-17-8-tagged-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.0.25.* — 2025-10-10 to 2026-05-17 (8 tagged releases)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/M0LTE/linbpq/edit/master/docs/changelog.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="release-notes">Release notes<a class="headerlink" href="#release-notes" title="Permanent link">&para;</a></h1>
+<p>Per-release notes for the M0LTE fork.  The release cadence
+tracks <a href="https://github.com/g8bpq/linbpq"><code>g8bpq/linbpq</code></a> — each upstream release we
+sync to becomes a versioned snapshot in this site, with an entry
+below describing what changed in the binary and what changed
+fork-side.</p>
+<p>For canonical, exhaustive upstream history see G8BPQ's
+<a href="https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html">BPQ32 Node Changelog</a> and
+<a href="https://www.cantab.net/users/john.wiseman/Documents/SupportProgsChangeLog.html">Support Programs Changelog</a>.</p>
+<h2 id="602528-17-may-2026">6.0.25.28 — 17 May 2026<a class="headerlink" href="#602528-17-may-2026" title="Permanent link">&para;</a></h2>
+<p>Upstream sync to <a href="https://github.com/g8bpq/linbpq/commit/d84bcda">g8bpq/linbpq <code>d84bcda</code></a>.</p>
+<h3 id="behaviour-changes-from-upstream">Behaviour changes from upstream<a class="headerlink" href="#behaviour-changes-from-upstream" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>AGW</strong>: digipeater paths longer than 7 hops are now rejected
+  with a clean disconnect (<code>AGWAPI.c::ProcessAGWCommand</code>).</li>
+<li><strong>BBS forwarding</strong>: <code>AllowBlocked</code> and <code>AllowCompressed</code>
+  partner-config keywords now move together — setting either
+  forces the other on.  Inbound forwarding sessions advertising
+  the FBB <code>F</code> flag without compression are hard-disconnected
+  rather than silently downgraded to MBL
+  (<code>BBSUtilities.c::Parse_SID</code>, <code>SetupForwardingStruct</code>).
+  See the
+  <a href="../subsystems/bbs-forwarding/#fbb-protocol-toggles">inter-BBS forwarding page</a>
+  for the new behaviour.</li>
+<li><strong>BBS PG commands</strong>: the <code>PG &lt;server&gt; [args]</code> command string is
+  now validated to be alphanumeric + spaces only before being
+  passed to the shell (<code>BBSUtilities.c::run_pg</code>).</li>
+<li><strong>NET/ROM</strong>: hardened route-structure handling in <code>BPQINP3.c</code>.</li>
+<li>Buffer-size bumps and housekeeping across <code>Cmd.c</code>,
+  <code>CommonCode.c</code>, <code>HTTPcode.c</code>, <code>LinBPQ.c</code> — no externally
+  visible behaviour change.</li>
+</ul>
+<h3 id="fork-side-changes-shipped-alongside">Fork-side changes shipped alongside<a class="headerlink" href="#fork-side-changes-shipped-alongside" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>HTML-from-C extraction backed out.</strong>  Earlier fork work
+  extracted the inlined HTML templates from <code>WebMail.c</code>,
+  <code>BBSHTMLConfig.c</code>, <code>APRSCode.c</code>, <code>HTTPcode.c</code> and
+  <code>templatedefs.c</code> into standalone <code>HTML/*.txt</code> files.  Since
+  this work hadn't been upstreamed to John, every upstream
+  release was producing large conflicts in those files for no
+  benefit.  Reverted on this release; recoverable from the
+  <code>archive/html-extraction</code> branch.</li>
+<li><strong>Versioned documentation via <a href="https://github.com/jimporter/mike">mike</a>.</strong>  The site now ships
+  one snapshot per upstream release; the version switcher in
+  the page header lets you pin to a specific BPQ version.  This
+  release is the first to be versioned; older content is
+  backfilled at <code>/6.0.25.23/</code>.</li>
+<li><strong>Docker image tag scheme.</strong>  Image tags now mirror the
+  upstream BPQ version: <code>m0lte/linbpq:6.0.25.28</code> for this
+  release, plus <code>:latest</code> always pointing at the newest
+  release.  Master-branch builds publish as
+  <code>m0lte/linbpq:master-&lt;sha&gt;</code>; <code>:latest</code> is no longer moved by
+  master pushes.</li>
+<li><strong>CI runner moved to self-hosted.</strong>  No external behaviour
+  change — but fork contributors should note that PR validation
+  now depends on the M0LTE-hosted runner being available.</li>
+</ul>
+<h3 id="upgrading">Upgrading<a class="headerlink" href="#upgrading" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Docker:</strong> <code>docker pull m0lte/linbpq:latest</code> (resolves to
+  6.0.25.28), or pin with <code>m0lte/linbpq:6.0.25.28</code>.</li>
+<li><strong>Build from source:</strong> standard <code>make</code> against this release.</li>
+<li><strong>BBS sysops:</strong> re-check the FwdDetail screen for each
+  forwarding partner — if you'd set <code>AllowBlocked=1</code> and
+  <code>AllowCompressed=0</code> (or vice versa), 6.0.25.28 now treats that
+  config as if both were <code>=1</code>.  Any partner whose SID came back
+  blocked-without-compression will now be hard-disconnected
+  rather than silently downgraded; the partner's side of the
+  config needs aligning.</li>
+</ul>
+<h2 id="602523-4-march-2026">6.0.25.23 — 4 March 2026<a class="headerlink" href="#602523-4-march-2026" title="Permanent link">&para;</a></h2>
+<p>Baseline for the M0LTE fork's published-tag tracking.  Upstream
+release at <a href="https://github.com/g8bpq/linbpq/commit/225fbb1">g8bpq/linbpq <code>225fbb1</code></a>.</p>
+<hr />
+<h2 id="upstream-releases-before-the-m0lte-forks-tracking">Upstream releases before the M0LTE fork's tracking<a class="headerlink" href="#upstream-releases-before-the-m0lte-forks-tracking" title="Permanent link">&para;</a></h2>
+<p>The entries below cover upstream releases that ship in the
+binary the M0LTE fork inherited from but that predate this site's
+versioned-docs era.  They're backfilled from independent
+analysis of each upstream commit's diff against
+<a href="https://github.com/g8bpq/linbpq">g8bpq/linbpq</a>, then cross-validated against John's
+<a href="https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html">NodeChangeLog</a> where it has overlapping coverage
+— the changelog stops at 6.0.25.1 (Aug 2025), so the 6.0.25.6 →
+6.0.25.22 entries below are diff-derived only.</p>
+<p>Each version row labels the entry with <code>(diff-only)</code> if there's
+no upstream changelog text to compare against, or <code>(cross-checked)</code>
+if John's notes mention the same area.  Discrepancies are called
+out inline.</p>
+<h3 id="602522-2-march-2026-diff-only">6.0.25.22 — 2 March 2026 (diff-only)<a class="headerlink" href="#602522-2-march-2026-diff-only" title="Permanent link">&para;</a></h3>
+<p>Upstream commit <a href="https://github.com/g8bpq/linbpq/commit/34f44ed"><code>34f44ed</code></a>.  Wide cleanup pass.</p>
+<ul>
+<li><code>BPQINP3.c</code> (~300 lines): more INP3 routing churn — the L3RTT
+  message-handling rework that ran through the .6–.15 stretch
+  appears to settle here.</li>
+<li><code>BBSUtilities.c</code> (~70 lines): BBS-side validation tweaks
+  ahead of the 6.0.25.28 PG / blocked-uncompressed work.</li>
+<li><code>BPQMail.rc</code> (~1090 lines): Windows BPQMail resource (dialog)
+  layout rebuild.  No Linux impact.</li>
+<li><code>AGWAPI.c</code> (~24 lines): minor AGW-server housekeeping.</li>
+</ul>
+<h3 id="602515-26-december-2025-diff-only">6.0.25.15 — 26 December 2025 (diff-only)<a class="headerlink" href="#602515-26-december-2025-diff-only" title="Permanent link">&para;</a></h3>
+<p>Upstream commit <a href="https://github.com/g8bpq/linbpq/commit/b90e6bd"><code>b90e6bd</code></a>.  Christmas INP3 push.</p>
+<ul>
+<li><code>BPQINP3.c</code> (~340 lines, the biggest single-release change in
+  the 25.* series): another round of routing-table accounting
+  refinements.</li>
+<li><code>BBSHTMLConfig.c</code>, <code>BBSUtilities.c</code>, <code>BPQMailConfig.c</code>: minor
+  BBS surface touches.</li>
+<li><code>Cmd.c</code> (~40 lines): node-prompt command edge-case fixes.</li>
+</ul>
+<h3 id="602513-26-november-2025-diff-only">6.0.25.13 — 26 November 2025 (diff-only)<a class="headerlink" href="#602513-26-november-2025-diff-only" title="Permanent link">&para;</a></h3>
+<p>Upstream commit <a href="https://github.com/g8bpq/linbpq/commit/f539768"><code>f539768</code></a>.  Notable for being one of
+the few releases that <em>deletes</em> code on net — <code>APRSCode.c</code>
+shrinks by ~106 lines while <code>BPQINP3.c</code> continues evolving
+(~250 lines).  <code>Bpq32.c</code> and <code>HTTPcode.c</code> touched lightly.</p>
+<h3 id="602512-16-november-2025-diff-only">6.0.25.12 — 16 November 2025 (diff-only)<a class="headerlink" href="#602512-16-november-2025-diff-only" title="Permanent link">&para;</a></h3>
+<p>Upstream commit <a href="https://github.com/g8bpq/linbpq/commit/513d551"><code>513d551</code></a>.  Mainly node-prompt
+commands and NET/ROM:</p>
+<ul>
+<li><code>Cmd.c</code> (~180 lines): command-table additions / refinements.</li>
+<li><code>BPQINP3.c</code> (~85 lines): same routing rework.</li>
+<li><code>L4Code.c</code>, <code>NETROMTCP.c</code>: minor transport-layer tweaks.</li>
+</ul>
+<h3 id="602511-10-november-2025-diff-only">6.0.25.11 — 10 November 2025 (diff-only)<a class="headerlink" href="#602511-10-november-2025-diff-only" title="Permanent link">&para;</a></h3>
+<p>Upstream commit <a href="https://github.com/g8bpq/linbpq/commit/8e3a121"><code>8e3a121</code></a>.  Events / chat-node
+surface:</p>
+<ul>
+<li><code>Events.c</code> (~155 lines), <code>cMain.c</code> (~65 lines).</li>
+<li><code>L4Code.c</code>, <code>NETROMTCP.c</code>: NET/ROM-over-TCP carry-over from
+  6.0.25.9.</li>
+</ul>
+<h3 id="60259-28-october-2025-diff-only">6.0.25.9 — 28 October 2025 (diff-only)<a class="headerlink" href="#60259-28-october-2025-diff-only" title="Permanent link">&para;</a></h3>
+<p>Upstream commit <a href="https://github.com/g8bpq/linbpq/commit/8e5adbc"><code>8e5adbc</code></a>.  ARDOP-centric.</p>
+<ul>
+<li><code>ARDOP.c</code> (~155 lines): session-management rework.</li>
+<li><code>Events.c</code> (~145 lines), <code>Bpq32.c</code> (~95 lines): event handling.</li>
+<li>Small <code>APRSCode.c</code>, <code>BBSUtilities.c</code>, <code>DRATS.c</code> touches.</li>
+</ul>
+<h3 id="60258-22-october-2025-diff-only">6.0.25.8 — 22 October 2025 (diff-only)<a class="headerlink" href="#60258-22-october-2025-diff-only" title="Permanent link">&para;</a></h3>
+<p>Upstream commit <a href="https://github.com/g8bpq/linbpq/commit/c3e618e"><code>c3e618e</code></a>.  The biggest single
+release in the gap range — ~2500 line insertions across 33
+files.</p>
+<ul>
+<li><strong>New <code>NETROMTCP.c</code></strong> (~550 lines): NET/ROM over TCP transport.</li>
+<li><code>Events.c</code> rewrite (~930 lines): the biggest single-file
+  change in the 25.* series.</li>
+<li><code>Cmd.c</code> (~270 lines), <code>L4Code.c</code> (~420 lines): NET/ROM L4 and
+  command-table rework, paired with the new transport.</li>
+<li><code>TelnetV6.c</code> (~115 lines), <code>config.c</code> (~185 lines): connection
+  and parser surface touched alongside.</li>
+</ul>
+<h3 id="60256-10-october-2025-diff-only">6.0.25.6 — 10 October 2025 (diff-only)<a class="headerlink" href="#60256-10-october-2025-diff-only" title="Permanent link">&para;</a></h3>
+<p>Upstream commit <a href="https://github.com/g8bpq/linbpq/commit/44916f4"><code>44916f4</code></a>.  The first release after
+6.0.25.1; mostly INP3 protocol-version work plus a NodeAPI
+expansion.</p>
+<ul>
+<li><code>BPQINP3.c</code> (~325 lines): the L3RTT-message FLAGS field grows
+  from 10 to 20 bytes and gains a <code>$H&lt;MaxHops&gt;</code> flag advertising
+  the local node's hop limit; the software-version stamp in the
+  RTT broadcast bumps <code>BPQ32001</code> → <code>BPQ32002</code>.  Debug logging
+  gated behind a runtime <code>DEBUGINP3</code> flag (less console noise on
+  busy nodes).  Verified against the diff at <code>BPQINP3.c</code>
+  init/teardown.</li>
+<li><code>nodeapi.c</code> (~200 lines): more JSON API endpoints.</li>
+<li><code>L2Code.c</code> (~205 lines), <code>Cmd.c</code> (~140 lines), <code>Moncode.c</code>
+  (~90 lines): AX.25 link and monitor surface widened.</li>
+</ul>
+<h3 id="60251-27-august-2025-cross-checked-against-nodechangelog">6.0.25.1 — 27 August 2025 (cross-checked against NodeChangeLog)<a class="headerlink" href="#60251-27-august-2025-cross-checked-against-nodechangelog" title="Permanent link">&para;</a></h3>
+<p>Upstream commit <a href="https://github.com/g8bpq/linbpq/commit/1e51a39"><code>1e51a39</code></a>.  The 6.0.25 series
+release-marker.</p>
+<p><strong>Diff-derived view</strong> (what I see in 6.0.24.82 → 6.0.25.1):
+the commit itself is small — about 12 files, 300 line insertions
+— dominated by a new <code>ScanHID.c</code> / <code>ScanHID.vcproj</code> pair (a
+Windows USB-HID device scanner, presumably backing the rigcontrol
+SDRAngel and FTDX10 work John mentions) and small <code>RigControl.c</code>,
+<code>BBSUtilities.c</code>, <code>L3Code.c</code> updates.</p>
+<p>The commit is NOT a full picture of what shipped between
+6.0.24.1 and 6.0.25.1 — upstream's sub-version cadence is
+finer-grained than the commits in the GitHub mirror, and
+6.0.25.1 represents the end of a long sub-version stream.</p>
+<p><strong>Cross-check against <a href="https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html">upstream NodeChangeLog</a>:</strong>
+John's 6.0.25.1 entry lists ~80 sub-version bullets covering the
+year's work.  Major themes that align with what we'd derive from
+the wider diff include:</p>
+<ul>
+<li>AX.25 / NET/ROM transport: L4 frame ordering, INP3 routing,
+  KISS interlocks, NETROM compression, NET/ROM-over-TCP
+  groundwork.</li>
+<li>New rigcontrol drivers (SDRAngel, FTDX10) and improvements
+  across existing ones (FLRIG, ICF8101 mode setting, KAM, ARDOP).</li>
+<li>BBS / mail / WebMail: autorefresh fixes, MailAPI tweaks,
+  potential-overflow guards.</li>
+<li>Telnet path hardening (security-flavoured: buffer-overflow
+  fixes, <code>SECURETELNET</code> default changed to 1).</li>
+<li>MQTT interface introduction.</li>
+<li>M0LTE Map (this fork's monitoring endpoint) reporting moved
+  to a separate thread for responsiveness.</li>
+<li>Stack backtrace on <code>SIGSEGV</code> / <code>SIGABRT</code> on Linux (new
+  diagnostic).</li>
+<li>Save MH and NODES every hour (durability).</li>
+</ul>
+<p>No material disagreement between the diff view and John's
+notes; the cross-check confirms the diff is just the surface
+of a release that accreted ~80 sub-version commits' worth of
+work in the upstream working tree.</p>
+<h3 id="6024-and-earlier-see-the-release-timeline">6.0.24.* and earlier — see the release timeline<a class="headerlink" href="#6024-and-earlier-see-the-release-timeline" title="Permanent link">&para;</a></h3>
+<p>For per-sub-version history of the 6.0.24.<em> (Aug 2023 — Aug 2025)
+and 6.0.23.</em> (Sep 2022 — Aug 2023) series, see the <a href="#tagged-release-timeline">Tagged release
+timeline</a> below — each tag is a real
+release point John shipped, with a bounded diff for the curious.</p>
+<p><a href="https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html">John's NodeChangeLog</a> groups changes by major
+version line (6.0.24.1, 6.0.25.1) but tracks individual
+sub-versions in parenthesised notation; the timeline below
+cross-references those sub-versions to commit SHAs so you can
+drill into any specific one.</p>
+<h2 id="tagged-release-timeline">Tagged release timeline<a class="headerlink" href="#tagged-release-timeline" title="Permanent link">&para;</a></h2>
+<p>Every upstream-tagged release point in the GitHub mirror,
+oldest first.  <code>Date</code> is the tagger date (when John pushed
+the tag — his release date).  <code>Versions.h</code> is the
+<code>KVerstring</code> value at the tagged commit, i.e. what the
+binary's <code>-v</code> output reports — note that the <em>tag name</em> and
+the <em>Versions.h value</em> drift by 1-5 sub-versions because John
+tags forward of his commit-time version stamp.</p>
+<p>Hotfix-suffix tags (<code>a</code>, <code>b</code>, <code>c</code>, <code>.1</code>) are
+same-<code>Versions.h</code> follow-up release iterations.</p>
+<h3 id="6023-2022-09-07-to-2023-08-12-28-tagged-releases">6.0.23.* — 2022-09-07 to 2023-08-12 (28 tagged releases)<a class="headerlink" href="#6023-2022-09-07-to-2023-08-12-28-tagged-releases" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Tag</th>
+<th>Versions.h</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2022-09-07</td>
+<td><code>6.0.23.18</code></td>
+<td><code>6.0.23.18</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e3ea58d"><code>e3ea58d</code></a></td>
+</tr>
+<tr>
+<td>2022-09-22</td>
+<td><code>6.0.23.20</code></td>
+<td><code>6.0.23.18</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/9d98903"><code>9d98903</code></a></td>
+</tr>
+<tr>
+<td>2022-10-03</td>
+<td><code>6.0.23.21</code></td>
+<td><code>6.0.23.18</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/9d98903"><code>9d98903</code></a></td>
+</tr>
+<tr>
+<td>2022-10-18</td>
+<td><code>6.0.23.22</code></td>
+<td><code>6.0.23.21</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/4a4271c"><code>4a4271c</code></a></td>
+</tr>
+<tr>
+<td>2022-10-23</td>
+<td><code>6.0.23.24</code></td>
+<td><code>6.0.23.22</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/2bd6071"><code>2bd6071</code></a></td>
+</tr>
+<tr>
+<td>2022-11-12</td>
+<td><code>6.0.23.25</code></td>
+<td><code>6.0.23.24</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/9b5f7cc"><code>9b5f7cc</code></a></td>
+</tr>
+<tr>
+<td>2022-11-14</td>
+<td><code>6.0.23.26</code></td>
+<td><code>6.0.23.25</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e3db09d"><code>e3db09d</code></a></td>
+</tr>
+<tr>
+<td>2022-11-18</td>
+<td><code>6.0.23.27</code></td>
+<td><code>6.0.23.27</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/6c6848b"><code>6c6848b</code></a></td>
+</tr>
+<tr>
+<td>2022-11-23</td>
+<td><code>6.0.23.29</code></td>
+<td><code>6.0.23.27</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/6c6848b"><code>6c6848b</code></a></td>
+</tr>
+<tr>
+<td>2022-11-23</td>
+<td><code>6.0.23.30</code></td>
+<td><code>6.0.23.29</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/be0f2b8"><code>be0f2b8</code></a></td>
+</tr>
+<tr>
+<td>2022-12-09</td>
+<td><code>6.0.23.33</code></td>
+<td><code>6.0.23.30</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e95c1f3"><code>e95c1f3</code></a></td>
+</tr>
+<tr>
+<td>2022-12-31</td>
+<td><code>6.0.23.34</code></td>
+<td><code>6.0.23.33</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/ebc845e"><code>ebc845e</code></a></td>
+</tr>
+<tr>
+<td>2023-01-06</td>
+<td><code>6.0.23.36</code></td>
+<td><code>6.0.23.34</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/90bdcbe"><code>90bdcbe</code></a></td>
+</tr>
+<tr>
+<td>2023-01-25</td>
+<td><code>6.0.23.42</code></td>
+<td><code>6.0.23.36</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/9a44d00"><code>9a44d00</code></a></td>
+</tr>
+<tr>
+<td>2023-02-05</td>
+<td><code>6.0.23.46</code></td>
+<td><code>6.0.23.42</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/c15de2c"><code>c15de2c</code></a></td>
+</tr>
+<tr>
+<td>2023-03-02</td>
+<td><code>6.0.23.51</code></td>
+<td><code>6.0.23.46</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/c32ef4e"><code>c32ef4e</code></a></td>
+</tr>
+<tr>
+<td>2023-03-16</td>
+<td><code>6.0.23.55</code></td>
+<td><code>6.0.23.51</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/39da8ff"><code>39da8ff</code></a></td>
+</tr>
+<tr>
+<td>2023-03-18</td>
+<td><code>6.0.23.56</code></td>
+<td><code>6.0.23.55</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/a792602"><code>a792602</code></a></td>
+</tr>
+<tr>
+<td>2023-04-03</td>
+<td><code>6.0.23.58</code></td>
+<td><code>6.0.23.56</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/814c68f"><code>814c68f</code></a></td>
+</tr>
+<tr>
+<td>2023-04-06</td>
+<td><code>6.0.23.59</code></td>
+<td><code>6.0.23.58</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f1bf68a"><code>f1bf68a</code></a></td>
+</tr>
+<tr>
+<td>2023-05-16</td>
+<td><code>6.0.23.66</code></td>
+<td><code>6.0.23.59</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/60ff21f"><code>60ff21f</code></a></td>
+</tr>
+<tr>
+<td>2023-05-25</td>
+<td><code>6.0.23.70</code></td>
+<td><code>6.0.23.66</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/ac7e6b9"><code>ac7e6b9</code></a></td>
+</tr>
+<tr>
+<td>2023-05-26</td>
+<td><code>6.0.23.71</code></td>
+<td><code>6.0.23.70</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/4924c12"><code>4924c12</code></a></td>
+</tr>
+<tr>
+<td>2023-06-21</td>
+<td><code>6.0.23.76</code></td>
+<td><code>6.0.23.71</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/a21121f"><code>a21121f</code></a></td>
+</tr>
+<tr>
+<td>2023-06-29</td>
+<td><code>6.0.23.77</code></td>
+<td><code>6.0.23.76</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/75b5bcc"><code>75b5bcc</code></a></td>
+</tr>
+<tr>
+<td>2023-07-29</td>
+<td><code>6.0.23.81</code></td>
+<td><code>6.0.23.77</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/ed81fc5"><code>ed81fc5</code></a></td>
+</tr>
+<tr>
+<td>2023-08-06</td>
+<td><code>6.0.23.82</code></td>
+<td><code>6.0.23.81</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/b77dbd8"><code>b77dbd8</code></a></td>
+</tr>
+<tr>
+<td>2023-08-12</td>
+<td><code>6.0.24.1</code></td>
+<td><code>6.0.23.82</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/55dc284"><code>55dc284</code></a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="6024-2023-08-14-to-2025-08-23-68-tagged-releases">6.0.24.* — 2023-08-14 to 2025-08-23 (68 tagged releases)<a class="headerlink" href="#6024-2023-08-14-to-2025-08-23-68-tagged-releases" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Tag</th>
+<th>Versions.h</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2023-08-14</td>
+<td><code>6.0.24.2</code></td>
+<td><code>6.0.24.1</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/0bdcbb4"><code>0bdcbb4</code></a></td>
+</tr>
+<tr>
+<td>2023-09-02</td>
+<td><code>6.0.24.6</code></td>
+<td><code>6.0.24.2</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/084ecb7"><code>084ecb7</code></a></td>
+</tr>
+<tr>
+<td>2023-09-10</td>
+<td><code>6.0.24.8</code></td>
+<td><code>6.0.24.6</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/34b5c72"><code>34b5c72</code></a></td>
+</tr>
+<tr>
+<td>2023-09-14</td>
+<td><code>6.0.24.10</code></td>
+<td><code>6.0.24.9</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/84b3067"><code>84b3067</code></a></td>
+</tr>
+<tr>
+<td>2023-09-14</td>
+<td><code>6.0.24.9</code></td>
+<td><code>6.0.24.8</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/fdc47ca"><code>fdc47ca</code></a></td>
+</tr>
+<tr>
+<td>2023-10-08</td>
+<td><code>6.0.24.13</code></td>
+<td><code>6.0.24.11</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/27fd28f"><code>27fd28f</code></a></td>
+</tr>
+<tr>
+<td>2023-10-08</td>
+<td><code>6.0.24.14</code></td>
+<td><code>6.0.24.13</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/318dbc5"><code>318dbc5</code></a></td>
+</tr>
+<tr>
+<td>2023-10-09</td>
+<td><code>6.0.24.15</code></td>
+<td><code>6.0.24.14</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/b4f82c7"><code>b4f82c7</code></a></td>
+</tr>
+<tr>
+<td>2023-10-26</td>
+<td><code>6.0.24.16</code></td>
+<td><code>6.0.24.15</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/84cbedb"><code>84cbedb</code></a></td>
+</tr>
+<tr>
+<td>2023-11-06</td>
+<td><code>6.0.24.18</code></td>
+<td><code>6.0.24.16</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/7710398"><code>7710398</code></a></td>
+</tr>
+<tr>
+<td>2023-11-15</td>
+<td><code>6.0.24.20</code></td>
+<td><code>6.0.24.18</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/66a5f51"><code>66a5f51</code></a></td>
+</tr>
+<tr>
+<td>2023-11-23</td>
+<td><code>6.0.24.21</code></td>
+<td><code>6.0.24.20</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e134427"><code>e134427</code></a></td>
+</tr>
+<tr>
+<td>2023-12-03</td>
+<td><code>6.0.24.22</code></td>
+<td><code>6.0.24.21</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/35db10e"><code>35db10e</code></a></td>
+</tr>
+<tr>
+<td>2023-12-11</td>
+<td><code>6.0.24.24</code></td>
+<td><code>6.0.24.22</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/bdb1f12"><code>bdb1f12</code></a></td>
+</tr>
+<tr>
+<td>2023-12-13</td>
+<td><code>6.0.24.24a</code></td>
+<td><code>6.0.24.24</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e147a79"><code>e147a79</code></a></td>
+</tr>
+<tr>
+<td>2023-12-17</td>
+<td><code>6.0.24.25</code></td>
+<td><code>6.0.24.24</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/ee5bce0"><code>ee5bce0</code></a></td>
+</tr>
+<tr>
+<td>2024-01-08</td>
+<td><code>6.0.24.26</code></td>
+<td><code>6.0.24.25</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/e02ff3e"><code>e02ff3e</code></a></td>
+</tr>
+<tr>
+<td>2024-01-15</td>
+<td><code>6.0.24.27</code></td>
+<td><code>6.0.24.26</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/74433f7"><code>74433f7</code></a></td>
+</tr>
+<tr>
+<td>2024-02-11</td>
+<td><code>6.0.24.29</code></td>
+<td><code>6.0.24.27</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/0b2206c"><code>0b2206c</code></a></td>
+</tr>
+<tr>
+<td>2024-02-21</td>
+<td><code>6.0.24.30</code></td>
+<td><code>6.0.24.29</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/eb4ab64"><code>eb4ab64</code></a></td>
+</tr>
+<tr>
+<td>2024-03-21</td>
+<td><code>6.0.24.33</code></td>
+<td><code>6.0.24.30</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/cbb7a5c"><code>cbb7a5c</code></a></td>
+</tr>
+<tr>
+<td>2024-04-05</td>
+<td><code>6.0.24.34</code></td>
+<td><code>6.0.24.33</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/64a95ea"><code>64a95ea</code></a></td>
+</tr>
+<tr>
+<td>2024-04-24</td>
+<td><code>6.0.24.36</code></td>
+<td><code>6.0.24.34</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f1fe8e6"><code>f1fe8e6</code></a></td>
+</tr>
+<tr>
+<td>2024-05-27</td>
+<td><code>6.0.24.38</code></td>
+<td><code>6.0.24.36</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/2bb96a9"><code>2bb96a9</code></a></td>
+</tr>
+<tr>
+<td>2024-06-28</td>
+<td><code>6.0.24.40</code></td>
+<td><code>6.0.24.38</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/26c4358"><code>26c4358</code></a></td>
+</tr>
+<tr>
+<td>2024-08-27</td>
+<td><code>6.0.24.42</code></td>
+<td><code>6.0.24.40</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f5a7672"><code>f5a7672</code></a></td>
+</tr>
+<tr>
+<td>2024-10-06</td>
+<td><code>6.0.24.45</code></td>
+<td><code>6.0.24.42</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/48544f8"><code>48544f8</code></a></td>
+</tr>
+<tr>
+<td>2024-10-18</td>
+<td><code>6.0.24.46</code></td>
+<td><code>6.0.24.45</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/703ecaf"><code>703ecaf</code></a></td>
+</tr>
+<tr>
+<td>2024-10-19</td>
+<td><code>6.0.24.47</code></td>
+<td><code>6.0.24.46</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/fdfd727"><code>fdfd727</code></a></td>
+</tr>
+<tr>
+<td>2024-10-26</td>
+<td><code>6.0.24.48</code></td>
+<td><code>6.0.24.47</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/033b8fb"><code>033b8fb</code></a></td>
+</tr>
+<tr>
+<td>2024-10-27</td>
+<td><code>6.0.24.48a</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/0a458ce"><code>0a458ce</code></a></td>
+</tr>
+<tr>
+<td>2024-10-27</td>
+<td><code>6.0.24.48b</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/3b6091e"><code>3b6091e</code></a></td>
+</tr>
+<tr>
+<td>2024-10-28</td>
+<td><code>6.0.24.48c</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/c3746d1"><code>c3746d1</code></a></td>
+</tr>
+<tr>
+<td>2024-10-30</td>
+<td><code>6.0.24.48d</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/d642ff5"><code>d642ff5</code></a></td>
+</tr>
+<tr>
+<td>2024-10-31</td>
+<td><code>6.0.24.48e</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/6472165"><code>6472165</code></a></td>
+</tr>
+<tr>
+<td>2024-11-04</td>
+<td><code>6.0.24.49</code></td>
+<td><code>6.0.24.48</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/4745452"><code>4745452</code></a></td>
+</tr>
+<tr>
+<td>2024-11-10</td>
+<td><code>6.0.24.50</code></td>
+<td><code>6.0.24.49</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/46adaea"><code>46adaea</code></a></td>
+</tr>
+<tr>
+<td>2024-11-28</td>
+<td><code>6.0.24.51</code></td>
+<td><code>6.0.24.50</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f2ca803"><code>f2ca803</code></a></td>
+</tr>
+<tr>
+<td>2024-11-29</td>
+<td><code>6.0.24.51a</code></td>
+<td><code>6.0.24.51</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/ba4a34b"><code>ba4a34b</code></a></td>
+</tr>
+<tr>
+<td>2024-11-30</td>
+<td><code>6.0.24.52</code></td>
+<td><code>6.0.24.51</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/743e2d8"><code>743e2d8</code></a></td>
+</tr>
+<tr>
+<td>2024-12-02</td>
+<td><code>6.0.24.53</code></td>
+<td><code>6.0.24.52</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/7e50913"><code>7e50913</code></a></td>
+</tr>
+<tr>
+<td>2024-12-14</td>
+<td><code>6.0.24.54</code></td>
+<td><code>6.0.24.53</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/982e2e5"><code>982e2e5</code></a></td>
+</tr>
+<tr>
+<td>2025-01-05</td>
+<td><code>6.0.24.55</code></td>
+<td><code>6.0.24.54</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f7eef80"><code>f7eef80</code></a></td>
+</tr>
+<tr>
+<td>2025-01-06</td>
+<td><code>6.0.24.56</code></td>
+<td><code>6.0.24.55</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/6fda6fd"><code>6fda6fd</code></a></td>
+</tr>
+<tr>
+<td>2025-02-02</td>
+<td><code>6.0.24.59</code></td>
+<td><code>6.0.24.56</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/d42eee0"><code>d42eee0</code></a></td>
+</tr>
+<tr>
+<td>2025-02-02</td>
+<td><code>6.0.24.59a</code></td>
+<td><code>6.0.24.59</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f9898cf"><code>f9898cf</code></a></td>
+</tr>
+<tr>
+<td>2025-02-02</td>
+<td><code>6.0.24.59c</code></td>
+<td><code>6.0.24.59</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/488630c"><code>488630c</code></a></td>
+</tr>
+<tr>
+<td>2025-02-11</td>
+<td><code>6.0.24.61</code></td>
+<td><code>6.0.24.59</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/488630c"><code>488630c</code></a></td>
+</tr>
+<tr>
+<td>2025-02-15</td>
+<td><code>6.0.24.62</code></td>
+<td><code>6.0.24.61</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/d5c89ec"><code>d5c89ec</code></a></td>
+</tr>
+<tr>
+<td>2025-02-20</td>
+<td><code>6.0.24.64</code></td>
+<td><code>6.0.24.62</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/83bc496"><code>83bc496</code></a></td>
+</tr>
+<tr>
+<td>2025-02-21</td>
+<td><code>6.0.24.65</code></td>
+<td><code>6.0.24.64</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/098dc64"><code>098dc64</code></a></td>
+</tr>
+<tr>
+<td>2025-03-03</td>
+<td><code>6.0.24.66</code></td>
+<td><code>6.0.24.65</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/d3c2c5d"><code>d3c2c5d</code></a></td>
+</tr>
+<tr>
+<td>2025-03-13</td>
+<td><code>6.0.24.67</code></td>
+<td><code>6.0.24.66</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f9a9cb1"><code>f9a9cb1</code></a></td>
+</tr>
+<tr>
+<td>2025-03-28</td>
+<td><code>6.0.24.69</code></td>
+<td><code>6.0.24.67</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/eee55a9"><code>eee55a9</code></a></td>
+</tr>
+<tr>
+<td>2025-03-31</td>
+<td><code>6.0.24.69.1</code></td>
+<td><code>6.0.24.69</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/7ed5345"><code>7ed5345</code></a></td>
+</tr>
+<tr>
+<td>2025-04-17</td>
+<td><code>6.0.24.70</code></td>
+<td><code>6.0.24.69</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/5da7d4d"><code>5da7d4d</code></a></td>
+</tr>
+<tr>
+<td>2025-05-16</td>
+<td><code>6.0.24.71</code></td>
+<td><code>6.0.24.70</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/4a7536c"><code>4a7536c</code></a></td>
+</tr>
+<tr>
+<td>2025-06-02</td>
+<td><code>6.0.24.72</code></td>
+<td><code>6.0.24.71</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/2af4cf3"><code>2af4cf3</code></a></td>
+</tr>
+<tr>
+<td>2025-06-05</td>
+<td><code>6.0.24.72a</code></td>
+<td><code>6.0.24.72</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/fcb3973"><code>fcb3973</code></a></td>
+</tr>
+<tr>
+<td>2025-06-09</td>
+<td><code>6.0.24.73</code></td>
+<td><code>6.0.24.73</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/6620d4a"><code>6620d4a</code></a></td>
+</tr>
+<tr>
+<td>2025-06-09</td>
+<td><code>6.0.24.74</code></td>
+<td><code>6.0.24.73</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/7f1f96e"><code>7f1f96e</code></a></td>
+</tr>
+<tr>
+<td>2025-06-26</td>
+<td><code>6.0.24.75</code></td>
+<td><code>6.0.24.74</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/0583ca8"><code>0583ca8</code></a></td>
+</tr>
+<tr>
+<td>2025-07-18</td>
+<td><code>6.0.24.76</code></td>
+<td><code>6.0.24.75</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/48f7c61"><code>48f7c61</code></a></td>
+</tr>
+<tr>
+<td>2025-07-22</td>
+<td><code>6.0.24.77</code></td>
+<td><code>6.0.24.76</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/3143e32"><code>3143e32</code></a></td>
+</tr>
+<tr>
+<td>2025-07-30</td>
+<td><code>6.0.24.78</code></td>
+<td><code>6.0.24.77</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/3103c10"><code>3103c10</code></a></td>
+</tr>
+<tr>
+<td>2025-08-06</td>
+<td><code>6.0.24.80</code></td>
+<td><code>6.0.24.78</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/1571be3"><code>1571be3</code></a></td>
+</tr>
+<tr>
+<td>2025-08-17</td>
+<td><code>6.0.24.82</code></td>
+<td><code>6.0.24.80</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/cbc7974"><code>cbc7974</code></a></td>
+</tr>
+<tr>
+<td>2025-08-23</td>
+<td><code>6.0.25.1</code></td>
+<td><code>6.0.24.82</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/201bc42"><code>201bc42</code></a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="6025-2025-10-10-to-2026-05-17-8-tagged-releases">6.0.25.* — 2025-10-10 to 2026-05-17 (8 tagged releases)<a class="headerlink" href="#6025-2025-10-10-to-2026-05-17-8-tagged-releases" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Tag</th>
+<th>Versions.h</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2025-10-10</td>
+<td><code>6.0.25.6</code></td>
+<td><code>6.0.25.1</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/1e51a39"><code>1e51a39</code></a></td>
+</tr>
+<tr>
+<td>2025-10-22</td>
+<td><code>6.0.25.8</code></td>
+<td><code>6.0.25.6</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/44916f4"><code>44916f4</code></a></td>
+</tr>
+<tr>
+<td>2025-10-28</td>
+<td><code>6.0.25.9</code></td>
+<td><code>6.0.25.8</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/c3e618e"><code>c3e618e</code></a></td>
+</tr>
+<tr>
+<td>2025-11-10</td>
+<td><code>6.0.25.11</code></td>
+<td><code>6.0.25.9</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/8e5adbc"><code>8e5adbc</code></a></td>
+</tr>
+<tr>
+<td>2025-11-16</td>
+<td><code>6.0.25.12</code></td>
+<td><code>6.0.25.11</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/8e3a121"><code>8e3a121</code></a></td>
+</tr>
+<tr>
+<td>2025-11-26</td>
+<td><code>6.0.25.13</code></td>
+<td><code>6.0.25.12</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/513d551"><code>513d551</code></a></td>
+</tr>
+<tr>
+<td>2025-12-26</td>
+<td><code>6.0.25.15</code></td>
+<td><code>6.0.25.13</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/f539768"><code>f539768</code></a></td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td><code>6.0.25.28</code></td>
+<td><code>6.0.25.23</code></td>
+<td><a href="https://github.com/g8bpq/linbpq/commit/225fbb1"><code>225fbb1</code></a></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/M0LTE/linbpq" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
