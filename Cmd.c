@@ -6570,6 +6570,13 @@ VOID QTSMCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 
 	ptr = strtok_s(CmdTail, " ,\r", &context);
 
+	// strtok_s returns NULL when CmdTail has no token (bare QTSM).
+	// _stricmp(NULL, ...) and atoi(NULL) below would both crash; fall
+	// through to the "not a KISS port" error path with port == 0
+	// instead by treating an absent token as empty.
+	if (ptr == NULL)
+		ptr = "";
+
 	if (_stricmp(ptr, "HELP") == 0)
 	{
 		Bufferptr = Cmdprintf(Session, Bufferptr, "QTSM portno displays QTSM configuration info (if avaliable)\r", ptr);
