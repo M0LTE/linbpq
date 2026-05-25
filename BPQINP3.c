@@ -373,7 +373,10 @@ VOID ProcessRTTReply(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff)
 	else
 		Route->SRTT = ((Route->SRTT * 80)/100) + ((RTT * 20)/100);
 
-	Route->RTTIncrement = Route->SRTT / 2;		// Half for one way time.
+	if (Route->NeighbourSRTT)
+		Route->RTTIncrement = (Route->SRTT + Route->NeighbourSRTT) / 2;
+	else
+		Route->RTTIncrement = Route->SRTT / 2;
 
 	if (Route->RTTIncrement == 0)
 		Route->RTTIncrement = 1;
