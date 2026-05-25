@@ -1,19 +1,16 @@
 """APRS HTTP coverage.
 
 Uses the ``linbpq_web_with_aprs`` fixture which adds an
-``APRSPORT`` / ``APRSCALL`` config and a loopback APRS port —
-without that, every /APRS/* page renders as "APRS not configured".
+``APRSPORT`` / ``APRSCALL`` config, a loopback APRS port, and an
+empty ``APRSDIGI`` block so ``APRSReadConfigFile()`` succeeds and
+``APRSActive`` flips to 1.  Without all three of those, /APRS*
+routes return 404 from the ``APRSActive == 0`` fallback in
+``HTTPcode.c``.
 
-Note that under our minimal test config, the APRS subsystem
-doesn't initialise far enough to allocate ``SMEM`` (the APRS
-shared-memory block).  This means every endpoint that derefs
-``SMEM->Messages`` segfaults — see M0LTE/linbpq#20 for the
-NULL-guard issue.
-
-We restrict coverage here to endpoints that don't touch SMEM:
-the /APRS root and /aprs/entermsg form.  The msg-list endpoints
-will get coverage when #20 is fixed (or when we ship a fixture
-with a fully-wired APRS port).
+The fixture is still minimal — enough APRS state for the root +
+entermsg pages to render, not enough to populate ``SMEM->Messages``
+for the msg-list endpoints.  Those remain blocked by
+M0LTE/linbpq#20 (NULL-guard missing in the msg-list handlers).
 """
 
 from __future__ import annotations
@@ -23,19 +20,6 @@ import pytest
 from web_helpers import http_get, http_post
 
 
-# See https://github.com/M0LTE/linbpq/issues/66.  The minimal
-# ``linbpq_web_with_aprs`` fixture configures APRSPORT/APRSCALL but
-# doesn't carry the APRS-port CONFIG keywords needed to make
-# ``APRSReadConfigFile`` succeed; ``Init_APRS()`` returns FALSE and
-# ``APRSActive`` stays 0, so /APRS* routes 404.  Strict-xfail so the
-# tests flip back to green as soon as the fixture is wired up properly.
-_APRS_FIXTURE_BLOCKED = (
-    "issue #66: minimal APRS fixture doesn't satisfy Init_APRS; "
-    "/APRS* returns 404 until fixture has full APRS port config"
-)
-
-
-@pytest.mark.xfail(strict=True, reason=_APRS_FIXTURE_BLOCKED)
 def test_aprs_root_serves(linbpq_web_with_aprs):
     """``/APRS`` should serve the APRS top-level page."""
     port = linbpq_web_with_aprs["http_port"]
@@ -44,7 +28,6 @@ def test_aprs_root_serves(linbpq_web_with_aprs):
     assert b"<" in body[:50]
 
 
-@pytest.mark.xfail(strict=True, reason=_APRS_FIXTURE_BLOCKED)
 def test_aprs_entermsg_form(linbpq_web_with_aprs):
     """``/aprs/entermsg`` GET serves the enter-message form."""
     port = linbpq_web_with_aprs["http_port"]
