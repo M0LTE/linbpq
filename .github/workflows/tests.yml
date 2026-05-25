@@ -180,13 +180,17 @@ jobs:
           # ``--timeout=180`` (via pytest-timeout in the image) caps any
           # single test at 3min so a hung browser interaction fails
           # the test instead of stalling the whole job until the
-          # 25-min job timeout.  See issue #67 for the kind of hang
+          # 25-min job timeout.  ``--timeout-method=thread`` uses a
+          # watchdog thread instead of SIGALRM, which actually
+          # interrupts browser-bound waits where the signal handler
+          # can't preempt them.  See issue #67 for the kind of hang
           # this is defending against.
           docker run --rm \
             -v "$PWD/reports:/reports" \
             linbpq-playwright:ci \
             python3 -m pytest -n auto \
               --timeout=180 \
+              --timeout-method=thread \
               --junitxml=/reports/junit-playwright.xml
 
       - name: Upload playwright junit report

@@ -26,55 +26,65 @@ playwright = pytest.importorskip("playwright.sync_api")
 # ── /Node/Terminal: type a command, observe output ───────────────
 
 
-@pytest.mark.skip(
-    reason=(
-        "issue #67: hangs indefinitely inside the noble Playwright "
-        "Docker chromium (pre-Docker native runs were fine).  The "
-        "interaction with the nested InputLine + OutputScreen "
-        "iframes + press('Enter') stalls some event loop and the "
-        "test never returns.  Re-enable once the page-level timeout "
-        "/ iframe interaction is reworked."
-    )
-)
 def test_terminal_type_into_input_iframe(linbpq_web, page, capture_js_errors):
-    """Navigate to /Node/Terminal.html, focus the InputLine
-    iframe, type a command, and confirm it lands in the
-    OutputScreen.  This exercises the JS that wires Enter →
-    POST /Node/TermInput.
-    """
-    with capture_js_errors(page) as js_errors:
-        page.goto("/Node/Terminal.html", wait_until="domcontentloaded")
-        page.wait_for_timeout(500)
+    """Pressing Enter in the InputLine iframe fires POST /TermInput.
 
-        # Find the InputLine iframe and focus its input.
-        input_frame = next(
-            (f for f in page.frames if "InputLine" in (f.url or "")),
-            None,
-        )
+    Exercises the JS form-wiring on InputLine.html.  Watches the
+    network rather than reading the OutputScreen iframe — that
+    iframe is a long-poll endpoint (``HTTPcode.c:4163`` holds the
+    response for up to a minute when there's no new terminal data)
+    so calling ``content()`` on it stalls Playwright until timeout.
+    See issue #67 for the original hang.
+    """
+    page.set_default_timeout(5000)
+
+    term_posts: list[str] = []
+
+    def _on_request(req):
+        if req.method == "POST" and "/TermInput" in req.url:
+            term_posts.append(req.url)
+
+    page.on("request", _on_request)
+
+    with capture_js_errors(page) as js_errors:
+        # ``wait_until="commit"`` returns as soon as the main frame
+        # navigation commits — we don't want to block on iframes
+        # that long-poll.
+        page.goto("/Node/Terminal.html", wait_until="commit")
+
+        # Poll briefly for the InputLine iframe to attach.
+        input_frame = None
+        for _ in range(20):
+            input_frame = next(
+                (f for f in page.frames if "InputLine" in (f.url or "")),
+                None,
+            )
+            if input_frame:
+                break
+            page.wait_for_timeout(100)
         assert input_frame is not None, (
-            f"InputLine iframe not present.  Frames: "
-            f"{[f.url for f in page.frames]}"
+            f"InputLine iframe didn't attach within 2s.  "
+            f"Frames: {[f.url for f in page.frames]}"
         )
-        # The InputLine page has a single text input.
+
         text_input = input_frame.locator("input[type=text]").first
         if text_input.count() == 0:
             pytest.skip("InputLine page has no <input type=text>")
         text_input.fill("?")
         text_input.press("Enter")
-        # Give the BBS a moment to echo back.
-        page.wait_for_timeout(700)
 
-        output_frame = next(
-            (f for f in page.frames if "OutputScreen" in (f.url or "")),
-            None,
-        )
-        assert output_frame is not None
-        output_html = output_frame.content()
-        # Expect *something* echoed.  Many BBS builds echo the
-        # command itself or a help banner; we accept either.
-        # Failure mode that this catches: the JS raises trying
-        # to wire input → POST and nothing reaches the server.
+        # Poll for the POST to fire.  The form submission is
+        # synchronous from the browser's perspective — we just need
+        # to give the navigation a tick to register.
+        for _ in range(20):
+            if term_posts:
+                break
+            page.wait_for_timeout(100)
 
+    assert term_posts, (
+        f"Enter key didn't trigger POST to /TermInput within 2s.  "
+        f"Saw no matching requests."
+    )
     assert not js_errors, f"JS errors during terminal interaction: {js_errors}"
 
 
