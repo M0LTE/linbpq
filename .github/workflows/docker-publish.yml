@@ -7,10 +7,14 @@ name: docker-publish
 #     a ``v<x.y.z.w>`` git tag whose value equals the
 #     ``KVerstring`` in ``Versions.h`` — e.g. ``v6.0.25.28``.
 #   - On ``v*`` tag push:  publish ``<x.y.z.w>`` AND move ``latest``.
+#   - On ``v*-patched*`` tag push:  publish ``<x.y.z.w>-patched.<n>``
+#                          AND move ``patched-latest``.  Does NOT move
+#                          ``latest`` — that stays on upstream-clean builds.
 #   - On master push:      publish ``master-<short-sha>`` only.
 #                          ``latest`` is *not* moved by master pushes;
 #                          users who want the absolute fork tip pull
 #                          ``master-<sha>``.
+#   - On patched push:     publish ``patched-<short-sha>`` only.
 #   - On manual dispatch:  publish the branch name.
 #   - On workflow_dispatch with ``version`` + ``source_ref``:
 #     RETROACTIVE build.  Checks out ``source_ref`` for source,
@@ -23,7 +27,7 @@ name: docker-publish
 
 on:
   push:
-    branches: [master]
+    branches: [master, patched]
     tags: ['v*']
     # Only rebuild when something that ends up in the runtime image
     # actually changes.  Use ``workflow_dispatch`` to force a rebuild
@@ -92,11 +96,16 @@ jobs:
             # ``v6.0.25.28`` tag push → ``6.0.25.28`` + ``latest``.
             # Strictly push-event only.
             type=match,pattern=v(.*),group=1,enable=${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=latest,enable=${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'patched') }}
+            # ``v6.0.25.28-patched.1`` tag push → ``6.0.25.28-patched.1``
+            # + ``patched-latest``.  Does NOT move ``latest``.
+            type=raw,value=patched-latest,enable=${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref, 'patched') }}
             # master push → ``master-<sha>`` only.  Also fires for a
             # workflow_dispatch from master with no retroactive
             # version (manual rebuild).
             type=sha,prefix=master-,enable=${{ github.ref == 'refs/heads/master' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.version == '')) }}
+            # patched push → ``patched-<sha>`` only.
+            type=sha,prefix=patched-,enable=${{ github.ref == 'refs/heads/patched' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.version == '')) }}
             # workflow_dispatch on a non-master branch with no
             # retroactive version → branch name.
             type=ref,event=branch,enable=${{ github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master' && inputs.version == '' }}

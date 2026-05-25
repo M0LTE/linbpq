@@ -62,6 +62,44 @@ When John merges an upstream fix that supersedes one of our patches:
 5. Update PATCHES.md: change status from `pending` to `superseded`.
 6. Force-push: `git push --force-with-lease origin patched`
 
+## Releases and tagging
+
+The `patched` branch has its own release tags and Docker images,
+separate from upstream-clean releases.
+
+### Tag scheme
+
+- Upstream-clean: `v6.0.25.28` (matches `KVerstring` in `Versions.h`)
+- Patched: `v6.0.25.28-patched.1` — the `.N` suffix increments with
+  each new release of the patched branch against the same upstream version.
+  When upstream advances, reset to `.1`.
+
+### Cutting a release
+
+```bash
+git checkout patched
+# Ensure all patches are rebased on current master
+# Verify: make -C tests/unit test
+git tag -a v6.0.25.28-patched.1 -m "Patched release: <summary>"
+git push origin v6.0.25.28-patched.1
+```
+
+This triggers `docker-publish.yml` which publishes:
+- `6.0.25.28-patched.1` (versioned tag)
+- `patched-latest` (floating tag)
+
+The `latest` Docker tag is NOT moved by patched releases — it tracks
+upstream-clean `v*` tags only.
+
+### CI
+
+Both `master` and `patched` trigger the test suite on push. The test
+workflow includes:
+- **unit tests** — `make -C tests/unit test` (lightweight, no Docker)
+- **integration (fast)** — pytest suite excluding long_runtime markers
+- **integration (long_runtime)** — beacon/soak/leak tests
+- **playwright** — browser-based UI tests
+
 ## Unit tests
 
 Standalone C tests live in `tests/unit/`. They extract and test specific
