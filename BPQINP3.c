@@ -689,7 +689,6 @@ Found:
 			SortRoutes(Dest);
 			return;
 		}
-		ROUTEPTR++;
 	}
 
 	if (DEBUGINP3) Debugprintf("INP3 All entries in use - see if this is better than existing");
