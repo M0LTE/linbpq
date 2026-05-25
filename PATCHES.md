@@ -12,8 +12,9 @@ rebase.
 | 3 | Fix RTTIncrement to include NeighbourSRTT | Significant | [#52](https://github.com/M0LTE/linbpq/pull/52) | [#59](https://github.com/M0LTE/linbpq/issues/59) | pending |
 | 4 | Fix Route pointer corruption in sendAlltoOneNeigbour | Significant | [#53](https://github.com/M0LTE/linbpq/pull/53) | [#60](https://github.com/M0LTE/linbpq/issues/60) | pending |
 | 5 | Fix wrong RouteLastTT index in RIF send functions | Significant | [#54](https://github.com/M0LTE/linbpq/pull/54) | [#61](https://github.com/M0LTE/linbpq/issues/61) | pending |
-| 6 | Remove dead unsigned < 0 comparison in ProcessRTTReply | Minor | [#55](https://github.com/M0LTE/linbpq/pull/55) | [#62](https://github.com/M0LTE/linbpq/issues/62) | pending |
-| 7 | Remove redundant ROUTEPTR++ in UpdateNode loop | Minor | [#56](https://github.com/M0LTE/linbpq/pull/56) | [#63](https://github.com/M0LTE/linbpq/issues/63) | pending |
+| 6 | Fix bare QTSM command crashing user session (NULL deref in QTSMCMD) | Significant | [#65](https://github.com/M0LTE/linbpq/pull/65) | [#64](https://github.com/M0LTE/linbpq/issues/64) | pending |
+| 7 | Remove dead unsigned < 0 comparison in ProcessRTTReply | Minor | [#55](https://github.com/M0LTE/linbpq/pull/55) | [#62](https://github.com/M0LTE/linbpq/issues/62) | pending |
+| 8 | Remove redundant ROUTEPTR++ in UpdateNode loop | Minor | [#56](https://github.com/M0LTE/linbpq/pull/56) | [#63](https://github.com/M0LTE/linbpq/issues/63) | pending |
 
 ## Status values
 
