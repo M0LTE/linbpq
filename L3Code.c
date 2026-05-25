@@ -1022,7 +1022,10 @@ VOID CLEARACTIVEROUTE(struct ROUTE * ROUTE, int Reason)
 		if (DEST->DEST_ROUTE == 0)
 			continue;
 
-		if (DEST->INP3ROUTE[DEST->DEST_ROUTE].ROUT_NEIGHBOUR == ROUTE)   // Is this the active route
+		if (DEST->DEST_ROUTE >= 1 && DEST->DEST_ROUTE <= 3
+			? DEST->NRROUTE[DEST->DEST_ROUTE - 1].ROUT_NEIGHBOUR == ROUTE
+			: (DEST->DEST_ROUTE >= 4 && DEST->DEST_ROUTE <= 6
+				&& DEST->INP3ROUTE[DEST->DEST_ROUTE - 4].ROUT_NEIGHBOUR == ROUTE))
 		{
 			// Yes, so clear
 
