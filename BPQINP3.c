@@ -1547,9 +1547,9 @@ VOID SendRIFToNewNeighbour(struct ROUTE * Route)
 			sendHops = Entry->Hops + 1;
 
 			sendTT = Entry->STT + Entry->ROUT_NEIGHBOUR->RTTIncrement;
-			Dest->RouteLastTT[Entry->ROUT_NEIGHBOUR->recNum] = sendTT;
+			Dest->RouteLastTT[Route->recNum] = sendTT;
 
-			if ((Route->RemoteMAXHOPS == 0 || Route->RemoteMAXHOPS >= Entry->Hops || Entry->Hops > 30) && 
+			if ((Route->RemoteMAXHOPS == 0 || Route->RemoteMAXHOPS >= Entry->Hops || Entry->Hops > 30) &&
 				(Route->RemoteMAXRTT == 0 || Route->RemoteMAXRTT >= Entry->STT || Entry->STT == 60000))
 			{
 				Msg = Route->Msg;
@@ -1805,9 +1805,9 @@ VOID sendAlltoOneNeigbour(struct ROUTE * Route)
 
 			sendHops = Entry->Hops + 1;
 			sendTT = Entry->STT + Entry->ROUT_NEIGHBOUR->RTTIncrement;
-			lastTT = Dest->RouteLastTT[Entry->ROUT_NEIGHBOUR->recNum];
+			lastTT = Dest->RouteLastTT[Route->recNum];
 
-			Dest->RouteLastTT[Entry->ROUT_NEIGHBOUR->recNum] = sendTT;
+			Dest->RouteLastTT[Route->recNum] = sendTT;
 
 			// send, but only if within their constraints
 
