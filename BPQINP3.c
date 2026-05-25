@@ -356,9 +356,9 @@ VOID ProcessRTTReply(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff)
 	Route->Timeout = 0;			// Got Response
 	
 	sscanf(&Buff->L4DATA[6], "%u", &OrigTime);
-	RTT = GetTickCountINP3() - OrigTime;		// We work internally in mS
+	RTT = GetTickCountINP3() - OrigTime;		// 10ms units
 
-	if (RTT > 60000 || RTT < 0)
+	if (RTT > 60000)
 		return;					// Ignore if more than 60 secs (why ??)
 
 	if (RTT == 0)
