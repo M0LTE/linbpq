@@ -84,6 +84,13 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/linbpq
+          # Disable auto-`latest`.  metadata-action's default
+          # ``flavor: latest=auto`` adds ``latest`` for any semver tag,
+          # which would clobber the upstream-clean ``latest`` when a
+          # ``v*-patched*`` tag is pushed.  We control ``latest``
+          # explicitly via the ``type=raw,value=latest,...`` rule below.
+          flavor: |
+            latest=false
           tags: |
             # Retroactive build: only fires on workflow_dispatch
             # with a non-empty ``version`` input.  Publishes just
