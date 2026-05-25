@@ -1,0 +1,39 @@
+FROM mcr.microsoft.com/playwright/python:v1.60.0-noble
+
+# Build dependencies for linbpq.  The base image already ships Python +
+# Playwright + Chromium browsers; we only need the C toolchain and the
+# linbpq library deps on top.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        libpaho-mqtt-dev \
+        libjansson-dev \
+        libminiupnpc-dev \
+        libconfig-dev \
+        libpcap-dev \
+        zlib1g-dev \
+        iproute2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# pytest-playwright is the pytest plugin; the playwright python lib + browsers
+# already exist in the base image.  --break-system-packages because noble's
+# python is PEP 668 managed; we're in an ephemeral build container so that's
+# the right escape hatch (the base image itself relies on system pip).
+RUN pip install --no-cache-dir --break-system-packages \
+        pytest pytest-xdist pytest-playwright
+
+WORKDIR /src
+COPY . .
+
+# Build linbpq inside the container so the test binary matches the runtime
+# environment (glibc, libssl, etc.) Playwright is running against.  The
+# makefile's setcap step uses sudo and is allowed to fail (- prefix in the
+# makefile); in-container we don't need raw-sockets capabilities.
+RUN make -j"$(nproc)" \
+    && test -x linbpq \
+    || (echo "linbpq build failed"; exit 1)
+
+ENV LINBPQ_BIN=/src/linbpq
+WORKDIR /src/tests/playwright
+
+CMD ["python3", "-m", "pytest", "-n", "auto"]
