@@ -2,7 +2,7 @@ name: tests
 
 on:
   push:
-    branches: [master]
+    branches: [master, patched]
     # Run on any code/test change.  The ignore list catches the things
     # that demonstrably can't break the suite: pure docs / planning /
     # markdown, the docs workflow + mkdocs config, the docker-publish
@@ -19,7 +19,7 @@ on:
       - 'docker/entrypoint.sh'
       - 'docker/bpq32.cfg.example'
   pull_request:
-    branches: [master]
+    branches: [master, patched]
     paths-ignore:
       - 'docs/**'
       - 'notes/**'
@@ -42,6 +42,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  unit:
+    name: unit tests
+    runs-on: self-hosted
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build and run unit tests
+        run: make -C tests/unit test
+
   # Integration suite — split into two parallel jobs by the
   # ``long_runtime`` marker.  The "fast" job runs everything except
   # long_runtime in ~10-12 min; the "long" job runs only
