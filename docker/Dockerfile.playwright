@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # python is PEP 668 managed; we're in an ephemeral build container so that's
 # the right escape hatch (the base image itself relies on system pip).
 RUN pip install --no-cache-dir --break-system-packages \
-        pytest pytest-xdist pytest-playwright
+        pytest pytest-xdist pytest-playwright pytest-timeout
 
 WORKDIR /src
 COPY . .
