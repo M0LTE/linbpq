@@ -29,7 +29,8 @@ linbpq
 *.pdb
 
 # Generated test binaries
-tests/unit/*_test
+tests/unit/test_*
+!tests/unit/test_*.c
 
 # Core dumps
 core
