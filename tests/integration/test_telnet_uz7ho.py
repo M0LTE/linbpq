@@ -41,7 +41,13 @@ def _qtsm_null_guard_present() -> bool:
         text = cmd_c.read_text(errors="ignore")
     except OSError:
         return False
-    start = text.find("VOID QTSMCMD")
+    # ``rfind`` (not ``find``): the file has a forward-declaration
+    # prototype near the top of Cmd.c (``VOID QTSMCMD(...);``) and
+    # the actual function definition much further down.  The first
+    # occurrence is the prototype — its 4k-char neighbourhood is
+    # nowhere near the function body, so a naive ``find`` always
+    # reports "no guard" even when the patched function has one.
+    start = text.rfind("VOID QTSMCMD")
     if start < 0:
         return False
     # Function bodies are well under 4k chars; check the head of the
