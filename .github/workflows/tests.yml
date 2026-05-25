@@ -55,7 +55,10 @@ jobs:
   integration-fast:
     name: integration (fast)
     runs-on: self-hosted
-    timeout-minutes: 25
+    # 25min was previously enough, but the test_two_instance* tail
+    # grew and patched now finishes at ~25:30 — right past the cut-off.
+    # 35 gives headroom without normalising slowness.
+    timeout-minutes: 35
 
     steps:
       - uses: actions/checkout@v6
