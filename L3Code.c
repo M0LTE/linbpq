@@ -1457,7 +1457,7 @@ VOID L3TRYNEXTDEST(struct ROUTE * ROUTE)
 
 				DEST->DEST_ROUTE++;			// TO NEXT
 				
-				if (DEST->DEST_ROUTE = 7)
+				if (DEST->DEST_ROUTE == 7)
 					DEST->DEST_ROUTE = 1;	// TRY TO ACTIVATE FIRST
 			}
 		}
