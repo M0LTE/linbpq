@@ -104,7 +104,11 @@ jobs:
   integration-long:
     name: integration (long_runtime)
     runs-on: self-hosted
-    timeout-minutes: 25
+    # 25min was previously enough but the long_runtime tail (beacon
+    # soak / leak) now lands at 19-25min on this runner — close enough
+    # to the cut-off that we've hit it twice.  Match integration-fast
+    # at 35min for headroom.
+    timeout-minutes: 35
 
     steps:
       - uses: actions/checkout@v6
