@@ -113,6 +113,14 @@ PORT
  PROTOCOL=AXIP
  TXPORT=18999
  ENDPORT
+
+APRSDIGI
+; minimal block — empty body is fine.  ``Init_APRS()`` returns
+; FALSE unless ``PortConfig[APRSConfigSlot]`` is non-NULL, which
+; only happens when ``config.c::ProcessConfig`` sees an APRSDIGI
+; section in bpq32.cfg (terminated by ****).  Without this block
+; ``APRSActive`` stays 0 and /APRS* routes return 404.
+****
 """
 
 
