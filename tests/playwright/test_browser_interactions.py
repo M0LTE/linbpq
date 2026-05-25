@@ -26,6 +26,16 @@ playwright = pytest.importorskip("playwright.sync_api")
 # ── /Node/Terminal: type a command, observe output ───────────────
 
 
+@pytest.mark.skip(
+    reason=(
+        "issue #67: hangs indefinitely inside the noble Playwright "
+        "Docker chromium (pre-Docker native runs were fine).  The "
+        "interaction with the nested InputLine + OutputScreen "
+        "iframes + press('Enter') stalls some event loop and the "
+        "test never returns.  Re-enable once the page-level timeout "
+        "/ iframe interaction is reworked."
+    )
+)
 def test_terminal_type_into_input_iframe(linbpq_web, page, capture_js_errors):
     """Navigate to /Node/Terminal.html, focus the InputLine
     iframe, type a command, and confirm it lands in the
