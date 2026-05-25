@@ -1,24 +1,18 @@
-"""Phase 3 deferral — UZ7HO / QTSM subsystem commands.
+"""UZ7HO / QTSM subsystem commands — bare-form error handling.
 
-QTSM with no port number rejects cleanly with
-``Error - Port 0 is not a KISS port`` — locked in.
+Bare ``UZ7HO`` used to segfault via ``strlen(NULL)`` in
+``Cmd.c::UZ7HOCMD``; the upstream 6.0.25.28 merge added a ``Cmd ==
+NULL`` guard so it now returns a usage hint.  See
+https://github.com/M0LTE/linbpq/issues/3 (fixed).
 
-Bare UZ7HO crashes linbpq entirely due to a NULL deref in
-``Cmd.c::UZ7HOCMD`` (``strlop`` returns NULL when there's no space
-in CmdTail; the loop then calls ``strlen(NULL)``).  The SIGSEGV
-handler logs a backtrace to the linbpq log but does not recover —
-the listener stops accepting connections.  See
-https://github.com/M0LTE/linbpq/issues/3.
-
-The test pins the current crash invariant (the daemon stops
-accepting telnet connections after a bare UZ7HO) so it goes red
-when the upstream fix lands.
+Bare ``QTSM`` is the inverse story: previously rejected cleanly
+with ``Error - Port 0 is not a KISS port``, but the same upstream
+merge added a ``_stricmp(ptr, "HELP")`` check ahead of any null
+check on ``ptr`` — so ``strtok_s`` returning NULL on bare QTSM now
+crashes the handler.  Tracked separately.
 """
 
 from __future__ import annotations
-
-import socket
-import time
 
 from helpers.telnet_client import TelnetClient
 
@@ -32,29 +26,17 @@ def test_qtsm_without_port_rejected_cleanly(linbpq):
     )
 
 
-def test_uz7ho_bare_crashes_linbpq(linbpq):
-    """Bare UZ7HO segfaults; the listener stops accepting connections.
+def test_uz7ho_bare_returns_usage_hint(linbpq):
+    """Bare UZ7HO returns a usage hint cleanly (issue #3, fixed).
 
-    Pinned to the current broken behaviour — flip this test to a
-    "returns a usage hint" assertion once issue #3 is fixed.
+    Was: ``strlop`` returns NULL when CmdTail has no space; the
+    follow-up ``strlen(Cmd)`` then segfaulted, killing the listener.
+    Now: ``Cmd.c::UZ7HOCMD`` checks ``Cmd == 0`` and emits
+    ``Missing params - usage is UZ7HO port Command`` instead.
     """
     with TelnetClient("127.0.0.1", linbpq.telnet_port) as client:
         client.login("test", "test")
-        client.write_line("UZ7HO")
-        # No response arrives because the process crashes.
-        time.sleep(1.5)
-
-    # New connections to the telnet port now fail.
-    try:
-        sock = socket.create_connection(
-            ("127.0.0.1", linbpq.telnet_port), timeout=2
-        )
-    except (ConnectionRefusedError, OSError):
-        return  # expected — the daemon is dead
-    else:
-        sock.close()
-        raise AssertionError(
-            "UZ7HO no longer crashes linbpq — issue #3 may be fixed.  "
-            "Update this test to assert on the new sensible response "
-            "(probably a usage hint, mirroring QTSM's behaviour)."
-        )
+        response = client.run_command("UZ7HO")
+    assert b"usage is UZ7HO" in response, (
+        f"UZ7HO bare didn't return usage hint: {response!r}"
+    )
