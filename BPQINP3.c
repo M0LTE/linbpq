@@ -1800,7 +1800,6 @@ VOID sendAlltoOneNeigbour(struct ROUTE * Route)
 			if (memcmp(Route->NEIGHBOUR_CALL, Dest->DEST_CALL, 7) == 0)
 			{
 				if (DEBUGINP3) Debugprintf("INP3 Timer RIF Don't send %s to itself", Call);
-				Route++;
 				continue;
 			}
 
