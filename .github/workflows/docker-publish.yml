@@ -50,9 +50,13 @@ on:
 
 concurrency:
   group: docker-publish-${{ github.ref }}
-  # Don't cancel a release-tag publish mid-push — we'd end up with
-  # half the manifest list.  Master pushes can cancel each other.
-  cancel-in-progress: ${{ github.ref == 'refs/heads/master' }}
+  # Cancel superseded in-progress builds on branch pushes (master,
+  # patched, etc) — there's no point finishing a build for an older
+  # SHA when a newer push is right behind it.  Keep tag-ref builds
+  # (``v*``, ``v*-patched*``) un-cancellable: those publish manifest
+  # lists for a release and getting interrupted mid-push would leave
+  # a half-baked release tag on Docker Hub.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   publish:
