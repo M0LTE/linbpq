@@ -144,59 +144,41 @@ jobs:
           check_name: integration (long_runtime)
           fail_on_failure: false
 
-  # Playwright suite — runs natively rather than in Docker so we
-  # don't have to ship Chromium in the integration image.  The
-  # pytest-playwright plugin's ``playwright install`` step is the
-  # bulk of the setup; cache the browser binaries.
+  # Playwright suite — runs inside Microsoft's official Playwright
+  # Python container.  Earlier this ran natively on the self-hosted
+  # runner, but when the runner host moved to Ubuntu 26.04 Playwright
+  # 1.60.0 stopped supporting it ("Playwright does not support
+  # chromium on ubuntu26.04-x64").  The MCR image pins the distro to
+  # noble (24.04) regardless of host OS and ships Chromium + Python +
+  # Playwright pre-installed, so the host's OS no longer matters.
   playwright:
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            libpaho-mqtt-dev \
-            libjansson-dev \
-            libminiupnpc-dev \
-            libconfig-dev \
-            libpcap-dev \
-            zlib1g-dev \
-            python3-venv
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v4
 
-      - name: Build linbpq
-        run: |
-          make -j"$(nproc)"
-          test -x linbpq
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v5
+      - name: Build playwright test image (with layer cache)
+        uses: docker/build-push-action@v7
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}
-
-      - name: Install pytest + playwright
-        # Per-job venv to dodge PEP 668 on Ubuntu 23.04+ system Python.
-        run: |
-          python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" install --upgrade pip
-          "$RUNNER_TEMP/venv/bin/pip" install pytest pytest-xdist pytest-playwright
-          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
-          # Only Chromium — we don't need Firefox / WebKit.
-          "$RUNNER_TEMP/venv/bin/playwright" install --with-deps chromium
+          context: .
+          file: docker/Dockerfile.playwright
+          tags: linbpq-playwright:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run playwright suite
-        env:
-          LINBPQ_BIN: ${{ github.workspace }}/linbpq
         run: |
           mkdir -p reports
-          cd tests/playwright
-          python -m pytest -n auto \
-            --junitxml="$GITHUB_WORKSPACE/reports/junit-playwright.xml"
+          docker run --rm \
+            -v "$PWD/reports:/reports" \
+            linbpq-playwright:ci \
+            python3 -m pytest -n auto \
+              --junitxml=/reports/junit-playwright.xml
 
       - name: Upload playwright junit report
         if: always()
