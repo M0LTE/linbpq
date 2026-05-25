@@ -18,6 +18,8 @@ from __future__ import annotations
 import json
 import socket
 
+import pytest
+
 
 def _http_get_json(port: int, path: str, timeout: float = 3.0) -> tuple[bytes, dict | list]:
     """GET ``path`` and return (status_line, parsed JSON body)."""
@@ -127,18 +129,26 @@ def test_api_users_reflects_active_telnet_session(linbpq):
     )
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "issue #5: token verification in nodeapi.c::APIProcessHTTPMessage "
+        "is commented out, so /api/v1/state returns 200 OK without any "
+        "Authorization header.  When auth lands this xfail flips to "
+        "XPASS (strict=True → suite failure) — that's the prompt to "
+        "expand this into a real auth-required suite (no token / bad "
+        "token / good token / scope)."
+    ),
+)
 def test_api_v1_state_no_auth_returns_401(linbpq):
-    """An HTTP/1.0 GET to ``/api/v1/state`` without an
-    ``Authorization: Bearer`` header returns 401.
+    """HTTP/1.0 GET to ``/api/v1/state`` without ``Authorization`` should
+    return 401, but currently returns 200 OK because auth is bypassed.
 
-    Note: this does NOT prove auth is enforced.  The token-verify
-    block in ``nodeapi.c::APIProcessHTTPMessage`` is currently
-    commented out (see https://github.com/M0LTE/linbpq/issues/5),
-    so curl with *any* `Authorization: Bearer` value gets 200.
-    The 401 we see here comes from the URL-match catch-all under
-    HTTP/1.0; HTTP/1.1 + Auth header reaches the actual handler.
-    Once #5 is fixed and real auth lands, expand this into a full
-    auth-required suite (no token / bad token / good token / scope).
+    Was previously asserting 401 — which came from an HTTP/1.0 routing
+    quirk, not from real auth enforcement.  The upstream 6.0.25.28
+    merge smoothed that routing out so the request now reaches the
+    handler, which (per issue #5) doesn't verify the token at all.
+    Marked xfail until issue #5 lands real auth.
     """
     status = _http_get_status(linbpq.http_port, "/api/v1/state")
     assert b"401" in status, f"expected 401 without token, got {status!r}"
