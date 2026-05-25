@@ -23,6 +23,19 @@ import pytest
 from web_helpers import http_get, http_post
 
 
+# See https://github.com/M0LTE/linbpq/issues/66.  The minimal
+# ``linbpq_web_with_aprs`` fixture configures APRSPORT/APRSCALL but
+# doesn't carry the APRS-port CONFIG keywords needed to make
+# ``APRSReadConfigFile`` succeed; ``Init_APRS()`` returns FALSE and
+# ``APRSActive`` stays 0, so /APRS* routes 404.  Strict-xfail so the
+# tests flip back to green as soon as the fixture is wired up properly.
+_APRS_FIXTURE_BLOCKED = (
+    "issue #66: minimal APRS fixture doesn't satisfy Init_APRS; "
+    "/APRS* returns 404 until fixture has full APRS port config"
+)
+
+
+@pytest.mark.xfail(strict=True, reason=_APRS_FIXTURE_BLOCKED)
 def test_aprs_root_serves(linbpq_web_with_aprs):
     """``/APRS`` should serve the APRS top-level page."""
     port = linbpq_web_with_aprs["http_port"]
@@ -31,6 +44,7 @@ def test_aprs_root_serves(linbpq_web_with_aprs):
     assert b"<" in body[:50]
 
 
+@pytest.mark.xfail(strict=True, reason=_APRS_FIXTURE_BLOCKED)
 def test_aprs_entermsg_form(linbpq_web_with_aprs):
     """``/aprs/entermsg`` GET serves the enter-message form."""
     port = linbpq_web_with_aprs["http_port"]
