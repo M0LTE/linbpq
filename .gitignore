@@ -30,6 +30,11 @@ linbpq
 
 # Generated test binaries
 tests/unit/*_test
+tests/unit/test_*
+!tests/unit/test_*.c
+
+# Claude Code
+.claude/
 
 # Core dumps
 core
