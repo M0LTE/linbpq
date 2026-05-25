@@ -1,0 +1,3188 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Re-presentation of John Wiseman G8BPQ's BPQ32 / LinBPQ documentation,
+organised by user journey and fact-checked against the binary +
+integration test suite.
+">
+      
+      
+      
+        <link rel="canonical" href="https://m0lte.github.io/linbpq/6.0.25.28-patched.1/protocols/apps-interface/">
+      
+      
+        <link rel="prev" href="../ethernet/">
+      
+      
+        <link rel="next" href="../rhp/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Applications Interface - LinBPQ Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#applications-interface" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="LinBPQ Documentation" class="md-header__button md-logo" aria-label="LinBPQ Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            LinBPQ Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Applications Interface
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue-grey" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6m0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4M7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/M0LTE/linbpq" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    M0LTE/linbpq
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../configuration/reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../subsystems/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Subsystems
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Protocols and interfaces
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../node-commands/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Node prompt commands
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../clients/bpqterminal/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Windows companion programs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../changelog/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release notes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../project/contributing/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="LinBPQ Documentation" class="md-nav__button md-logo" aria-label="LinBPQ Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    LinBPQ Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/M0LTE/linbpq" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    M0LTE/linbpq
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../getting-started/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/windows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows (BPQ32)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../subsystems/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subsystems
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Subsystems
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../subsystems/bbsmail/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BBS / mail (BPQMail)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../subsystems/bbs-user-commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BBS user commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../subsystems/bbs-forwarding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inter-BBS forwarding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../subsystems/bbs-email/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BBS email gateways
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../subsystems/chat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chat node
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../subsystems/aprs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    APRS gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../subsystems/ipgateway/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mqtt-output/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MQTT output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocols and interfaces
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocols and interfaces
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ax25/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AX.25
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../netrom/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NET/ROM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../axip/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AX/IP over UDP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kiss/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KISS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bpqtoagw/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BPQtoAGW
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pactor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pactor / WINMOR / ARDOP / VARA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../host-mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host Mode Emulator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ethernet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BPQ Ethernet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Applications Interface
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Applications Interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#apps-interface-inbound" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Apps Interface (inbound)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Apps Interface (inbound)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wiring-up-an-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wiring up an application
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-your-application-sees-on-the-socket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What your application sees on the socket
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What your application sees on the socket">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-vs-trans-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default vs TRANS mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#control-text-bpq-injects-on-the-users-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Control text BPQ injects on the user's session
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#listener-inetd-systemd-or-your-own-daemon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Listener — inetd, systemd, or your own daemon
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Listener — inetd, systemd, or your own daemon">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-let-inetd-run-your-program" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A — let inetd run your program
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-let-systemd-do-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B — let systemd do it
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-c-your-own-daemon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option C — your own daemon
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-minimal-echo-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A minimal echo app
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binary-transparent-application-sockets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Binary-transparent application sockets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-application-registration-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other application registration paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#originating-a-binary-transparent-connection-outbound" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Originating a binary-transparent connection (outbound)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Originating a binary-transparent connection (outbound)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-1-agw-protocol-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1 — AGW protocol (recommended)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Option 1 — AGW protocol (recommended)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sending-and-receiving-ui-frames" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sending and receiving UI frames
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-fbb-mode-telnet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2 — FBB-mode telnet
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comparison-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison at a glance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rhp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RHP (Remote Host Protocol)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fbb-forwarding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FBB inter-BBS forwarding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node prompt commands
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Node prompt commands
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../node-commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LinBPQ Node Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows companion programs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Windows companion programs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../clients/bpqterminal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BPQTerminal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../clients/bpqaprs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BPQAPRS map client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../project/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../project/upstream/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upstream attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#apps-interface-inbound" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Apps Interface (inbound)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Apps Interface (inbound)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wiring-up-an-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wiring up an application
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-your-application-sees-on-the-socket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What your application sees on the socket
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What your application sees on the socket">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-vs-trans-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default vs TRANS mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#control-text-bpq-injects-on-the-users-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Control text BPQ injects on the user's session
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#listener-inetd-systemd-or-your-own-daemon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Listener — inetd, systemd, or your own daemon
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Listener — inetd, systemd, or your own daemon">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-let-inetd-run-your-program" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A — let inetd run your program
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-let-systemd-do-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B — let systemd do it
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-c-your-own-daemon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option C — your own daemon
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-minimal-echo-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A minimal echo app
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binary-transparent-application-sockets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Binary-transparent application sockets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-application-registration-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other application registration paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#originating-a-binary-transparent-connection-outbound" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Originating a binary-transparent connection (outbound)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Originating a binary-transparent connection (outbound)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-1-agw-protocol-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1 — AGW protocol (recommended)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Option 1 — AGW protocol (recommended)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sending-and-receiving-ui-frames" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sending and receiving UI frames
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-fbb-mode-telnet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2 — FBB-mode telnet
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comparison-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison at a glance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/M0LTE/linbpq/edit/master/docs/protocols/apps-interface.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="applications-interface">Applications Interface<a class="headerlink" href="#applications-interface" title="Permanent link">&para;</a></h1>
+<p>LinBPQ exposes a TCP-based Applications Interface that lets an
+external program show up at the node prompt as a registered
+application — users type the application's command word (or
+connect to the application's callsign), BPQ dials out to the
+external program, and a bidirectional byte stream is glued
+together between the user's session and the application's
+TCP socket.</p>
+<p>This page covers two related but distinct things, both from
+an application-implementor's perspective:</p>
+<ol>
+<li><strong>The Apps Interface (inbound)</strong> — your application is a
+   destination users connect <em>to</em>.  BPQ dials your TCP listener
+   when a user invokes the application.</li>
+<li><strong>Originating a binary-transparent connection (outbound)</strong> —
+   your application is a <em>source</em> that wants BPQ to dial a
+   remote callsign and hand back a clean byte pipe.  Not part
+   of the Apps Interface proper, but a common follow-up
+   question.</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Upstream and source</p>
+<p>Re-presentation of John Wiseman's
+<a href="https://www.cantab.net/users/john.wiseman/Documents/LinBPQ%20Applications%20Interface.html">LinBPQ Applications Interface</a> page,
+cross-checked against the LinBPQ source.</p>
+</div>
+<h2 id="apps-interface-inbound">Apps Interface (inbound)<a class="headerlink" href="#apps-interface-inbound" title="Permanent link">&para;</a></h2>
+<p>The Apps Interface gives you a single TCP socket (per
+application) on which BPQ delivers user sessions, one connection
+at a time.  BPQ dials <em>out</em> to your listener — your app is a TCP
+<em>server</em> on <code>127.0.0.1</code>, BPQ is the client.</p>
+<h3 id="wiring-up-an-application">Wiring up an application<a class="headerlink" href="#wiring-up-an-application" title="Permanent link">&para;</a></h3>
+<p>Two pieces of <code>bpq32.cfg</code> are needed.</p>
+<p><strong>1.  Inside the Telnet driver's <code>CONFIG ... ENDPORT</code> block,
+declare the slot array:</strong></p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="na">PORT</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w"> </span><span class="na">ID</span><span class="o">=</span><span class="s">Telnet</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w"> </span><span class="na">DRIVER</span><span class="o">=</span><span class="s">Telnet</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w"> </span><span class="na">CONFIG</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w"> </span><span class="na">TCPPORT</span><span class="o">=</span><span class="s">8010</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w"> </span><span class="na">HTTPPORT</span><span class="o">=</span><span class="s">8080</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w"> </span><span class="na">MAXSESSIONS</span><span class="o">=</span><span class="s">10</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w"> </span><span class="na">USER</span><span class="o">=</span><span class="s">test,test,N0CALL,,SYSOP</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w"> </span><span class="na">CMDPORT 23 63000 63001</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="na">ENDPORT</span>
+</span></code></pre></div>
+<p><code>CMDPORT</code> takes a list of TCP ports.  Each whitespace- or
+comma-separated entry occupies a slot, indexed from 0:</p>
+<table>
+<thead>
+<tr>
+<th>Slot</th>
+<th>TCP port</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>23</td>
+</tr>
+<tr>
+<td>1</td>
+<td>63000</td>
+</tr>
+<tr>
+<td>2</td>
+<td>63001</td>
+</tr>
+</tbody>
+</table>
+<p>Up to 33 slots (0–32) are accepted.  An entry of <code>0</code> is a
+sentinel — that slot is unconfigured and connects to it will
+be rejected.</p>
+<p><code>LINUXPORT</code> is an accepted alias for <code>CMDPORT</code> if you prefer
+the historical name.</p>
+<p><strong>2.  At top level, declare each application that maps to a
+slot:</strong></p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="na">APPLICATION 1,LINUX,C 2 HOST 0 S</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="na">APPLICATION 2,DEMO,C 2 HOST 1 S</span>
+</span></code></pre></div>
+<p>The third field is the <em>node-command line</em> run when the user
+types the application word.  <code>C 2 HOST &lt;slot&gt;</code> is what wires
+the user's session to the slot's TCP listener — the <code>2</code> is
+the BPQ port that hosts the Telnet driver (the same port the
+user is currently on); the <code>&lt;slot&gt;</code> is the index into <code>CMDPORT</code>.</p>
+<p>Optional flags follow <code>C &lt;port&gt; HOST &lt;slot&gt;</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>S</code></td>
+<td>When the application drops, return the user to the node prompt rather than disconnecting the whole session.</td>
+</tr>
+<tr>
+<td><code>NOCALL</code></td>
+<td>Suppress the auto-sent callsign line (see below).</td>
+</tr>
+<tr>
+<td><code>K</code></td>
+<td>Send periodic keepalive lines so a long-idle app doesn't get reaped by the L4 idle timer.</td>
+</tr>
+<tr>
+<td><code>TRANS</code></td>
+<td>Put the socket in <strong>binary-transparent mode</strong> — no line discipline, raw bytes both directions.</td>
+</tr>
+</tbody>
+</table>
+<p>Flags can appear in any order after the <code>&lt;slot&gt;</code>.</p>
+<h3 id="what-your-application-sees-on-the-socket">What your application sees on the socket<a class="headerlink" href="#what-your-application-sees-on-the-socket" title="Permanent link">&para;</a></h3>
+<p>When a user invokes the application (or another node connects
+to its callsign) BPQ opens a TCP connection to
+<code>127.0.0.1:&lt;your port&gt;</code> and immediately delivers:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>&lt;USERCALL&gt;\r\n
+</span></code></pre></div>
+<p>…unless <code>NOCALL</code> is set, in which case nothing is sent up
+front.  The user is shown <code>*** Connected to &lt;APPL&gt;\r</code> on
+their side at the same moment.</p>
+<p>After the callsign line, both sides exchange application bytes.</p>
+<h4 id="default-vs-trans-mode">Default vs <code>TRANS</code> mode<a class="headerlink" href="#default-vs-trans-mode" title="Permanent link">&para;</a></h4>
+<p>The default isn't a clean byte pipe — BPQ applies a textual
+line discipline in <em>both</em> directions and interprets a few
+control sequences:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Default (no <code>TRANS</code>)</th>
+<th><code>TRANS</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>App → user</strong> (BPQ reads your socket)</td>
+<td>Bytes are <em>buffered</em> until a CR (<code>\r</code>) or LF (<code>\n</code>) arrives, then forwarded to the user.  A CR-NUL pair is rewritten to CR-LF (and the inserted LF is echoed back to your socket).  Lines longer than 255 bytes are split at 255-byte boundaries before being handed to the node.</td>
+<td>Raw passthrough — bytes are forwarded in <code>recv()</code>-sized chunks the moment they arrive, no scanning, no buffering, no rewriting.</td>
+</tr>
+<tr>
+<td><strong>User → app</strong> (BPQ writes your socket)</td>
+<td>Every CR (<code>\r</code>) in the outbound stream is <em>expanded</em> to CR-LF (<code>\r\n</code>).  Optional codepage → UTF-8 conversion can happen here too (controlled by the per-session UTF8 flag from BPQTerm-style clients).</td>
+<td>Raw passthrough — bytes go out in the same order and quantity BPQ received them from the node side.</td>
+</tr>
+<tr>
+<td><strong>Telnet IAC</strong> (<code>0xFF</code>)</td>
+<td>Interpreted as a telnet command byte and swallowed if it forms a valid IAC sequence.</td>
+<td>Passed through verbatim.</td>
+</tr>
+</tbody>
+</table>
+<p>In short: <strong>default mode is line-oriented text, biased toward
+human terminals</strong>.  It's fine for any protocol whose unit of
+work is a CR-terminated line of 7-bit text.  It's <em>not</em> fine
+for binary transfers, length-framed protocols, anything that
+relies on an unmodified <code>0xFF</code> byte (FBB B2 attachments,
+arbitrary file content), or anything where you want zero
+bytes between an app <code>write()</code> and the user receiving them.</p>
+<p>When the user disconnects (or your app closes the socket) BPQ
+either:</p>
+<ul>
+<li>Returns them to the node prompt (with the <code>S</code> flag), or</li>
+<li>Drops the whole session (without <code>S</code>).</li>
+</ul>
+<h4 id="control-text-bpq-injects-on-the-users-session">Control text BPQ injects on the user's session<a class="headerlink" href="#control-text-bpq-injects-on-the-users-session" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>User sees</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>*** Connected to &lt;APPL&gt;</code></td>
+<td>Your TCP listener accepted (text-mode only).</td>
+</tr>
+<tr>
+<td><code>*** Disconnected from Stream &lt;n&gt;</code></td>
+<td>Either side closed the socket (text-mode only — <code>TRANS</code> mode just closes).</td>
+</tr>
+<tr>
+<td><code>Error - Invalid HOST Port</code></td>
+<td>Slot index out of range, or that slot is <code>0</code> in the <code>CMDPORT</code> array.</td>
+</tr>
+<tr>
+<td><code>Keepalive\r</code></td>
+<td>If the <code>K</code> flag is set and the session has been idle long enough that the L4 idle timer would otherwise reap it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="listener-inetd-systemd-or-your-own-daemon">Listener — <code>inetd</code>, <code>systemd</code>, or your own daemon<a class="headerlink" href="#listener-inetd-systemd-or-your-own-daemon" title="Permanent link">&para;</a></h3>
+<p>Your application has to be listening on <code>127.0.0.1:&lt;port&gt;</code>
+when BPQ dials.  Three common ways to arrange that, easiest
+first.</p>
+<h4 id="option-a-let-inetd-run-your-program">Option A — let <code>inetd</code> run your program<a class="headerlink" href="#option-a-let-inetd-run-your-program" title="Permanent link">&para;</a></h4>
+<p><code>inetd</code> is the original Unix "Internet superserver".  It's a
+long-running daemon that holds open every TCP/UDP port listed
+in its config; when a connection arrives it accepts the socket,
+forks, and execs the program you've nominated for that port —
+with stdin / stdout / stderr already wired to the socket.  Your
+program just reads stdin and writes stdout, exits when it's
+done, and <code>inetd</code> is ready for the next connection.</p>
+<p>For a BPQ app this is ideal: every user gets their own fresh
+process, you don't have to write any networking code, and
+crashes in one session can't leak state into the next.</p>
+<p>Install on Debian / Ubuntu (Hibbian package included):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>openbsd-inetd
+</span></code></pre></div>
+<p>Then two small config changes.</p>
+<p><code>/etc/services</code> is a system-wide name → port-number table.
+Pick any unused port above 1024 — say 63000 — and give it a
+name:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>bpqdemo        63000/tcp   # BPQ Demo App
+</span></code></pre></div>
+<p><code>/etc/inetd.conf</code> tells <code>inetd</code> which program to run for that
+service:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>bpqdemo    stream    tcp    nowait    linbpq    /usr/local/bin/bpqdemo
+</span></code></pre></div>
+<p>Field by field:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Service</td>
+<td><code>bpqdemo</code></td>
+<td>Looked up in <code>/etc/services</code> to get the port number.</td>
+</tr>
+<tr>
+<td>Socket type</td>
+<td><code>stream</code></td>
+<td>TCP.</td>
+</tr>
+<tr>
+<td>Protocol</td>
+<td><code>tcp</code></td>
+<td>TCP.</td>
+</tr>
+<tr>
+<td>Wait</td>
+<td><code>nowait</code></td>
+<td>Fork a new process per connection rather than serializing.</td>
+</tr>
+<tr>
+<td>User</td>
+<td><code>linbpq</code></td>
+<td>Run the program as this user (the same user <code>linbpq</code> itself runs as is fine).</td>
+</tr>
+<tr>
+<td>Program</td>
+<td><code>/usr/local/bin/bpqdemo</code></td>
+<td>Absolute path to the binary.</td>
+</tr>
+</tbody>
+</table>
+<p>(There are usually a couple more fields after the program path
+for arguments — <code>man 5 inetd.conf</code> if you need them.)</p>
+<p>Reload <code>inetd</code> to pick up the change:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>reload<span class="w"> </span>inetd
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># or, on older systems:</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>sudo<span class="w"> </span>killall<span class="w"> </span>-HUP<span class="w"> </span>inetd
+</span></code></pre></div>
+<p>Now drop your <code>bpq32.cfg</code> <code>CMDPORT 63000</code> (or wherever 63000
+is in your slot list) and an <code>APPLICATION</code> line, and the next
+connect will fire your program.</p>
+<p>The standard variant <code>xinetd</code> does the same thing with a
+per-service config file in <code>/etc/xinetd.d/bpqdemo</code> instead of a
+shared <code>inetd.conf</code> line — the <code>inetd.conf</code> fields above all
+have direct equivalents (see <code>man 5 xinetd.conf</code>).</p>
+<h4 id="option-b-let-systemd-do-it">Option B — let <code>systemd</code> do it<a class="headerlink" href="#option-b-let-systemd-do-it" title="Permanent link">&para;</a></h4>
+<p>systemd has its own equivalent of <code>inetd</code> built in.  Two unit
+files do the work: a <code>.socket</code> unit holds the listening port,
+and a templated <code>.service</code> unit runs an instance per connection.</p>
+<p><code>/etc/systemd/system/bpqdemo.socket</code>:</p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">[Socket]</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="na">ListenStream</span><span class="o">=</span><span class="s">127.0.0.1:63000</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="na">Accept</span><span class="o">=</span><span class="s">yes</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">[Install]</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="na">WantedBy</span><span class="o">=</span><span class="s">sockets.target</span>
+</span></code></pre></div>
+<p><code>/etc/systemd/system/bpqdemo@.service</code>:</p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">[Unit]</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="na">Description</span><span class="o">=</span><span class="s">BPQ demo app, per-connection instance</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="k">[Service]</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/bin/bpqdemo</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="na">StandardInput</span><span class="o">=</span><span class="s">socket</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="na">StandardOutput</span><span class="o">=</span><span class="s">socket</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="na">User</span><span class="o">=</span><span class="s">linbpq</span>
+</span></code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>bpqdemo.socket
+</span></code></pre></div>
+<p>Now every accepted connection starts a fresh <code>bpqdemo@.service</code>
+instance with stdin/stdout already plugged into the socket —
+same model as <code>inetd</code>, but managed by systemd so logs land in
+<code>journalctl -u bpqdemo@*</code> and lifecycle is visible to
+<code>systemctl status</code>.</p>
+<h4 id="option-c-your-own-daemon">Option C — your own daemon<a class="headerlink" href="#option-c-your-own-daemon" title="Permanent link">&para;</a></h4>
+<p>Nothing stops you from writing a long-running listener
+yourself: open a socket, <code>bind()</code>, <code>listen()</code>, <code>accept()</code> in a
+loop, fork or thread per accepted connection.  This is more
+work than the above but lets you carry shared state across
+sessions (a connected-user table, a database handle, etc.).</p>
+<p>BPQ doesn't care which option you choose — it just connects to
+<code>127.0.0.1:&lt;port&gt;</code> and starts moving bytes.</p>
+<h3 id="a-minimal-echo-app">A minimal echo app<a class="headerlink" href="#a-minimal-echo-app" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="ch">#!/usr/bin/env python3</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span><span class="o">,</span><span class="w"> </span><span class="nn">signal</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Read the callsign BPQ sends on connect (one line).</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">caller</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hello </span><span class="si">{</span><span class="n">caller</span><span class="si">}</span><span class="s2">, welcome to the demo app.  Type &#39;exit&#39; to leave.&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="p">:</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;exit&quot;</span><span class="p">:</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;bye&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>        <span class="k">break</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  echo: </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Wire it through <code>inetd</code> or systemd as above and connect from
+the node prompt:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>LINUX
+</span></code></pre></div>
+<p>(or <code>C N0CALL-9</code> if you've given the application a callsign on
+the <code>APPLICATION</code> line — see the
+<a href="../../configuration/reference/">Configuration reference</a>).</p>
+<h3 id="binary-transparent-application-sockets">Binary-transparent application sockets<a class="headerlink" href="#binary-transparent-application-sockets" title="Permanent link">&para;</a></h3>
+<p>Add <code>TRANS</code> to the <code>APPLICATION</code> line and the socket carries
+raw bytes both ways — no <code>\r\n</code> translation, no FLMSG frame
+sniffing, no internal line buffering.  Useful for binary
+protocols (file transfer, image push, custom framings) and for
+applications that want to handle their own line discipline.</p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="na">APPLICATION 3,BINARY,C 2 HOST 2 TRANS S</span>
+</span></code></pre></div>
+<p>Caveats:</p>
+<ul>
+<li>The auto-sent <code>&lt;USERCALL&gt;\r\n</code> still appears unless you also
+  add <code>NOCALL</code> — strip or skip it on the app side, or pair
+  <code>TRANS</code> with <code>NOCALL</code>.</li>
+<li>Streams are still bidirectional TCP — there's no record
+  framing.  If your binary protocol needs message boundaries,
+  put them in the protocol.</li>
+</ul>
+<h3 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h3>
+<p>There isn't any.  Anybody who reaches the application's
+listener bypass the BPQ user check entirely.  Two consequences:</p>
+<ul>
+<li><strong>Bind to <code>127.0.0.1</code> only.</strong>  BPQ always connects to
+  loopback; binding to <code>0.0.0.0</code> exposes your app to the open
+  network with no auth.</li>
+<li><strong>Trust the callsign string for identification, not for
+  authorisation.</strong>  BPQ sends what the connecting user
+  authenticated as, but the application has no way to verify
+  the chain of trust independently.  If you need authorisation
+  (sysop-only commands, per-user state) maintain your own user
+  table keyed on callsign.</li>
+</ul>
+<h3 id="other-application-registration-paths">Other application registration paths<a class="headerlink" href="#other-application-registration-paths" title="Permanent link">&para;</a></h3>
+<p>The <code>APPLICATION</code> line's third field can be any node command,
+not just <code>C &lt;port&gt; HOST &lt;slot&gt;</code>:</p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="na">APPLICATION 4,DX,C 2 N0DXC          ; downlink connect</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="na">APPLICATION 5,DXSPIDER,C 2 HOST 3 S ; via apps interface</span>
+</span></code></pre></div>
+<p>So a third-party DX cluster reachable as a callsign on AX.25
+can be wired to a single command word too — the
+implementation behind it is whatever the node command does.</p>
+<h2 id="originating-a-binary-transparent-connection-outbound">Originating a binary-transparent connection (outbound)<a class="headerlink" href="#originating-a-binary-transparent-connection-outbound" title="Permanent link">&para;</a></h2>
+<p>A different problem: your application has identified a remote
+callsign it wants to connect to over AX.25 / NET/ROM, and
+wants a clean byte pipe to it through BPQ.  Two practical
+options.</p>
+<h3 id="option-1-agw-protocol-recommended">Option 1 — AGW protocol (recommended)<a class="headerlink" href="#option-1-agw-protocol-recommended" title="Permanent link">&para;</a></h3>
+<p>The AGW emulator is the cleanest path.  Enable it in
+<code>bpq32.cfg</code>:</p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="na">AGWPORT</span><span class="o">=</span><span class="s">8000</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="na">AGWSESSIONS</span><span class="o">=</span><span class="s">20</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="na">AGWMASK</span><span class="o">=</span><span class="s">1</span>
+</span></code></pre></div>
+<p>Now any AGW-protocol client can connect to TCP/8000 and use
+the standard SV2AGW frame format.  The protocol is
+binary-record-framed: each message is a 36-byte header
+followed by 0..N payload bytes.  Header layout:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Offset</th>
+<th style="text-align: right;">Size</th>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td>Port</td>
+<td>BPQ port number (0-indexed in AGW).</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3</td>
+<td>filler</td>
+<td>Zero.</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1</td>
+<td>DataKind</td>
+<td>ASCII kind byte (see below).</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">1</td>
+<td>filler</td>
+<td>Zero.</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">1</td>
+<td>PID</td>
+<td>AX.25 PID for I/UI frames (e.g. 0xF0 for text).</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">1</td>
+<td>filler</td>
+<td>Zero.</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">10</td>
+<td>callfrom</td>
+<td>Source callsign, NUL-padded.</td>
+</tr>
+<tr>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">10</td>
+<td>callto</td>
+<td>Destination callsign, NUL-padded.</td>
+</tr>
+<tr>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">4</td>
+<td>DataLength</td>
+<td>Payload length, little-endian.</td>
+</tr>
+<tr>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">4</td>
+<td>reserved</td>
+<td>Zero.</td>
+</tr>
+</tbody>
+</table>
+<p>The DataKind values you'll typically use:</p>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Direction</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>X</code></td>
+<td>client → BPQ</td>
+<td>Register your callsign for incoming-connect routing.</td>
+</tr>
+<tr>
+<td><code>G</code></td>
+<td>client → BPQ</td>
+<td>Ask for the port table; BPQ replies with <code>G</code>.</td>
+</tr>
+<tr>
+<td><code>C</code></td>
+<td>client → BPQ</td>
+<td>Connect to <code>callto</code> from <code>callfrom</code> on <code>Port</code>.</td>
+</tr>
+<tr>
+<td><code>v</code></td>
+<td>client → BPQ</td>
+<td>Same, but with via-digi list in payload.</td>
+</tr>
+<tr>
+<td><code>D</code></td>
+<td>both</td>
+<td>Connected-mode data (in-band session bytes).</td>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>client → BPQ</td>
+<td>Send an <a href="#sending-and-receiving-ui-frames">unconnected (UI) frame</a>.</td>
+</tr>
+<tr>
+<td><code>V</code></td>
+<td>client → BPQ</td>
+<td>Send a UI frame with a via-digipeater path.</td>
+</tr>
+<tr>
+<td><code>m</code></td>
+<td>client → BPQ</td>
+<td>Toggle <a href="#sending-and-receiving-ui-frames">monitor mode</a> on this AGW connection.</td>
+</tr>
+<tr>
+<td><code>U</code></td>
+<td>BPQ → client</td>
+<td>Inbound UI frame, decoded (only delivered while monitor mode is on).</td>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>BPQ → client</td>
+<td>One of <em>your</em> transmitted UI frames, echoed back (loop monitor).</td>
+</tr>
+<tr>
+<td><code>S</code></td>
+<td>BPQ → client</td>
+<td>Inbound supervisory frame (RR / RNR / REJ) when monitoring.</td>
+</tr>
+<tr>
+<td><code>I</code></td>
+<td>BPQ → client</td>
+<td>Inbound information frame (connected-mode I-frame) when monitoring.</td>
+</tr>
+<tr>
+<td><code>K</code></td>
+<td>both</td>
+<td>Raw AX.25 frame in/out (low-level escape hatch).</td>
+</tr>
+<tr>
+<td><code>k</code></td>
+<td>client → BPQ</td>
+<td>Toggle raw-receive on this AGW connection.</td>
+</tr>
+<tr>
+<td><code>C</code></td>
+<td>BPQ → client</td>
+<td>Connect-confirmation (mirrors the request).</td>
+</tr>
+<tr>
+<td><code>d</code></td>
+<td>BPQ → client</td>
+<td>Remote disconnected.</td>
+</tr>
+<tr>
+<td><code>R</code></td>
+<td>BPQ → client</td>
+<td>AGW software version.</td>
+</tr>
+<tr>
+<td><code>g</code></td>
+<td>BPQ → client</td>
+<td>Single-port descriptor.</td>
+</tr>
+</tbody>
+</table>
+<p>Typical session shape, from the application's point of view:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>client → BPQ : &#39;X&#39;  callfrom=N0CALL-1                  (register)
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>client → BPQ : &#39;G&#39;                                     (port query)
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>BPQ    → client : &#39;G&#39; payload=&quot;2;Port1 desc;Port2 desc;&quot;
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>client → BPQ : &#39;C&#39; Port=2 callfrom=N0CALL-1 callto=N0DST   (connect)
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>BPQ    → client : &#39;C&#39; Port=2 callfrom=N0CALL-1 callto=N0DST  (confirmed)
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>client → BPQ : &#39;D&#39; ... payload bytes ...               (data out)
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>BPQ    → client : &#39;D&#39; ... payload bytes ...            (data in)
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>...
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>BPQ    → client : &#39;d&#39; ... (remote disconnect notification)
+</span></code></pre></div>
+<p><code>D</code>-records are arbitrary binary bytes — the AX.25 link layer
+delivers them in order, end-to-end through whatever
+combination of L2 hops, NET/ROM, AX/IP-UDP and digipeating
+gets the connection to its destination.  No line discipline is
+applied; this is <em>the</em> binary-transparent path through BPQ.</p>
+<p>There are mature AGW-protocol libraries available in most
+languages (<code>agwpe-py</code> for Python, <code>agwpe.NET</code> for C#, embedded
+in Direwolf companions for C, etc.) — using one of those is
+much less work than rolling the framing yourself.</p>
+<p><code>AGWMASK</code> is a bitmask of <code>APPLICATION</code> slots an AGW client is
+allowed to register against.  <code>AGWMASK=1</code> permits slot 1 only;
+<code>AGWMASK=0xFF</code> permits the first eight; etc.  Without a
+matching mask bit the AGW client can still send/receive but
+won't appear as a registered destination for incoming
+connects.</p>
+<h4 id="sending-and-receiving-ui-frames">Sending and receiving UI frames<a class="headerlink" href="#sending-and-receiving-ui-frames" title="Permanent link">&para;</a></h4>
+<p>Connected-mode (<code>C</code> / <code>D</code> / <code>d</code>) is the right tool for
+session-oriented traffic.  For unconnected packets — APRS-style
+beacons, broadcast announcements, ID frames, anything that
+should hit the air without a SABM handshake — the AGW protocol
+exposes UI (Unnumbered Information) frames directly.  Same
+TCP socket, no extra config.</p>
+<p><strong>Sending a UI frame:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Frame</th>
+<th>What you send</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>M</code></td>
+<td>Header with <code>Port</code>, <code>callfrom</code>, <code>callto</code>, <code>PID</code> (typically <code>0xF0</code> = no L3); payload follows.</td>
+</tr>
+<tr>
+<td><code>V</code></td>
+<td>Same as <code>M</code> but the payload starts with a 1-byte digi count followed by 10-byte NUL-padded callsigns for each via station, then the actual data.</td>
+</tr>
+</tbody>
+</table>
+<p>BPQ assembles the AX.25 UI frame (CTL byte = 0x03, supplied
+PID, last-bit set on the final address) and pushes it onto the
+configured port.  Source: <code>AGWAPI.c::ProcessAGWCommand</code> cases
+<code>'M'</code> / <code>'V'</code> (around line 1383).</p>
+<p>PID defaults to <code>0xF0</code> if the header field is zero.  Common
+PID values:</p>
+<table>
+<thead>
+<tr>
+<th>PID</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0xF0</code></td>
+<td>No layer 3 — generic data, what APRS uses.</td>
+</tr>
+<tr>
+<td><code>0xCF</code></td>
+<td>NET/ROM.</td>
+</tr>
+<tr>
+<td><code>0xCC</code></td>
+<td>ARPA Internet (IP).</td>
+</tr>
+<tr>
+<td><code>0xCD</code></td>
+<td>ARPA address resolution (ARP).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Receiving UI frames:</strong></p>
+<p>UI frames inbound are gated by <em>monitor mode</em>.  Send an <code>m</code>
+frame to toggle monitor on for your AGW connection; while it's
+on, every AX.25 frame received on the configured port is
+delivered to you, classified by frame type:</p>
+<table>
+<thead>
+<tr>
+<th>You receive</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>U</code></td>
+<td>Inbound UI frame.  Header carries <code>callfrom</code>, <code>callto</code>, <code>Port</code>, <code>PID</code>; payload is the UI data.</td>
+</tr>
+<tr>
+<td><code>I</code></td>
+<td>Inbound I-frame (someone else's connected-mode session).</td>
+</tr>
+<tr>
+<td><code>S</code></td>
+<td>Inbound S-frame (RR / RNR / REJ supervisory).</td>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>One of <em>your</em> transmitted frames, echoed back to you (only if <code>LoopMonFlag</code> is set on your connection).</td>
+</tr>
+</tbody>
+</table>
+<p>Source: <code>AGWAPI.c::AGWDataPacket</code> (around line 760) — the
+inbound classifier.</p>
+<p>If you also want to see traffic that BPQ couldn't decode, send
+a <code>k</code> frame to toggle raw-receive on the same connection;
+every byte of every frame on the configured port arrives as a
+<code>K</code> frame, undecoded.  Useful for protocol experimentation,
+malformed-frame analysis, or implementing your own AX.25
+decoder above BPQ's KISS layer.</p>
+<p><strong>Worked example — APRS beacon:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>client → BPQ : &#39;X&#39; callfrom=&#39;M0XYZ-7&#39;                  (register)
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>client → BPQ : &#39;m&#39;                                     (monitor on)
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>client → BPQ : &#39;M&#39; Port=2 callfrom=&#39;M0XYZ-7&#39; callto=&#39;APBPQ1&#39; PID=0xF0
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>                  data=&quot;!5132.83N/00007.50W&gt;Test beacon&quot;
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>BPQ    → client : &#39;T&#39; Port=2 callfrom=&#39;M0XYZ-7&#39; callto=&#39;APBPQ1&#39; …
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>                  (loopback — your own frame back, only if LoopMonFlag)
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>BPQ    → client : &#39;U&#39; Port=2 callfrom=&#39;G8BPQ-9&#39; callto=&#39;APRS&#39; …
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>                  (inbound UI from another station)
+</span></code></pre></div>
+<p>For real APRS work, BPQ's own <a href="../../subsystems/aprs/">APRS subsystem</a>
+is usually the right answer — it handles digipeating, message
+acks, beacon scheduling, igate-to-IS bridging, and so on.  The
+raw AGW UI path is for cases where you want to roll your own
+protocol on top of UI frames, or write a tool that BPQ's APRS
+subsystem doesn't already do.</p>
+<h3 id="option-2-fbb-mode-telnet">Option 2 — FBB-mode telnet<a class="headerlink" href="#option-2-fbb-mode-telnet" title="Permanent link">&para;</a></h3>
+<p>If AGW isn't an option, a simpler-but-rougher path exists
+through the Telnet driver in <em>FBB mode</em>.  In <code>bpq32.cfg</code>'s
+Telnet <code>CONFIG ... ENDPORT</code> block, alongside <code>TCPPORT=</code>:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>FBBPORT=8011
+</span></code></pre></div>
+<p>Connect to TCP/8011 instead of TCP/8010, and BPQ skips telnet
+line discipline (no IAC negotiation, no <code>\r\n</code> rewriting).  You
+still have to log in — send <code>&lt;user&gt;\r&lt;password&gt;\r</code> — then issue
+node commands.  <code>C &lt;port&gt; &lt;call&gt;</code> opens a connection; after
+<code>*** Connected to &lt;call&gt;\r</code> you can exchange bytes more or
+less binary-transparently with the remote, but BPQ will still
+inject control lines (e.g. <code>*** Disconnected\r</code>) at session
+boundaries and may interleave node-prompt status with your
+data if the user-side session goes interactive.</p>
+<p>This is the path used by the FBB inter-BBS forwarding
+protocol — it works, and it's simple, but it wasn't designed
+for arbitrary binary apps and has subtle textual seams at
+session edges.  Prefer AGW unless you're explicitly targeting
+the FBB protocol or a tooling stack that already speaks
+FBB-mode telnet.</p>
+<h3 id="comparison-at-a-glance">Comparison at a glance<a class="headerlink" href="#comparison-at-a-glance" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>AGW</th>
+<th>FBB-mode telnet</th>
+<th>Apps Interface (CMDPORT)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Direction</td>
+<td>originate from app, also accept inbound</td>
+<td>originate from app</td>
+<td>inbound only — BPQ dials your app</td>
+</tr>
+<tr>
+<td>Framing</td>
+<td>record-based (36-byte header + payload)</td>
+<td>byte stream</td>
+<td>byte stream</td>
+</tr>
+<tr>
+<td>Line discipline</td>
+<td>n/a — records are binary</td>
+<td>none in FBB mode</td>
+<td>text by default; <code>TRANS</code> for raw</td>
+</tr>
+<tr>
+<td>Authentication</td>
+<td>none (loopback-bind)</td>
+<td>telnet <code>USER=</code> line</td>
+<td>none (loopback-bind)</td>
+</tr>
+<tr>
+<td>Multiple sessions per connection</td>
+<td>yes (multiplexed by <code>callfrom</code>/<code>callto</code>)</td>
+<td>one per TCP connection</td>
+<td>one per TCP connection</td>
+</tr>
+<tr>
+<td>Best for</td>
+<td>new apps doing originate + accept</td>
+<td>quick scripts / FBB protocol</td>
+<td>inbound-only apps glued to a node command</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/M0LTE/linbpq" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
