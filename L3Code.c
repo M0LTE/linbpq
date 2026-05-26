@@ -1022,6 +1022,15 @@ VOID CLEARACTIVEROUTE(struct ROUTE * ROUTE, int Reason)
 		if (DEST->DEST_ROUTE == 0)
 			continue;
 
+		// DEST_ROUTE is 1..6, decremented before use as an index.
+		// 1..3 selects NRROUTE[0..2] (NODES routes); 4..6 selects
+		// INP3ROUTE[0..2] (INP3 routes).  See the "array of 6"
+		// comment at asmstrucs.h:480 — NRROUTE and INP3ROUTE are
+		// contiguous and same-sized; the original
+		// ``INP3ROUTE[DEST_ROUTE]`` was relying on that aliasing
+		// but without the decrement, so it indexed the wrong
+		// slots.
+
 		if (DEST->DEST_ROUTE >= 1 && DEST->DEST_ROUTE <= 3
 			? DEST->NRROUTE[DEST->DEST_ROUTE - 1].ROUT_NEIGHBOUR == ROUTE
 			: (DEST->DEST_ROUTE >= 4 && DEST->DEST_ROUTE <= 6
