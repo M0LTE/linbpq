@@ -242,7 +242,12 @@ typedef struct ROUTE
 	int RTT;				// Current	
 	int SRTT;				// Smoothed RTT
 	int NeighbourSRTT;		// Other End SRTT
-	int RTTIncrement;		// Average of Ours and Neighbours SRTT in 10 ms - smoothed neighbor transport time (SNTT) in spec
+	int RTTIncrement;		// Local SRTT in 10ms - smoothed neighbor transport time (SNTT) in spec.
+							// The spec describes this as the average of "our" and "neighbour's"
+							// round-trip measurements, but since neither end has a synchronised
+							// clock both measurements are full round-trips (out + back); the
+							// average adds no information vs the locally-measured SRTT, so we
+							// only use the local value.
 	int BCTimer;			// Time to next L3RTT Broadcast
 	int Timeout;			// Lost Response Timer
 	int Retries;			// Lost Response Count
