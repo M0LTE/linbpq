@@ -1596,6 +1596,81 @@ void WriteL4LogLine(UCHAR * mycall, UCHAR * call, UCHAR * node)
 extern struct CMDX COMMANDS[];
 extern int NUMBEROFCOMMANDS;
 
+//	Issue #69 diagnostics ----------------------------------------------------
+//
+//	"C <appl>" over NetRom (e.g. C RDGCHT) intermittently lands the connecting
+//	station at the node command prompt instead of the application.  The leading
+//	theory is that a stale / half-open prior circuit for the same remote call,
+//	whose (L4ID,L4INDEX) gets reused by the far end, collides with a genuinely
+//	new connect in FINDCIRCUIT.  When that happens CONNECTREQUEST treats the new
+//	connect as a retransmission and just re-ACKs the old session, gluing the
+//	user onto whatever that session was already attached to (e.g. the node).
+//
+//	This logs every FINDCIRCUIT "assume retry" hit so the correlation can be
+//	confirmed against a real occurrence.  Output goes to Issue69_MMDD.txt in the
+//	node directory (and to the debug log).  Remove once the root cause is fixed.
+//	See https://github.com/M0LTE/linbpq/issues/69
+
+static void LogConreqRetryMatch(L3MESSAGEBUFFER * L3MSG, TRANSPORTENTRY * L4, UINT ApplMask, UCHAR * ApplCall)
+{
+	UCHAR FN[MAX_PATH];
+	FILE * h;
+	time_t T = time(NULL);
+	struct tm * tm = gmtime(&T);
+	char srce[12], tgt[12], appl[16];
+	TRANSPORTENTRY * X = L4->L4CROSSLINK;
+	int i;
+	int suspect;
+
+	srce[ConvFromAX25(L3MSG->L3SRCE, srce)] = 0;
+	tgt[ConvFromAX25(ApplCall, tgt)] = 0;
+
+	//	APPL is the application name (if any) this session was set up for.
+	//	It is space padded and may not be null terminated - copy and trim.
+
+	memcpy(appl, L4->APPL, 12);
+	appl[12] = 0;
+	for (i = 11; i >= 0 && appl[i] == ' '; i--)
+		appl[i] = 0;
+
+	//	An honest retransmission re-ACKs an existing, live circuit whose target
+	//	matches.  Flag the cases that don't fit that pattern: a connect to an
+	//	application (ApplMask != 0) that matched a session which is not currently
+	//	up (L4STATE != 5) or is not crosslinked to a partner - i.e. the likely
+	//	stale-session collision behind issue #69.
+
+	suspect = (ApplMask != 0 && (L4->L4STATE != 5 || X == NULL));
+
+	Debugprintf("Issue69: CONREQ retry-match%s from %s req=%s mask=%X state=%d ctype=%02X xlink=%s",
+		suspect ? " [SUSPECT]" : "", srce, tgt, ApplMask,
+		L4->L4STATE, L4->L4CIRCUITTYPE, X ? "yes" : "no");
+
+	sprintf(FN, "%s/Issue69_%02d%02d.txt", BPQDirectory, tm->tm_mon + 1, tm->tm_mday);
+
+	h = fopen(FN, "ab");
+
+	if (h == NULL)
+		return;
+
+	fprintf(h, "%02d:%02d:%02d CONREQ retry-match%s from %s req=%s mask=%X farid=%d/%d | "
+		"sess our=%d/%d far=%d/%d state=%d ctype=%02X flags=%02X kill=%d appl='%s' xlink=%s",
+		tm->tm_hour, tm->tm_min, tm->tm_sec, suspect ? " [SUSPECT]" : "",
+		srce, tgt, ApplMask, L3MSG->L4ID, L3MSG->L4INDEX,
+		L4->CIRCUITINDEX, L4->CIRCUITID, L4->FARINDEX, L4->FARID,
+		L4->L4STATE, L4->L4CIRCUITTYPE, L4->FLAGS, L4->L4KILLTIMER,
+		appl, X ? "yes" : "no");
+
+	if (X)
+		fprintf(h, "(ctype=%02X state=%d)", X->L4CIRCUITTYPE, X->L4STATE);
+
+	if (L4->ConnectTime)
+		fprintf(h, " age=%lds", (long)(T - L4->ConnectTime));
+
+	fprintf(h, "\r\n");
+
+	fclose(h);
+}
+
 VOID CONNECTREQUEST(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, UINT ApplMask, UCHAR * ApplCall, int Service)
 {
 	//	CONNECT REQUEST - SEE IF EXISTING SESSION
@@ -1627,6 +1702,8 @@ VOID CONNECTREQUEST(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, UINT Appl
 	if (FINDCIRCUIT(L3MSG, &L4, &Index))
 	{
 		// SESSION EXISTS - ASSUME RETRY AND SEND ACK
+
+		LogConreqRetryMatch(L3MSG, L4, ApplMask, ApplCall);		// Issue #69 diagnostics
 
 		SendConACK(LINK, L4, L3MSG, BPQNODE, ApplMask, ApplCall);
 		return;
