@@ -24,6 +24,19 @@ This fork uses two long-lived branches:
 3. **Order patches by severity:** critical first, then significant, then
    minor. This keeps the most important fixes closest to the base.
 
+## GitHub authorship (standing instruction)
+
+Anything posted to GitHub through this assistant goes out under Tom's
+(M0LTE's) account, so it must be **explicit that Claude — Tom's AI
+assistant — wrote it, not Tom.** This applies to issues, pull requests,
+issue/PR comments, and reviews.
+
+- Never write in the first person as Tom.
+- Add a clear attribution, e.g. an italic sign-off:
+  `— Written by Claude, Tom's (M0LTE) AI assistant, on his behalf.`
+- When drafting on Tom's behalf, write in the assistant's own voice
+  ("I traced…", "I'd recommend…") rather than impersonating him.
+
 ## Building
 
 ```bash
