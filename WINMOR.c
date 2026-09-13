@@ -205,7 +205,12 @@ lineloop:
 				Monframe.PORT = TNC->Port;	
 				Monframe.LENGTH = 12 + strlen(Line);
 				Monframe.DEST[0] = 1;			// Plain Text Monitor
-				strcpy(&Monframe.DEST[1], Line);
+				// Not strcpy: _FORTIFY_SOURCE sizes strcpy against the closest
+				// subobject, which is the 7-byte DEST, rather than the whole
+				// MESSAGE this write deliberately runs into. memcpy is sized
+				// against the whole object, and is what the incomplete-line
+				// branch below already uses. Line is under 250 bytes here.
+				memcpy(&Monframe.DEST[1], Line, strlen(Line) + 1);
 
 				time(&Monframe.Timestamp);
 				BPQTRACE((MESSAGE *)&Monframe, FALSE);
