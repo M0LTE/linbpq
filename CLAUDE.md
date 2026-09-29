@@ -6,8 +6,7 @@
   Never commit local patches here. Only upstream syncs and docs/CI changes
   that don't touch LinBPQ source code.
 
-Source fixes go to John as PRs against master for review; they don't land
-here until they arrive in one of his releases. There is no separate
+Source fixes are offered to John as PRs. There is no separate
 distribution branch: the `patched` branch was retired on 2026-09-29 once
 John had taken most of its fixes, and is archived as the tag
 `archive/patched`.
