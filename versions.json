@@ -7,14 +7,14 @@
   {
     "version": "6.0.25.41",
     "title": "6.0.25.41",
-    "aliases": []
+    "aliases": [
+      "latest"
+    ]
   },
   {
     "version": "6.0.25.28-patched.1",
     "title": "6.0.25.28-patched.1",
-    "aliases": [
-      "latest"
-    ]
+    "aliases": []
   },
   {
     "version": "6.0.25.28",
