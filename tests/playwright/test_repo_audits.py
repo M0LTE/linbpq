@@ -2,7 +2,7 @@
 
 File-level invariants that catch "we generated this; did we get
 it right?" bugs without needing to boot linbpq.  Cheap to run,
-high-leverage protection on extraction work / docs / samples.
+high-leverage protection on docs / samples.
 
 Each audit lives here as a separate test so failures pinpoint
 the class of bug.  All tests are pure-file inspection, so they
@@ -30,147 +30,15 @@ _DOCS_DIR = _REPO_ROOT / "docs"
 _CITATION_IGNORE_FILES = set()
 
 
-# ── Template existence / orphan audits ───────────────────────────
-
-
-def _c_source_files() -> list[Path]:
-    return sorted(p for p in _REPO_ROOT.glob("*.c"))
-
-
-_TEMPLATE_REF_RE = re.compile(rb'GetTemplateFromFile\(\d+,\s*"([^"]+)"\s*\)')
-
-
-def test_every_referenced_template_exists():
-    """Every ``GetTemplateFromFile(N, "X.txt")`` call across the
-    C source must point at a file that exists under ``HTML/``.
-
-    If a template name is referenced but missing, the runtime
-    falls back to the literal string ``"File is missing"`` —
-    silent UX breakage we want to catch before deploy.
-    """
-    referenced: set[str] = set()
-    for path in _c_source_files():
-        try:
-            data = path.read_bytes()
-        except OSError:
-            continue
-        for m in _TEMPLATE_REF_RE.finditer(data):
-            referenced.add(m.group(1).decode("ascii"))
-
-    missing = [
-        name for name in sorted(referenced)
-        if not (_HTML_DIR / name).exists()
-    ]
-    assert not missing, (
-        f"C source references templates that don't exist in HTML/: "
-        f"{missing}.  These would render as 'File is missing' at runtime."
-    )
-
-
-def test_no_orphan_templates():
-    """Every file under ``HTML/*.txt`` and ``HTML/*.js`` must be
-    referenced from at least one C source file.
-
-    An orphaned template is dead weight — hints we forgot to
-    delete it after a rename or removed the C-side caller.
-    """
-    referenced: set[str] = set()
-    c_blob = b""
-    for path in _c_source_files():
-        try:
-            c_blob += path.read_bytes()
-        except OSError:
-            pass
-
-    orphans: list[str] = []
-    for path in sorted(_HTML_DIR.glob("*.txt")):
-        if path.name.encode("ascii") not in c_blob:
-            orphans.append(path.name)
-    for path in sorted(_HTML_DIR.glob("*.js")):
-        if path.name.encode("ascii") not in c_blob:
-            orphans.append(path.name)
-
-    assert not orphans, (
-        f"templates under HTML/ are not referenced from any C file: "
-        f"{orphans}.  Either wire them up or delete them."
-    )
-
-
-# ── Version-marker consistency ───────────────────────────────────
-
-
-_TEMPLATE_REF_WITH_VERSION_RE = re.compile(
-    rb'GetTemplateFromFile\((\d+),\s*"([^"]+)"\s*\)'
-)
-
-
-def test_template_version_markers_match_caller():
-    """The first non-blank line of every extracted template is a
-    ``<!-- Version N -->`` comment.  Each C-side caller passes a
-    version number to ``GetTemplateFromFile`` that *must* match;
-    a mismatch returns ``"Wrong Version of HTML Page"`` at
-    runtime.
-
-    This audit pins that the on-disk markers and the caller
-    versions agree across the repo.
-    """
-    callers: dict[str, set[int]] = {}
-    for path in _c_source_files():
-        try:
-            data = path.read_bytes()
-        except OSError:
-            continue
-        for m in _TEMPLATE_REF_WITH_VERSION_RE.finditer(data):
-            ver = int(m.group(1))
-            name = m.group(2).decode("ascii")
-            callers.setdefault(name, set()).add(ver)
-
-    mismatches: list[str] = []
-    for name, versions in sorted(callers.items()):
-        path = _HTML_DIR / name
-        if not path.exists():
-            continue  # covered by test_every_referenced_template_exists
-        first = path.read_text(errors="replace").lstrip().splitlines()
-        if not first:
-            mismatches.append(f"{name}: empty file")
-            continue
-        m = re.match(r"<!--\s*Version\s+(\d+)", first[0])
-        if not m:
-            # Caller version 0 means "skip the check"; only flag
-            # if any caller actually passes a non-zero version.
-            if any(v != 0 for v in versions):
-                mismatches.append(
-                    f"{name}: file has no version marker but callers "
-                    f"request {sorted(versions)}"
-                )
-            continue
-        file_ver = int(m.group(1))
-        # 0 in the caller means "don't check" — ignore those.
-        non_skip = {v for v in versions if v != 0}
-        if non_skip and file_ver not in non_skip:
-            mismatches.append(
-                f"{name}: file is v{file_ver}, callers request "
-                f"{sorted(non_skip)}"
-            )
-
-    assert not mismatches, "version-marker mismatches:\n  " + "\n  ".join(
-        mismatches
-    )
-
-
 # ── HTML/samples/ artefact sweep ─────────────────────────────────
 
 
 def test_samples_files_have_no_extraction_artefacts():
-    """Same backslash-sequence audit as
-    ``test_no_extraction_artefacts_in_templates`` (over
-    ``HTML/*.txt``), extended to ``HTML/samples/``.
+    """No stray C-source backslash sequences in ``HTML/samples/``.
 
     The samples were copied verbatim from John Wiseman's
-    NodePages.zip — they're not extracted from C source — so we
-    don't expect artefacts, but the audit guards against a
-    future "regenerate samples from C" change repeating the
-    NodeTail.txt mistake.
+    NodePages.zip, so we don't expect any, but the audit guards
+    against a future change that regenerates them from C source.
     """
     samples_dir = _HTML_DIR / "samples"
     if not samples_dir.is_dir():

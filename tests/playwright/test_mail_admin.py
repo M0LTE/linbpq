@@ -1,8 +1,6 @@
 """Mail admin pages — round-trip + structural coverage.
 
-Companion to test_template_render_matrix.py (which proves each
-post-signon Mail page renders the right template).  Here we go
-deeper: form fields are present, BBSName from config round-trips
+Form fields are present, BBSName from config round-trips
 into the config form, the user/message/forwarding tables show
 expected headers even with empty data, and the housekeeping form
 exposes the schedule fields.

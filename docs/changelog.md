@@ -41,14 +41,6 @@ Upstream sync to [g8bpq/linbpq `d84bcda`][6.0.25.28].
 
 ### Fork-side changes shipped alongside
 
-- **HTML-from-C extraction backed out.**  Earlier fork work
-  extracted the inlined HTML templates from `WebMail.c`,
-  `BBSHTMLConfig.c`, `APRSCode.c`, `HTTPcode.c` and
-  `templatedefs.c` into standalone `HTML/*.txt` files.  Since
-  this work hadn't been upstreamed to John, every upstream
-  release was producing large conflicts in those files for no
-  benefit.  Reverted on this release; recoverable from the
-  `archive/html-extraction` branch.
 - **Versioned documentation via [mike].**  The site now ships
   one snapshot per upstream release; the version switcher in
   the page header lets you pin to a specific BPQ version.  This

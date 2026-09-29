@@ -1,8 +1,6 @@
 """Chat HTTP coverage.
 
-Builds on the Chat post-signon walkthrough in
-test_template_extraction.py with deeper checks on each Chat
-endpoint: status table contents, configuration form fields,
+Deep checks on each Chat endpoint: status table contents, configuration form fields,
 config-save round-trip, the Chat session page (Chat.html), and
 the disconnect endpoint.
 """

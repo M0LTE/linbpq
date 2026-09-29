@@ -1,9 +1,8 @@
 #!/bin/sh
 # linbpq Docker entrypoint.
 #
-# Refreshes /data/HTML from the image (version markers must match the
-# binary or the BBS/Mail pages 404), checks for /data/bpq32.cfg, then
-# execs linbpq from /data so cwd-relative state (BPQNODES.dat,
+# Refreshes /data/HTML from the image's static assets, checks for
+# /data/bpq32.cfg, then execs linbpq from /data so cwd-relative state (BPQNODES.dat,
 # logs/, *.mes files, etc.) lands inside the volume.
 #
 # Usage:
@@ -19,10 +18,9 @@
 
 set -e
 
-# Sync HTML/ templates from the image.  ``cp -rf`` overwrites
-# files that exist in /data/HTML so the templates stay in lock-step
-# with the binary; user state files elsewhere in /data are
-# untouched.
+# Sync HTML/ static assets from the image.  ``cp -rf`` overwrites
+# files that exist in /data/HTML so they track the image; user
+# state files elsewhere in /data are untouched.
 if [ -d /opt/linbpq/HTML ]; then
     cp -rf /opt/linbpq/HTML /data/
 fi

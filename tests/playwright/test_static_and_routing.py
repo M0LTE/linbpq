@@ -103,8 +103,8 @@ def test_webproc_css_serves_css_content(linbpq_web):
 
 def test_webmail_webscript_js_served_as_javascript(linbpq_web):
     """``/WebMail/webscript.js`` is the WebMail UI's JS helper.
-    The HTML/ file is webscript.js — the route maps it under
-    /WebMail/.  Must come back as javascript content-type."""
+    It is compiled into the binary and served under /WebMail/.
+    Must come back as javascript content-type."""
     port = linbpq_web["http_port"]
     # Try the WebMail-prefixed path first; some builds also serve
     # at /webscript.js.

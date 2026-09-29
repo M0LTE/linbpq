@@ -1,6 +1,6 @@
 # Multi-stage build for the linbpq runtime image published to Docker Hub.
 # The first stage compiles linbpq from source against the dev libs; the
-# second stage carries only the binary, the HTML/ templates, and the
+# second stage carries only the binary, the HTML/ static assets, and the
 # matching runtime shared libraries.
 
 FROM debian:bookworm-slim AS builder

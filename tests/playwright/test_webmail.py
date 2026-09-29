@@ -6,9 +6,6 @@ test_websocket.py.  Here we lock in:
 
 - The signon form renders.
 - The post-signon Message List page renders for the SYSOP user.
-- The empty mailbox views (WMAll, WMMine, etc) render the same
-  outer template (WebMailPage v6) — exercised via
-  test_template_render_matrix's WEBMAIL_RENDERS.
 - The XML mail-info endpoints (used by the JS to render row
   detail) reply with XML, not HTML.
 """
