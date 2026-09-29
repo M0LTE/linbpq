@@ -8,6 +8,7 @@ FROM debian:bookworm-slim AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         ca-certificates \
+        curl \
         libpaho-mqtt-dev \
         libjansson-dev \
         libminiupnpc-dev \
@@ -15,6 +16,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpcap-dev \
         zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# libbacktrace (linked since 6.0.25.41) isn't packaged here, so build
+# it from a pinned upstream commit as a static library.
+ARG LIBBACKTRACE_COMMIT=0b9b49cf4a2c9229fc052d6716e1528b2f23e91a
+RUN curl -fsSL "https://github.com/ianlancetaylor/libbacktrace/archive/${LIBBACKTRACE_COMMIT}.tar.gz" \
+        | tar -xz -C /tmp \
+    && cd /tmp/libbacktrace-${LIBBACKTRACE_COMMIT} \
+    && ./configure --prefix=/usr/local --disable-shared --with-pic \
+    && make -j"$(nproc)" \
+    && make install \
+    && rm -rf /tmp/libbacktrace-${LIBBACKTRACE_COMMIT}
 
 WORKDIR /src
 COPY . .

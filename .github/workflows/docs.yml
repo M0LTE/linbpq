@@ -116,9 +116,25 @@ jobs:
             zlib1g-dev \
             python3-venv
 
+      # libbacktrace (linked since 6.0.25.41) isn't packaged on every
+      # distro, so build a static copy into the job's temp dir.  Same
+      # pinned commit as the docker/ builds.
+      - name: Build libbacktrace
+        env:
+          LIBBACKTRACE_COMMIT: 0b9b49cf4a2c9229fc052d6716e1528b2f23e91a
+        run: |
+          curl -fsSL "https://github.com/ianlancetaylor/libbacktrace/archive/${LIBBACKTRACE_COMMIT}.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP/libbacktrace-${LIBBACKTRACE_COMMIT}"
+          ./configure --prefix="$RUNNER_TEMP/libbacktrace" --disable-shared --with-pic
+          make -j"$(nproc)"
+          make install
+
       - name: Build linbpq
         run: |
-          make -j"$(nproc)"
+          make -j"$(nproc)" \
+            EXTRA_CFLAGS="-I$RUNNER_TEMP/libbacktrace/include" \
+            LDFLAGS="-Xlinker -Map=output.map -lrt -L$RUNNER_TEMP/libbacktrace/lib"
           test -x linbpq
 
       - name: Install pytest

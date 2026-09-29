@@ -31,7 +31,8 @@ make -j$(nproc)
 ```
 
 Requires: libpaho-mqtt-dev, libjansson-dev, libminiupnpc-dev,
-libconfig-dev, libpcap-dev, zlib1g-dev.
+libconfig-dev, libpcap-dev, zlib1g-dev, libbacktrace-dev (not packaged
+for Debian 12 or Ubuntu 24.04; see docker/Dockerfile for a source build).
 
 ## Integration tests
 
