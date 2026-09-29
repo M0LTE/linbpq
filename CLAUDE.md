@@ -2,27 +2,23 @@
 
 ## Branch strategy
 
-This fork uses two long-lived branches:
-
-- **`master`** — clean mirror of upstream (John G8BPQ's official LinBPQ).
+- **`master`** - clean mirror of upstream (John G8BPQ's official LinBPQ).
   Never commit local patches here. Only upstream syncs and docs/CI changes
   that don't touch LinBPQ source code.
 
-- **`patched`** — our distribution branch. Carries local bug fixes rebased
-  on top of master. Has its own releases (binary + Docker). Each patch is
-  a single squashed commit with an `Upstream: PR #N, Issue #N` trailer.
-  See `CLAUDE.md` and `PATCHES.md` on the `patched` branch for full
-  details on adding, dropping, rebasing patches, tagging releases, and
-  the Docker image tag scheme.
+Source fixes go to John as PRs against master for review; they don't land
+here until they arrive in one of his releases. There is no separate
+distribution branch: the `patched` branch was retired on 2026-09-29 once
+John had taken most of its fixes, and is archived as the tag
+`archive/patched`.
 
-### Rules
+## Releases
 
-1. **Do not commit source fixes to master.** Propose them as PRs against
-   master (so John can review), but land them on `patched` only.
-2. **Each patch = one squashed commit.** Keep patches atomic and
-   independent so they can be dropped individually.
-3. **Order patches by severity:** critical first, then significant, then
-   minor. This keeps the most important fixes closest to the base.
+Each of John's releases is applied to master as one
+`upstream: apply g8bpq/linbpq <version>` commit. Tagging master
+`v<version>` (matching `KVerstring` in `Versions.h`) publishes the
+`m0lte/linbpq:<version>` image, moves `latest`, and deploys the versioned
+docs.
 
 ## Building
 

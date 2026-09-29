@@ -35,6 +35,9 @@ changed.
 - **CI back on GitHub-hosted runners.** The self-hosted runner
   has been retired; tests, docs and image publishing all run on
   `ubuntu-latest`.
+- **`patched` branch retired.** John has fixed five of its six
+  bugs himself by 6.0.25.41; the sixth is still offered to him as a
+  pull request. The `*-patched*` images are no longer updated.
 - **Docker images for each release.** `m0lte/linbpq:<version>` is
   published for every release in this sync, and `:latest` now
   points at 6.0.25.41.

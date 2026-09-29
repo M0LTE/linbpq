@@ -50,10 +50,9 @@ on:
 
 concurrency:
   group: docker-publish-${{ github.ref }}
-  # Cancel superseded in-progress builds on branch pushes (master,
-  # patched, etc) — there's no point finishing a build for an older
-  # SHA when a newer push is right behind it.  Keep tag-ref builds
-  # (``v*``, ``v*-patched*``) un-cancellable: those publish manifest
+  # Cancel superseded in-progress builds on branch pushes — there's no
+  # point finishing a build for an older SHA when a newer push is
+  # right behind it.  Keep ``v*`` tag builds un-cancellable: those publish manifest
   # lists for a release and getting interrupted mid-push would leave
   # a half-baked release tag on Docker Hub.
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
@@ -88,11 +87,9 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/linbpq
-          # Disable auto-`latest`.  metadata-action's default
-          # ``flavor: latest=auto`` adds ``latest`` for any semver tag,
-          # which would clobber the upstream-clean ``latest`` when a
-          # ``v*-patched*`` tag is pushed.  We control ``latest``
-          # explicitly via the ``type=raw,value=latest,...`` rule below.
+          # Disable auto-`latest`.  We control ``latest`` explicitly via
+          # the ``type=raw,value=latest,...`` rule below, so it only
+          # moves on a ``v*`` tag push, never on a retroactive build.
           flavor: |
             latest=false
           tags: |

@@ -56,8 +56,7 @@ jobs:
     name: integration (fast)
     runs-on: ubuntu-latest
     # 25min was previously enough, but the test_two_instance* tail
-    # grew and patched now finishes at ~25:30 — right past the cut-off.
-    # 35 gives headroom without normalising slowness.
+    # grew past it.  35 gives headroom without normalising slowness.
     timeout-minutes: 35
 
     steps:
