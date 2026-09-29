@@ -1696,6 +1696,34 @@ integration test suite.
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fork-side-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fork-side changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#602541-23-september-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3593,6 +3621,34 @@ integration test suite.
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fork-side-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fork-side changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#602541-23-september-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5366,6 +5422,11 @@ fork-side.</p>
 <p>For canonical, exhaustive upstream history see G8BPQ's
 <a href="https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html">BPQ32 Node Changelog</a> and
 <a href="https://www.cantab.net/users/john.wiseman/Documents/SupportProgsChangeLog.html">Support Programs Changelog</a>.</p>
+<h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="fork-side-changes">Fork-side changes<a class="headerlink" href="#fork-side-changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>KISS over TCP: no more crash 10 seconds after start-up.</strong> A port that dials out to a KISS TCP server (<code>IPADDR</code> plus <code>TCPPORT</code>) could stop linbpq with <code>SIGSEGV Received</code> 10 seconds after "Initialising Port", because its connect thread sometimes started before the port pointer it copies had been set (<code>kiss.c::ASYINIT</code>). Found by <a href="https://github.com/packet-net/dapps">DAPPS</a>'s integration tests, which lost a BPQ node this way in about one run in eight. The fix is offered upstream too.</li>
+</ul>
 <h2 id="602541-23-september-2026">6.0.25.41 - 23 September 2026<a class="headerlink" href="#602541-23-september-2026" title="Permanent link">&para;</a></h2>
 <p>Upstream sync to <a href="https://github.com/g8bpq/linbpq/commit/4b7a47b">g8bpq/linbpq <code>4b7a47b</code></a>, taking in
 John's 6.0.25.30, .32, .35, .36, .39, .40 and .41 releases. See
