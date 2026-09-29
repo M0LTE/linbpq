@@ -14,6 +14,32 @@ For canonical, exhaustive upstream history see G8BPQ's
 [nodechangelog]: https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html
 [supportprogs]: https://www.cantab.net/users/john.wiseman/Documents/SupportProgsChangeLog.html
 
+## 6.0.25.41 - 23 September 2026
+
+Upstream sync to [g8bpq/linbpq `4b7a47b`][6.0.25.41], taking in
+John's 6.0.25.30, .32, .35, .36, .39, .40 and .41 releases. See
+the [BPQ32 Node Changelog][nodechangelog] for what each one
+changed.
+
+### Fork-side changes shipped alongside
+
+- **libbacktrace.** From 6.0.25.40 linbpq links it for crash
+  backtraces. It isn't packaged for Debian 12, so the Docker builds
+  compile it from source.
+- **Docker images for each release.** `m0lte/linbpq:<version>` is
+  published for every release in this sync, and `:latest` now
+  points at 6.0.25.41.
+
+[6.0.25.41]: https://github.com/g8bpq/linbpq/commit/4b7a47b
+
+### Upgrading
+
+- **Docker:** `docker pull m0lte/linbpq:latest`, or pin with
+  `m0lte/linbpq:6.0.25.41`.
+- **Build from source:** install `libbacktrace-dev`, or build
+  libbacktrace from source where your distribution doesn't
+  package it (see `docker/Dockerfile`).
+
 ## 6.0.25.28 — 17 May 2026
 
 Upstream sync to [g8bpq/linbpq `d84bcda`][6.0.25.28].
