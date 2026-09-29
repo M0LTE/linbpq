@@ -11,9 +11,7 @@ parser:
 - does not hit the missing-NODECALL / missing-LOCATOR errors
 
 Catches docs that drift from the parser when keywords are
-renamed, removed, or repurposed upstream.  Complements the
-static citation gate in ``tests/playwright/test_repo_audits.py``
-(which covers the source-line side).
+renamed, removed, or repurposed upstream.
 
 Skipped blocks:
 

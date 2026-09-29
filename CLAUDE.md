@@ -98,7 +98,6 @@ workflow includes:
 - **unit tests** — `make -C tests/unit test` (lightweight, no Docker)
 - **integration (fast)** — pytest suite excluding long_runtime markers
 - **integration (long_runtime)** — beacon/soak/leak tests
-- **playwright** — browser-based UI tests
 
 ## Unit tests
 
