@@ -26,7 +26,7 @@ integration test suite.
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -34,7 +34,7 @@ integration test suite.
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -4848,7 +4848,7 @@ CRC errors, FRMRs and an <code>Active(TX/Busy) %</code> snapshot.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>MH &lt;port&gt; [&lt;pattern&gt;]   list heard stations on port (default UTC, brief)
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>MHL &lt;port&gt;              local time format
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>MHU &lt;port&gt;              UTC time format (default)
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>MHV &lt;port&gt;              verbose: callsign, time, packets, &quot;via DIGI&quot;
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>MHV &lt;port&gt;              verbose: callsign, time, packets, "via DIGI"
 </span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>MHLV / MHUV &lt;port&gt;      verbose with local / UTC time
 </span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>MH &lt;port&gt; CLEAR         (sysop) clear heard list and persist
 </span></code></pre></div>
@@ -4867,20 +4867,20 @@ delivered later by the network as a normal NET/ROM frame.</p>
 <p><a id="paclen"></a></p>
 <h3 id="paclen-abbr-3"><code>PACLEN</code> <em>(abbr: 3)</em><a class="headerlink" href="#paclen-abbr-3" title="Permanent link">&para;</a></h3>
 <p>Source: <code>CMDPAC</code> in <code>Cmd.c:1163</code>.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>PACLEN              show this session&#39;s L4 packet length
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>PACLEN &lt;30..255&gt;    set this session&#39;s L4 packet length
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>PACLEN              show this session's L4 packet length
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>PACLEN &lt;30..255&gt;    set this session's L4 packet length
 </span></code></pre></div>
 <p>Out-of-range values are silently ignored.</p>
 <p><a id="idletime"></a></p>
 <h3 id="idletime-abbr-4"><code>IDLETIME</code> <em>(abbr: 4)</em><a class="headerlink" href="#idletime-abbr-4" title="Permanent link">&para;</a></h3>
 <p>Source: <code>CMDIDLE</code> in <code>Cmd.c:1185</code>.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>IDLETIME             show this session&#39;s idle timeout (seconds)
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>IDLETIME &lt;60..900&gt;   set this session&#39;s idle timeout
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>IDLETIME             show this session's idle timeout (seconds)
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>IDLETIME &lt;60..900&gt;   set this session's idle timeout
 </span></code></pre></div>
 <p><a id="l4t1"></a></p>
 <h3 id="l4t1-abbr-2"><code>L4T1</code> <em>(abbr: 2)</em><a class="headerlink" href="#l4t1-abbr-2" title="Permanent link">&para;</a></h3>
 <p>Source: <code>CMDT00</code> in <code>Cmd.c:1207</code>.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>L4T1               show this session&#39;s L4 retry timeout
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>L4T1               show this session's L4 retry timeout
 </span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>L4T1 &lt;secs&gt;        set timeout (must be &gt; 20)
 </span></code></pre></div>
 <p>Note that this is the <em>per-session</em> L4 timeout. The global default is
@@ -5032,7 +5032,7 @@ verbatim, or its error message on failure. Examples:</p>
 <a href="#sysop-port-parameters-portparm-port-value">Port parameters</a> quick
 table behave identically:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>TXDELAY 1               show TXDELAY for port 1
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>TXDELAY 1 30            set TXDELAY for port 1 to 30, print &quot;TXDELAY  was X now 30&quot;
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>TXDELAY 1 30            set TXDELAY for port 1 to 30, print "TXDELAY  was X now 30"
 </span></code></pre></div>
 <p>Invalid port returns <code>Invalid parameter</code>. <code>EXTRESTART</code> requires the
 target port to be an external port; otherwise the node returns
@@ -5317,7 +5317,7 @@ recognises the FLMSG handshake instead of replying with
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

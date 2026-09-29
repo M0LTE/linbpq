@@ -26,7 +26,7 @@ integration test suite.
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -34,7 +34,7 @@ integration test suite.
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2329,8 +2329,8 @@ sessions, distinguished by <code>handle</code>.</p>
 <h2 id="messages">Messages<a class="headerlink" href="#messages" title="Permanent link">&para;</a></h2>
 <h3 id="open-start-a-session"><code>open</code> — start a session<a class="headerlink" href="#open-start-a-session" title="Permanent link">&para;</a></h3>
 <p>Client → server:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;open&quot;</span><span class="p">,</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span><span class="nt">&quot;pfam&quot;</span><span class="p">:</span><span class="s2">&quot;ax25&quot;</span><span class="p">,</span><span class="nt">&quot;mode&quot;</span><span class="p">:</span><span class="s2">&quot;stream&quot;</span><span class="p">,</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w"> </span><span class="nt">&quot;port&quot;</span><span class="p">:</span><span class="s2">&quot;1&quot;</span><span class="p">,</span><span class="nt">&quot;local&quot;</span><span class="p">:</span><span class="s2">&quot;G8BPQ&quot;</span><span class="p">,</span><span class="nt">&quot;remote&quot;</span><span class="p">:</span><span class="s2">&quot;G8BPQ-2&quot;</span><span class="p">,</span><span class="nt">&quot;flags&quot;</span><span class="p">:</span><span class="mi">128</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"open"</span><span class="p">,</span><span class="nt">"id"</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span><span class="nt">"pfam"</span><span class="p">:</span><span class="s2">"ax25"</span><span class="p">,</span><span class="nt">"mode"</span><span class="p">:</span><span class="s2">"stream"</span><span class="p">,</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w"> </span><span class="nt">"port"</span><span class="p">:</span><span class="s2">"1"</span><span class="p">,</span><span class="nt">"local"</span><span class="p">:</span><span class="s2">"G8BPQ"</span><span class="p">,</span><span class="nt">"remote"</span><span class="p">:</span><span class="s2">"G8BPQ-2"</span><span class="p">,</span><span class="nt">"flags"</span><span class="p">:</span><span class="mi">128</span><span class="p">}</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -2367,7 +2367,7 @@ sessions, distinguished by <code>handle</code>.</p>
 </tbody>
 </table>
 <p>Server → client:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;openReply&quot;</span><span class="p">,</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span><span class="nt">&quot;handle&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">&quot;errCode&quot;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span><span class="nt">&quot;errText&quot;</span><span class="p">:</span><span class="s2">&quot;Ok&quot;</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"openReply"</span><span class="p">,</span><span class="nt">"id"</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span><span class="nt">"handle"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">"errCode"</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span><span class="nt">"errText"</span><span class="p">:</span><span class="s2">"Ok"</span><span class="p">}</span>
 </span></code></pre></div>
 <p><code>errCode</code> 0 means the session is allocated and the underlying
 NET/ROM connect attempt is in flight; the actual transport
@@ -2393,18 +2393,18 @@ state transition.  Two values matter for an opened session:</p>
 </tr>
 </tbody>
 </table>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span><span class="nt">&quot;seqno&quot;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;status&quot;</span><span class="p">,</span><span class="nt">&quot;handle&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">&quot;flags&quot;</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span><span class="nt">"seqno"</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"status"</span><span class="p">,</span><span class="nt">"handle"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">"flags"</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
 </span></code></pre></div>
 <p>A client can also poll with <code>{"type":"status","handle":N}</code>;
 LinBPQ replies with <code>{"type":"statusReply","handle":N,"flags":2}</code>
 or an <code>errcode: 3</code> if the handle isn't valid.</p>
 <p>After a successful connect LinBPQ emits a synthetic banner as
 a <code>recv</code>:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span><span class="nt">&quot;seqno&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;recv&quot;</span><span class="p">,</span><span class="nt">&quot;handle&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="s2">&quot;Connected to RHP Server\r&quot;</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span><span class="nt">"seqno"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"recv"</span><span class="p">,</span><span class="nt">"handle"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">"data"</span><span class="p">:</span><span class="s2">"Connected to RHP Server\r"</span><span class="p">}</span>
 </span></code></pre></div>
 <h3 id="send-outbound-bytes"><code>send</code> — outbound bytes<a class="headerlink" href="#send-outbound-bytes" title="Permanent link">&para;</a></h3>
 <p>Client → server:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;send&quot;</span><span class="p">,</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="mi">70</span><span class="p">,</span><span class="nt">&quot;handle&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="s2">&quot;;;;;;;\r&quot;</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"send"</span><span class="p">,</span><span class="nt">"id"</span><span class="p">:</span><span class="mi">70</span><span class="p">,</span><span class="nt">"handle"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">"data"</span><span class="p">:</span><span class="s2">";;;;;;\r"</span><span class="p">}</span>
 </span></code></pre></div>
 <p><code>data</code> is a JSON string carrying the payload.  Standard
 JSON escaping applies — <code>\r</code>, <code>\n</code>, <code>\\</code>, <code>\"</code>, <code>\uXXXX</code> for
@@ -2412,31 +2412,31 @@ non-ASCII.  Binary bytes above 0x7F are awkward (must be
 escaped as UTF-8 sequences and the receiver has to decode them
 back); RHP isn't well-suited to truly binary protocols.</p>
 <p>Server reply:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;sendReply&quot;</span><span class="p">,</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="mi">70</span><span class="p">,</span><span class="nt">&quot;handle&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">&quot;errCode&quot;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span><span class="nt">&quot;errText&quot;</span><span class="p">:</span><span class="s2">&quot;Ok&quot;</span><span class="p">,</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"sendReply"</span><span class="p">,</span><span class="nt">"id"</span><span class="p">:</span><span class="mi">70</span><span class="p">,</span><span class="nt">"handle"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">"errCode"</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span><span class="nt">"errText"</span><span class="p">:</span><span class="s2">"Ok"</span><span class="p">,</span><span class="nt">"status"</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
 </span></code></pre></div>
 <h3 id="recv-inbound-bytes"><code>recv</code> — inbound bytes<a class="headerlink" href="#recv-inbound-bytes" title="Permanent link">&para;</a></h3>
 <p>Server → client (unsolicited):</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span><span class="nt">&quot;seqno&quot;</span><span class="p">:</span><span class="err">N</span><span class="p">,</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;recv&quot;</span><span class="p">,</span><span class="nt">&quot;handle&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="s2">&quot;…&quot;</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span><span class="nt">"seqno"</span><span class="p">:</span><span class="err">N</span><span class="p">,</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"recv"</span><span class="p">,</span><span class="nt">"handle"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">"data"</span><span class="p">:</span><span class="s2">"…"</span><span class="p">}</span>
 </span></code></pre></div>
 <p>One <code>recv</code> per arriving chunk.  Same JSON-string conventions
 for <code>data</code> as <code>send</code>.</p>
 <h3 id="close-tear-down-a-session"><code>close</code> — tear down a session<a class="headerlink" href="#close-tear-down-a-session" title="Permanent link">&para;</a></h3>
 <p>Either side can close.  Client → server:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="mi">40</span><span class="p">,</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;close&quot;</span><span class="p">,</span><span class="nt">&quot;handle&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span><span class="nt">"id"</span><span class="p">:</span><span class="mi">40</span><span class="p">,</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"close"</span><span class="p">,</span><span class="nt">"handle"</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
 </span></code></pre></div>
 <p>Server reply:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="mi">40</span><span class="p">,</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;closeReply&quot;</span><span class="p">,</span><span class="nt">&quot;handle&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">&quot;errcode&quot;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span><span class="nt">&quot;errtext&quot;</span><span class="p">:</span><span class="s2">&quot;Ok&quot;</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span><span class="nt">"id"</span><span class="p">:</span><span class="mi">40</span><span class="p">,</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"closeReply"</span><span class="p">,</span><span class="nt">"handle"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="nt">"errcode"</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span><span class="nt">"errtext"</span><span class="p">:</span><span class="s2">"Ok"</span><span class="p">}</span>
 </span></code></pre></div>
 <p>When the <em>remote</em> end disconnects, the server pushes:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;close&quot;</span><span class="p">,</span><span class="nt">&quot;seqno&quot;</span><span class="p">:</span><span class="err">N</span><span class="p">,</span><span class="nt">&quot;handle&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"close"</span><span class="p">,</span><span class="nt">"seqno"</span><span class="p">:</span><span class="err">N</span><span class="p">,</span><span class="nt">"handle"</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
 </span></code></pre></div>
 <p>…unsolicited.  Treat it as the session having gone away.</p>
 <h3 id="keepalive"><code>keepalive</code><a class="headerlink" href="#keepalive" title="Permanent link">&para;</a></h3>
 <p>Client → server (every ~3 minutes of idle, by convention):</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;keepalive&quot;</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"keepalive"</span><span class="p">}</span>
 </span></code></pre></div>
 <p>Server reply:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;keepaliveReply&quot;</span><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"keepaliveReply"</span><span class="p">}</span>
 </span></code></pre></div>
 <p><code>keepalive</code> doesn't appear in the published RHP v2 spec
 (PWP 222 / 245).  Treat it as an XRouter / LinBPQ extension —
@@ -2664,7 +2664,7 @@ WebSocket into the design.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

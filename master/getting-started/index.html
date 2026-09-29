@@ -26,7 +26,7 @@ integration test suite.
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -34,7 +34,7 @@ integration test suite.
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2114,7 +2114,7 @@ download and <code>sources.list</code> entry.  Or do it manually per the
 <li>A skeleton config at <code>/etc/bpq32.cfg</code> — edit before first start.</li>
 </ul>
 <h3 id="edit-the-config">Edit the config<a class="headerlink" href="#edit-the-config" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$EDITOR</span><span class="s2">&quot;</span><span class="w"> </span>/etc/bpq32.cfg
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo<span class="w"> </span><span class="s2">"</span><span class="nv">$EDITOR</span><span class="s2">"</span><span class="w"> </span>/etc/bpq32.cfg
 </span></code></pre></div>
 <p>Set at minimum your callsign, alias, locator, sysop password,
 and the Telnet port-block credentials.  See the
@@ -2186,14 +2186,14 @@ automatically by <code>uname -s</code>.</p>
 (e.g. telnet on TCP/23) or use the BPQEther driver, grant the
 binary the necessary capabilities once:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>libcap2-bin
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>sudo<span class="w"> </span>setcap<span class="w"> </span><span class="s2">&quot;CAP_NET_ADMIN=ep CAP_NET_RAW=ep CAP_NET_BIND_SERVICE=ep&quot;</span><span class="w"> </span>linbpq
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>sudo<span class="w"> </span>setcap<span class="w"> </span><span class="s2">"CAP_NET_ADMIN=ep CAP_NET_RAW=ep CAP_NET_BIND_SERVICE=ep"</span><span class="w"> </span>linbpq
 </span></code></pre></div>
 <p>For ports above 1023 — the configuration this guide uses — neither
 capabilities nor <code>root</code> are required.  Avoid running as root.</p>
 <h2 id="web-management-assets">Web-management assets<a class="headerlink" href="#web-management-assets" title="Permanent link">&para;</a></h2>
 <p>The web-admin pages live in <code>HTML/</code> next to the binary:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>HTML
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1"># populate from the repo, or fetch upstream&#39;s HTMLPages.zip</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1"># populate from the repo, or fetch upstream's HTMLPages.zip</span>
 </span></code></pre></div>
 <p>Without these files the daemon still runs, but <code>http://host:HTTPPORT/</code>
 will 404.</p>
@@ -2388,7 +2388,7 @@ points elsewhere.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
