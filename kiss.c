@@ -342,6 +342,7 @@ int	ASYINIT(int comport, int speed, struct PORTCONTROL * PortVector, char Channe
 
 		memset(npKISSINFO, 0, sizeof(NPASYINFO));
 		npKISSINFO->bPort = comport;
+		npKISSINFO->Portvector = PortVector;	// Set before ConnecttoTCP, as its thread reads it at once
   
 		KISSInfo[PortVector->PORTNUMBER] = npKISSINFO;
 

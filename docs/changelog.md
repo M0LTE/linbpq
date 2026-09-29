@@ -14,6 +14,12 @@ For canonical, exhaustive upstream history see G8BPQ's
 [nodechangelog]: https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html
 [supportprogs]: https://www.cantab.net/users/john.wiseman/Documents/SupportProgsChangeLog.html
 
+## Unreleased
+
+### Fork-side changes
+
+- **KISS over TCP: no more crash 10 seconds after start-up.** A port that dials out to a KISS TCP server (`IPADDR` plus `TCPPORT`) could stop linbpq with `SIGSEGV Received` 10 seconds after "Initialising Port", because its connect thread sometimes started before the port pointer it copies had been set (`kiss.c::ASYINIT`). Found by [DAPPS](https://github.com/packet-net/dapps)'s integration tests, which lost a BPQ node this way in about one run in eight. The fix is offered upstream too.
+
 ## 6.0.25.41 - 23 September 2026
 
 Upstream sync to [g8bpq/linbpq `4b7a47b`][6.0.25.41], taking in
