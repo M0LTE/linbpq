@@ -26,6 +26,9 @@ changed.
 - **libbacktrace.** From 6.0.25.40 linbpq links it for crash
   backtraces. It isn't packaged for Debian 12, so the Docker builds
   compile it from source.
+- **CI back on GitHub-hosted runners.** The self-hosted runner
+  has been retired; tests, docs and image publishing all run on
+  `ubuntu-latest`.
 - **Docker images for each release.** `m0lte/linbpq:<version>` is
   published for every release in this sync, and `:latest` now
   points at 6.0.25.41.

@@ -60,8 +60,6 @@ concurrency:
 
 jobs:
   publish:
-    # GitHub-hosted: publishing shouldn't depend on the self-hosted
-    # runner being up, and hosted runners are free for a public repo.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
