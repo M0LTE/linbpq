@@ -44,7 +44,7 @@ concurrency:
 jobs:
   unit:
     name: unit tests
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
@@ -65,7 +65,7 @@ jobs:
   # job runs its slice).
   integration-fast:
     name: integration (fast)
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     # 25min was previously enough, but the test_two_instance* tail
     # grew and patched now finishes at ~25:30 — right past the cut-off.
     # 35 gives headroom without normalising slowness.
@@ -114,7 +114,7 @@ jobs:
 
   integration-long:
     name: integration (long_runtime)
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     # 25min was previously enough but the long_runtime tail (beacon
     # soak / leak) now lands at 19-25min on this runner — close enough
     # to the cut-off that we've hit it twice.  Match integration-fast
