@@ -12,7 +12,7 @@ parser:
 
 Catches docs that drift from the parser when keywords are
 renamed, removed, or repurposed upstream.  Complements the
-static citation gate in ``tests/playwright/test_repo_audits.py``
+static citation gate in ``tests/integration/test_repo_audits.py``
 (which covers the source-line side).
 
 Skipped blocks:
