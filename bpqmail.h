@@ -1306,6 +1306,14 @@ void FreeSemaphore(struct SEM * Semaphore);
 VOID __cdecl Debugprintf(const char * format, ...);
 VOID __cdecl Logprintf(int LogMode, CIRCUIT * conn, int InOut, const char * format, ...);
 
+// BBSSessionControl.c
+
+BOOL ScriptInterlockGroup(CIRCUIT * conn, char * Cmd);
+BOOL SessionLockedOut(struct UserInfo * user);
+BOOL RefuseIncomingSession(CIRCUIT * conn, struct UserInfo * user, int port);
+void CheckMaxSessionTime(CIRCUIT * conn);
+void LogSessionLength(CIRCUIT * conn);
+
 VOID SortBBSChain();
 VOID ExpandAndSendMessage(CIRCUIT * conn, char * Msg, int LOG);
 int ImportMessages(CIRCUIT * conn, char * FN, BOOL Nopopup);
