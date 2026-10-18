@@ -2419,9 +2419,23 @@ against <code>BBSUtilities.c::CheckABBS</code>, <code>FBBRoutines.c</code>, and
 </span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    RevFWDInterval = 0;
 </span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    MaxFBBBlock    = 1024;
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    ConTimeout     = 300;
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>  };
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>};
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    MaxSessionTime = 0;        /* minutes, 0 = no limit */
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    SessionLockout = 0;        /* minutes */
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>  };
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>};
 </span></code></pre></div>
+<p><code>MaxSessionTime</code> disconnects a session with this partner, in either
+direction, once it has run for that many minutes. Outgoing sessions are
+timed from the start of the connect script. After a session is cut off,
+the partner is locked out for <code>SessionLockout</code> minutes: no forwarding
+attempts are made, and incoming connects from it are refused. The
+lockout is held in memory and is lost on restart. Both settings are
+also on the web forwarding config page, as "Max Session Time" and
+"Lockout after".</p>
+<p>When a session with any partner BBS ends, the BBS log records how long
+it lasted, for example <code>Partner session lasted 12 mins 40 secs</code>, with
+<code>(cut off by MaxSessionTime)</code> added when the limit ended it. Sessions
+that never got as far as the SID exchange aren't logged.</p>
 <p>There must be a matching record in <code>BBSUsers</code> carrying the
 <code>F_BBS = 0x10</code> flag and a positive <code>BBSNumber</code>, otherwise BPQMail
 treats the partner as a regular user and refuses FBB SID exchange.</p>
@@ -2559,7 +2573,11 @@ midnight; split with two adjacent bands.</p>
 </tr>
 <tr>
 <td><code>INTERLOCK &lt;port&gt;</code></td>
-<td>Lock other ports out for the duration of the script (paired Pactor / WINMOR setups).</td>
+<td>Abandon the script if any BBS session (incoming or outgoing, partner or user) is already connected directly on <code>&lt;port&gt;</code>. Any port named this way is also checked for incoming BBS connects: a partner BBS is refused while any other BBS session is on the port, and anyone else is refused while a partner session (a mail run) is, with a message saying why. Sessions arriving over NET/ROM aren't counted.</td>
+</tr>
+<tr>
+<td><code>INTERLOCK GROUP &lt;n&gt;</code></td>
+<td>Like <code>INTERLOCK &lt;port&gt;</code>, but for every port with <code>INTERLOCK=&lt;n&gt;</code> in its <code>bpq32.cfg</code> <code>PORT</code> block, for ports that share a radio or channel. Once any script names the group, incoming BBS connects on any of those ports follow the same rules as for <code>INTERLOCK &lt;port&gt;</code>, across the whole group.</td>
 </tr>
 <tr>
 <td><code>SKIPPROMPT</code></td>
@@ -2575,6 +2593,11 @@ midnight; split with two adjacent bands.</p>
 </tr>
 </tbody>
 </table>
+<p>Put <code>INTERLOCK</code> lines first, or straight after <code>MSGTYPES</code>. When the
+node replies to a command by echoing it (for example
+<code>READNG:GB7RDG} FRACK was 70 now 21</code>), the next script line is sent
+to the node as-is, so a directive in that position reaches the node
+as an invalid command.</p>
 <h2 id="msgtypes">MSGTYPES<a class="headerlink" href="#msgtypes" title="Permanent link">&para;</a></h2>
 <p><code>MSGTYPES</code> (set on the partner record, separate from the
 ConnectScript) controls what kinds of message and what size
