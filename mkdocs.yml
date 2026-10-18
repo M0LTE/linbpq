@@ -120,6 +120,7 @@ nav:
   - Project:
       - Contributing: project/contributing.md
       - Upstream attribution: project/upstream.md
+      - Fork changes: project/fork-changes.md
 
 extra:
   # ``mike`` provides per-release versioned docs.  Each git tag
