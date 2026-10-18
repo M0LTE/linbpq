@@ -14,11 +14,21 @@ For canonical, exhaustive upstream history see G8BPQ's
 [nodechangelog]: https://www.cantab.net/users/john.wiseman/Documents/NodeChangeLog.html
 [supportprogs]: https://www.cantab.net/users/john.wiseman/Documents/SupportProgsChangeLog.html
 
-## Unreleased
+## 6.0.26.1 - 13 October 2026
 
-### Fork-side changes
+Upstream sync to [g8bpq/linbpq `228047d`][6.0.26.1]. See the
+[BPQ32 Node Changelog][nodechangelog] for what it changed.
 
-- **KISS over TCP: no more crash 10 seconds after start-up.** A port that dials out to a KISS TCP server (`IPADDR` plus `TCPPORT`) could stop linbpq with `SIGSEGV Received` 10 seconds after "Initialising Port", because its connect thread sometimes started before the port pointer it copies had been set (`kiss.c::ASYINIT`). Found by [DAPPS](https://github.com/packet-net/dapps)'s integration tests, which lost a BPQ node this way in about one run in eight. The fix is offered upstream too.
+### Fixes
+
+- **KISS over TCP: no more crash 10 seconds after start-up.** A port that dials out to a KISS TCP server (`IPADDR` plus `TCPPORT`) could stop linbpq with `SIGSEGV Received` 10 seconds after "Initialising Port", because its connect thread sometimes started before the port pointer it copies had been set (`kiss.c::ASYINIT`). Found by [DAPPS](https://github.com/packet-net/dapps)'s integration tests, which lost a BPQ node this way in about one run in eight. The fork carried a fix for this briefly; John's 6.0.26.1 fixes it too, so the fork now uses his. The fork's regression test stays.
+
+[6.0.26.1]: https://github.com/g8bpq/linbpq/commit/228047d
+
+### Upgrading
+
+- **Docker:** `docker pull m0lte/linbpq:latest`, or pin with
+  `m0lte/linbpq:6.0.26.1`.
 
 ## 6.0.25.41 - 23 September 2026
 
