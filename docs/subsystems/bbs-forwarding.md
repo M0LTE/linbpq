@@ -48,9 +48,25 @@ BBSForwarding:
     RevFWDInterval = 0;
     MaxFBBBlock    = 1024;
     ConTimeout     = 300;
+    MaxSessionTime = 0;        /* minutes, 0 = no limit */
+    SessionLockout = 0;        /* minutes */
   };
 };
 ```
+
+`MaxSessionTime` disconnects a session with this partner, in either
+direction, once it has run for that many minutes. Outgoing sessions are
+timed from the start of the connect script. After a session is cut off,
+the partner is locked out for `SessionLockout` minutes: no forwarding
+attempts are made, and incoming connects from it are refused. The
+lockout is held in memory and is lost on restart. Both settings are
+also on the web forwarding config page, as "Max Session Time" and
+"Lockout after".
+
+When a session with any partner BBS ends, the BBS log records how long
+it lasted, for example `Partner session lasted 12 mins 40 secs`, with
+`(cut off by MaxSessionTime)` added when the limit ended it. Sessions
+that never got as far as the SID exchange aren't logged.
 
 There must be a matching record in `BBSUsers` carrying the
 `F_BBS = 0x10` flag and a positive `BBSNumber`, otherwise BPQMail
@@ -190,10 +206,17 @@ If a script step fails the next `ELSE` block runs.
 | `PAUSE <s>` | Wait `<s>` seconds — useful after a `RADIO` frequency change. |
 | `RADIO <freq> <mode> <port>` | Couple to a `RIGCONTROL` block to retune the radio. |
 | `RADIO AUTH` | Generate a one-time password for remote rig control. |
-| `INTERLOCK <port>` | Lock other ports out for the duration of the script (paired Pactor / WINMOR setups). |
+| `INTERLOCK <port>` | Abandon the script if any BBS session (incoming or outgoing, partner or user) is already connected directly on `<port>`. Any port named this way is also checked for incoming BBS connects: a partner BBS is refused while any other BBS session is on the port, and anyone else is refused while a partner session (a mail run) is, with a message saying why. Sessions arriving over NET/ROM aren't counted. |
+| `INTERLOCK GROUP <n>` | Like `INTERLOCK <port>`, but for every port with `INTERLOCK=<n>` in its `bpq32.cfg` `PORT` block, for ports that share a radio or channel. Once any script names the group, incoming BBS connects on any of those ports follow the same rules as for `INTERLOCK <port>`, across the whole group. |
 | `SKIPPROMPT` | Don't treat a `>` prompt as the end of node-traversal. |
 | `TEXTFORWARDING` | MBL/RLI plain-text forwarding for legacy partners (no SID exchange; terminate with `Ctrl/Z`). |
 | `FILE` | Export-to-file destination (for non-network forwarding). |
+
+Put `INTERLOCK` lines first, or straight after `MSGTYPES`. When the
+node replies to a command by echoing it (for example
+`READNG:GB7RDG} FRACK was 70 now 21`), the next script line is sent
+to the node as-is, so a directive in that position reaches the node
+as an invalid command.
 
 ## MSGTYPES
 

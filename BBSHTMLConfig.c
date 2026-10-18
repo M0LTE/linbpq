@@ -2028,6 +2028,10 @@ VOID SaveFwdDetails(struct HTTPConnectionInfo * Session, char * MsgPtr, char * R
 		if (strcmp(ptr1, "true") == 0) FWDInfo->SendCTRLZ = TRUE; else FWDInfo->SendCTRLZ = FALSE;
 		ptr1 = GetNextParam(&ptr2);		// Connect Timeout
 		FWDInfo->ConTimeout = atoi(ptr1);
+		ptr1 = GetNextParam(&ptr2);		// Max Session Time
+		FWDInfo->MaxSessionTime = atoi(ptr1);
+		ptr1 = GetNextParam(&ptr2);		// Session Lockout
+		FWDInfo->SessionLockout = atoi(ptr1);
 
 		// Don't allow blocked uncompressed
 
@@ -2523,7 +2527,9 @@ VOID SendFwdDetails(struct UserInfo * User, char * Reply, int * ReplyLen, char *
 		(FWDInfo->AllowB1) ? CHKD  : UNC,
 		(FWDInfo->AllowB2) ? CHKD  : UNC,
 		(FWDInfo->SendCTRLZ) ? CHKD  : UNC,
-		FWDInfo->ConTimeout);
+		FWDInfo->ConTimeout,
+		FWDInfo->MaxSessionTime,
+		FWDInfo->SessionLockout);
 
 	*ReplyLen = Len;
 

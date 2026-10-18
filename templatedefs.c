@@ -176,7 +176,9 @@ char * FwdPagetxt()
 		"	form.B1.checked + \"|\" +"
 		"	form.B2.checked + \"|\" +"
 		"	form.CTRLZ.checked + \"|\" +"
-		"	form.ConTimeOut.value + \"|\";"
+		"	form.ConTimeOut.value + \"|\" +"
+		"	form.MaxSess.value + \"|\" +"
+		"	form.Lockout.value + \"|\";"
 		"	post(fn, msg);"
 		"}\r\n"
 
@@ -321,6 +323,7 @@ char * FwdDetailtxt()
 		"Allow Binary <input %sname=Bin type=checkbox> Use B1 Protocol <input %sname=B1 type=checkbox>&nbsp; Use B2 Protocol<input %sname=B2 type=checkbox><br>\r\n"
 		"Send ctrl/Z instead of /ex in text mode forwarding <input %sname=CTRLZ type=checkbox><br>\r\n"
 		"Incoming Connect Timeout <input value=%d size=3 name=ConTimeOut>(Secs)<br>\r\n"
+		"Max Session Time <input value=%d size=3 name=MaxSess>(Mins, 0 = no limit) Lockout after <input value=%d size=3 name=Lockout>(Mins)<br>\r\n"
 		"<br>\r\n"
 		"<input onclick=copyf(this.form) value=\"Copy from BBS\" type=button class='btn'>\r\n"
 		"<input value=\"\" size=3 name=CopyCall> \r\n"

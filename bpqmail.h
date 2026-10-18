@@ -269,6 +269,8 @@ typedef struct ConnectionInfo_S
 	int ARQClearCount;					// To make sure queues are flushed when sending
 
 	int SIDResponseTimer;				// Used to detect incomplete handshake
+	time_t SessionStartTime;			// For BBS MaxSessionTime
+	BOOL MaxSessionTimeHit;				// Disconnected for exceeding MaxSessionTime
 
 	char PQChallenge[20];				// Secure User logon challange
 	char SecureMsg[20];					// CMS Secure Signon Response
@@ -759,6 +761,9 @@ struct BBSForwardingInfo
 	char *BBSHA;					// HA of BBS
 	char ** BBSHAElements;			// elements of HA of BBS
 	int ConTimeout;
+	int MaxSessionTime;				// Minutes. Disconnect sessions longer than this (0 = no limit)
+	int SessionLockout;				// Minutes to refuse sessions after hitting MaxSessionTime
+	time_t LockoutUntil;
 //	char UserCall[10];				// User we are forwarding on behalf of (Currently only for RMS)
 //	int UserIndex;					// index of User we are forwarding on behalf of (Currently only for RMS)
 };
