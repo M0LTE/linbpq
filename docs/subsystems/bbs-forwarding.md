@@ -212,6 +212,18 @@ If a script step fails the next `ELSE` block runs.
 | `TEXTFORWARDING` | MBL/RLI plain-text forwarding for legacy partners (no SID exchange; terminate with `Ctrl/Z`). |
 | `FILE` | Export-to-file destination (for non-network forwarding). |
 
+When a partner BBS calls the BBS application callsign directly over
+AX.25 and would be refused because of `INTERLOCK` or a
+`SessionLockout`, the node answers its connect request with DM rather
+than accepting the link and then disconnecting it. That saves airtime
+on a shared channel, and other stations no longer hear the BBS send
+the partner a disconnect in the middle of someone else's mail run. The
+BBS log records `Link request from <call> on Port <n> refused with DM`
+and the reason, up to 10 seconds later. Partners that connect through
+the node (for example `C RDGBBS`) and ordinary users still get the
+link first, and are refused at the BBS as before, so users are told
+why.
+
 Put `INTERLOCK` lines first, or straight after `MSGTYPES`. When the
 node replies to a command by echoing it (for example
 `READNG:GB7RDG} FRACK was 70 now 21`), the next script line is sent

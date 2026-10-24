@@ -20,6 +20,7 @@ listed here.
 | Change | Kind | Commits | Code | Offered to John | Notes |
 |---|---|---|---|---|---|
 | BBS session time limits and channel interlock for partner forwarding ([#76][pr76]) | Feature | `d212958`, `29b8b4c` (moved into its own file) | `BBSSessionControl.c`, hooks in `BBSUtilities.c`, web config in `BBSHTMLConfig.c` and `templatedefs.c` | Not yet | Incoming `INTERLOCK`, `INTERLOCK GROUP <n>`, `MaxSessionTime` / `SessionLockout`, session-length logging. See [Inter-BBS forwarding](../subsystems/bbs-forwarding.md). Tests: `tests/integration/test_bbs_session_limits.py`. |
+| Partner link requests refused with DM when the interlock or a lockout would refuse them | Feature | _this PR_ | `BBSSessionControl.c` (`RefuseBBSLinkRequest`, `LogLinkRefusals`), hooks in `L2SABM` in `L2Code.c` and `BBSSlowTimer` in `BBSUtilities.c` | Not yet | Builds on #76. Runs with the node semaphore held, so it reads stream ports directly rather than through `GetConnectionInfo`, and queues its log lines. Tests: `tests/integration/test_bbs_link_refusal.py`. |
 
 [pr76]: https://github.com/M0LTE/linbpq/pull/76
 

@@ -26,14 +26,17 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	  as dial-outs
 //	- Per-partner MaxSessionTime and SessionLockout
 //	- Logging of partner session length
+//	- Refusing partner link requests with DM when they would be rejected
 //
-//	Called from hooks in BBSUtilities.c
+//	Called from hooks in BBSUtilities.c, and one in L2Code.c
 
 #include "bpqmail.h"
 
 extern ConnectionInfo Connections[];
 extern int NumberofStreams;
 extern struct UserInfo * BBSChain;
+extern ULONG BBSApplMask;
+extern int NODE;
 
 int GetPortInterlockGroup(int Port)
 {
@@ -51,6 +54,44 @@ int GetPortInterlockGroup(int Port)
 
 	return PORT->PORTINTERLOCK;
 }
+
+#ifdef LINBPQ
+
+extern BPQVECSTRUC BPQHOSTVECTOR[];
+
+static int StreamPortLocked(int Stream)
+{
+	// Radio port a BBS stream is connected on, or 0. The port part of
+	// GetConnectionInfo, for callers in the node that already hold the
+	// semaphore (GetConnectionInfo takes it, so would deadlock)
+
+	TRANSPORTENTRY * L4 = BPQHOSTVECTOR[Stream - 1].HOSTSESSION;
+	TRANSPORTENTRY * Partner;
+
+	if (L4 == NULL || (Partner = L4->L4CROSSLINK) == NULL)
+		return 0;
+
+	if (Partner->L4CIRCUITTYPE & BPQHOST)
+		return 0;
+
+	if (Partner->L4CIRCUITTYPE & L2LINK)
+		return Partner->L4TARGET.LINK->LINKPORT->PORTNUMBER;
+
+	if (Partner->L4CIRCUITTYPE & PACTOR)
+		return Partner->L4TARGET.EXTPORT->PORTCONTROL.PORTNUMBER;
+
+	return 0;
+}
+
+static BOOL NodeHoldsSemaphore = FALSE;		// Set while called from L2Code.c
+
+// WriteLogLine takes the semaphore too, so link refusals are logged later,
+// from BBSSlowTimer
+
+static char PendingLog[8][160];
+static int PendingLogCount = 0;
+
+#endif
 
 int CountInterlockConnections(int Port, int Group, BOOL PartnersOnly)
 {
@@ -72,7 +113,12 @@ int CountInterlockConnections(int Port, int Group, BOOL PartnersOnly)
 			if (PartnersOnly && (conn->UserPointer == NULL || (conn->UserPointer->flags & F_BBS) == 0))
 				continue;
 
-			GetConnectionInfo(conn->BPQStream, callsign, &port, &sesstype, &paclen, &maxframe, &l4window);
+#ifdef LINBPQ
+			if (NodeHoldsSemaphore)
+				port = StreamPortLocked(conn->BPQStream);
+			else
+#endif
+				GetConnectionInfo(conn->BPQStream, callsign, &port, &sesstype, &paclen, &maxframe, &l4window);
 
 			if (port == 0)
 				continue;
@@ -160,14 +206,38 @@ BOOL SessionLockedOut(struct UserInfo * user)
 	return FALSE;
 }
 
+static const char * InterlockBusy(int port, BOOL Partner, int Others)
+{
+	// Interlocked ports and groups: a partner BBS is refused while any other
+	// BBS session is on them, anyone else while a partner session (a mail
+	// run) is. Others is how many of the counted sessions are the caller's
+	// own. Returns why the caller is refused, or NULL
+
+	static char Reason[64];
+	int Group = GetPortInterlockGroup(port);
+
+	if (IsNamedInInterlock(port, FALSE) && CountInterlockConnections(port, 0, !Partner) > Others)
+	{
+		sprintf(Reason, "Interlocked Port %d is busy", port);
+		return Reason;
+	}
+
+	if (Group && IsNamedInInterlock(Group, TRUE) && CountInterlockConnections(0, Group, !Partner) > Others)
+	{
+		sprintf(Reason, "Interlock Group %d is busy", Group);
+		return Reason;
+	}
+
+	return NULL;
+}
+
 BOOL RefuseIncomingSession(CIRCUIT * conn, struct UserInfo * user, int port)
 {
 	// See if an incoming connect should be refused. Returns TRUE, having logged
 	// why, if so. Caller disconnects
 
 	BOOL Partner = (user->flags & F_BBS) != 0;
-	int Group = GetPortInterlockGroup(port);
-	int Others = Partner ? 1 : 0;
+	const char * Busy;
 
 	if (Partner && user->ForwardingInfo && user->ForwardingInfo->LockoutUntil > time(NULL))
 	{
@@ -176,27 +246,88 @@ BOOL RefuseIncomingSession(CIRCUIT * conn, struct UserInfo * user, int port)
 		return TRUE;
 	}
 
-	// Interlocked ports and groups: a partner BBS is refused while any other
-	// BBS session is on them, anyone else while a partner session (a mail
-	// run) is. Counts include this session, which is only counted for partners
+	// Counts include this session, which is only counted for partners
 
-	if (IsNamedInInterlock(port, FALSE) && CountInterlockConnections(port, 0, !Partner) > Others)
-	{
-		Logprintf(LOG_BBS, conn, '|', "Incoming Connect from %s Rejected - Interlocked Port %d is busy", user->Call, port);
-		if (!Partner)
-			nodeprintf(conn, "Sorry, mail forwarding in progress on this channel. Please try later\r");
-		return TRUE;
-	}
+	Busy = InterlockBusy(port, Partner, Partner ? 1 : 0);
 
-	if (Group && IsNamedInInterlock(Group, TRUE) && CountInterlockConnections(0, Group, !Partner) > Others)
+	if (Busy)
 	{
-		Logprintf(LOG_BBS, conn, '|', "Incoming Connect from %s Rejected - Interlock Group %d is busy", user->Call, Group);
+		Logprintf(LOG_BBS, conn, '|', "Incoming Connect from %s Rejected - %s", user->Call, Busy);
 		if (!Partner)
 			nodeprintf(conn, "Sorry, mail forwarding in progress on this channel. Please try later\r");
 		return TRUE;
 	}
 
 	return FALSE;
+}
+
+#ifdef LINBPQ
+
+BOOL RefuseBBSLinkRequest(int port, ULONG ApplMask, char * Call)
+{
+	// Called by the node (L2SABM in L2Code.c) when a partner BBS asks for a
+	// new AX.25 link to the BBS application call. If RefuseIncomingSession
+	// would turn it away anyway, returns TRUE, having logged why, so the node
+	// answers DM instead of accepting the link and then disconnecting it,
+	// and queues a log line saying why.
+	// Users still get the link and are told why at the BBS. Called with the
+	// node semaphore held
+
+	struct UserInfo * user;
+	char callsign[12];
+	const char * Busy;
+
+	// With NODE=0 a NET/ROM link to the node also has the BBS mask, so leave
+	// BBS-only nodes to refuse at the BBS as before
+
+	if (NODE == 0 || BBSApplMask == 0 || ApplMask != BBSApplMask || port == 0)
+		return FALSE;
+
+	strcpy(callsign, Call);
+	strlop(callsign, '-');		// Remove any SSID
+
+	user = LookupCall(callsign);
+
+	if (user == NULL || (user->flags & F_BBS) == 0)
+		return FALSE;
+
+	if (user->ForwardingInfo && user->ForwardingInfo->LockoutUntil > time(NULL))
+	{
+		if (PendingLogCount < 8)
+			snprintf(PendingLog[PendingLogCount++], 160, "Link request from %s on Port %d refused with DM - locked out for %d more secs after MaxSessionTime",
+				Call, port, (int)(user->ForwardingInfo->LockoutUntil - time(NULL)));
+		return TRUE;
+	}
+
+	NodeHoldsSemaphore = TRUE;
+	Busy = InterlockBusy(port, TRUE, 0);		// This session doesn't exist yet
+	NodeHoldsSemaphore = FALSE;
+
+	if (Busy)
+	{
+		if (PendingLogCount < 8)
+			snprintf(PendingLog[PendingLogCount++], 160, "Link request from %s on Port %d refused with DM - %s", Call, port, Busy);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+#endif
+
+void LogLinkRefusals()
+{
+	// Called every 10 seconds from BBSSlowTimer. Writes the log lines queued
+	// by RefuseBBSLinkRequest
+
+#ifdef LINBPQ
+	int n;
+
+	for (n = 0; n < PendingLogCount; n++)
+		Logprintf(LOG_BBS, NULL, '|', "%s", PendingLog[n]);
+
+	PendingLogCount = 0;
+#endif
 }
 
 void CheckMaxSessionTime(CIRCUIT * conn)

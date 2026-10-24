@@ -87,6 +87,7 @@ VOID SENDCONNECTREPLY(struct _LINKTABLE * LINK);
 VOID SETUPNEWL2SESSION(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffer, UCHAR MSGFLAG);
 BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE);
 VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER, UCHAR MSGFLAG);
+BOOL RefuseBBSLinkRequest(int port, ULONG ApplMask, char * Call);
 VOID L2SENDUA(struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER);
 VOID L2SENDDM(struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER);
 VOID L2SENDRESP(struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER, UCHAR CTL);
@@ -1329,6 +1330,24 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 	toCall[ConvFromAX25(ADJBUFFER->DEST, toCall)] = 0;
 	fromCall[ConvFromAX25(ADJBUFFER->ORIGIN, fromCall)] = 0;
+
+	// Fork: refuse a new link from a partner BBS the BBS would reject (BBSSessionControl.c)
+
+#ifdef LINBPQ
+	// New incoming links only: a spare entry, or one set up by an incoming XID.
+	// Our own outgoing links have LINKTYPE set
+
+	if (LINK->LINKTYPE == 0 && LINK->CIRCUITPOINTER == NULL && LINK->L2STATE < 2 &&
+		RefuseBBSLinkRequest(PORT->PORTNUMBER, LINK->APPLMASK, fromCall))
+	{
+		if (LINK->L2STATE == 1)
+			CLEAROUTLINK(LINK);			// Set up by XID
+		else
+			LINK->APPLMASK = 0;			// Spare entry, don't leave it set
+		L2SENDDM(PORT, Buffer, ADJBUFFER);
+		return;
+	}
+#endif
 
 	SETUPNEWL2SESSION(LINK, PORT, Buffer, MSGFLAG);
 

@@ -1311,6 +1311,8 @@ VOID __cdecl Logprintf(int LogMode, CIRCUIT * conn, int InOut, const char * form
 BOOL ScriptInterlockGroup(CIRCUIT * conn, char * Cmd);
 BOOL SessionLockedOut(struct UserInfo * user);
 BOOL RefuseIncomingSession(CIRCUIT * conn, struct UserInfo * user, int port);
+BOOL RefuseBBSLinkRequest(int port, ULONG ApplMask, char * Call);
+void LogLinkRefusals();
 void CheckMaxSessionTime(CIRCUIT * conn);
 void LogSessionLength(CIRCUIT * conn);
 

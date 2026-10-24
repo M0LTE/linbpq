@@ -9383,6 +9383,7 @@ VOID BBSSlowTimer()
 	// Called every 10 seconds
 
 	MCastTimer();
+	LogLinkRefusals();		// BBSSessionControl.c
 
 
 	for (n = 0; n < NumberofStreams; n++)
