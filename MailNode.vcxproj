@@ -112,6 +112,7 @@
     <ClCompile Include="ARDOP.c" />
     <ClCompile Include="base64.c" />
     <ClCompile Include="BBSHTMLConfig.c" />
+    <ClCompile Include="BBSSessionControl.c" />
     <ClCompile Include="BBSUtilities.c">
       <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </AssemblerOutput>

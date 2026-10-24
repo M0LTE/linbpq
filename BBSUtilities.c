@@ -7378,6 +7378,8 @@ VOID SetupForwardingStruct(struct UserInfo * user)
 			ForwardingInfo->RevFwdInterval = GetIntValue(group, "RevFWDInterval");
 			ForwardingInfo->MaxFBBBlockSize = GetIntValue(group, "MaxFBBBlock");
 			ForwardingInfo->ConTimeout = GetIntValue(group, "ConTimeout");
+			ForwardingInfo->MaxSessionTime = GetIntValue(group, "MaxSessionTime");
+			ForwardingInfo->SessionLockout = GetIntValue(group, "SessionLockout");
 
 			if (ForwardingInfo->MaxFBBBlockSize == 0)
 				ForwardingInfo->MaxFBBBlockSize = 10000;
@@ -8126,6 +8128,9 @@ BOOL ConnecttoBBS (struct UserInfo * user)
 	CIRCUIT * conn;
 	struct	BBSForwardingInfo * ForwardingInfo = user->ForwardingInfo;
 
+	if (SessionLockedOut(user))
+		return FALSE;
+
 	for (n = NumberofStreams-1; n >= 0 ; n--)
 	{
 		conn = &Connections[n];
@@ -8135,6 +8140,7 @@ BOOL ConnecttoBBS (struct UserInfo * user)
 			p = conn->BPQStream;
 			memset(conn, 0, sizeof(ConnectionInfo));		// Clear everything
 			conn->BPQStream = p;
+			conn->SessionStartTime = time(NULL);
 
 			// Can't set Active until Connected or Stuck Session detertor can clear session.
 			// But must set Active before Connected() runs or will appear is Incoming Connect.
@@ -8527,6 +8533,14 @@ InBand:
 				conn->BBSFlags &= ~RunningConnectScript;	// so it doesn't get reentered
 				Disconnect(conn->BPQStream);
 				return FALSE;
+			}
+
+			if (_memicmp(Cmd, "INTERLOCK GROUP ", 16) == 0)
+			{
+				if (!ScriptInterlockGroup(conn, Cmd))		// BBSSessionControl.c
+					return FALSE;
+
+				goto LoopBack;
 			}
 
 			if (_memicmp(Cmd, "INTERLOCK ", 10) == 0)
@@ -9369,6 +9383,7 @@ VOID BBSSlowTimer()
 	// Called every 10 seconds
 
 	MCastTimer();
+	LogLinkRefusals();		// BBSSessionControl.c
 
 
 	for (n = 0; n < NumberofStreams; n++)
@@ -9411,6 +9426,8 @@ VOID BBSSlowTimer()
 					Disconnect(conn->BPQStream);
 				}
 			}
+
+			CheckMaxSessionTime(conn);		// BBSSessionControl.c
 		}
 	}
 
@@ -9987,6 +10004,8 @@ VOID SaveConfig(char * ConfigName)
 		SaveIntValue(group, "RevFWDInterval", ForwardingInfo->RevFwdInterval);
 		SaveIntValue(group, "MaxFBBBlock", ForwardingInfo->MaxFBBBlockSize);
 		SaveIntValue(group, "ConTimeout", ForwardingInfo->ConTimeout);
+		SaveIntValue(group, "MaxSessionTime", ForwardingInfo->MaxSessionTime);
+		SaveIntValue(group, "SessionLockout", ForwardingInfo->SessionLockout);
 
 		SaveStringValue(group, "BBSHA", ForwardingInfo->BBSHA);
 	}
@@ -10927,6 +10946,14 @@ int Connected(int Stream)
 				return 0;
 			}
 
+			if (RefuseIncomingSession(conn, user, port))		// BBSSessionControl.c
+			{
+				Disconnect(Stream);
+				return 0;
+			}
+
+			conn->SessionStartTime = time(NULL);
+
 			if (port)
 				n = sprintf_s(Msg, sizeof(Msg), "Incoming Connect from %s on Port %d Freq %lld Mode %s",
 					user->Call,  port, Freq, WL2KModes[Mode]);
@@ -11160,6 +11187,8 @@ int Disconnected (int Stream)
 
 			len=sprintf_s(Msg, sizeof(Msg), "%s Disconnected", conn->Callsign);
 			WriteLogLine(conn, '|',Msg, len, LOG_BBS);
+
+			LogSessionLength(conn);		// BBSSessionControl.c
 
 			if (conn->FBBHeaders)
 			{

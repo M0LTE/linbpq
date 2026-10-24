@@ -61,6 +61,8 @@ class FwdPartner:
     rev_fwd_interval: int = 0
     max_fbb_block: int = 256
     con_timeout: int = 60
+    max_session_time: int = 0  # minutes, 0 = no limit
+    session_lockout: int = 0  # minutes
 
 
 def _libconfig_string(s: str) -> str:
@@ -191,6 +193,8 @@ def render_bpqmail_cfg(
         out.append(f"    RevFWDInterval = {p.rev_fwd_interval};")
         out.append(f"    MaxFBBBlock = {p.max_fbb_block};")
         out.append(f"    ConTimeout = {p.con_timeout};")
+        out.append(f"    MaxSessionTime = {p.max_session_time};")
+        out.append(f"    SessionLockout = {p.session_lockout};")
         out.append(f"    BBSHA = {_libconfig_string(p.bbs_ha)};")
         out.append("  };")
     out.append("};")

@@ -211,6 +211,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\BPQSource\BBSSessionControl.c"
+				>
+			</File>
+			<File
 				RelativePath="..\BPQSource\BBSUtilities.c"
 				>
 				<FileConfiguration

@@ -43,6 +43,7 @@
     <ClCompile Include="AISCommon.c" />
     <ClCompile Include="Alloc.c" />
     <ClCompile Include="BBSHTMLConfig.c" />
+    <ClCompile Include="BBSSessionControl.c" />
     <ClCompile Include="BBSUtilities.c" />
     <ClCompile Include="BPQINP3.c" />
     <ClCompile Include="BPQNRR.c" />

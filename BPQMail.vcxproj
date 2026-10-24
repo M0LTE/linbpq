@@ -124,6 +124,7 @@
   <ItemGroup>
     <ClCompile Include="Alloc.c" />
     <ClCompile Include="BBSHTMLConfig.c" />
+    <ClCompile Include="BBSSessionControl.c" />
     <ClCompile Include="BBSUtilities.c">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
       <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
