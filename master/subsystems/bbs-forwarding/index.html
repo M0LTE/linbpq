@@ -2623,6 +2623,17 @@ midnight; split with two adjacent bands.</p>
 </tr>
 </tbody>
 </table>
+<p>When a partner BBS calls the BBS application callsign directly over
+AX.25 and would be refused because of <code>INTERLOCK</code> or a
+<code>SessionLockout</code>, the node answers its connect request with DM rather
+than accepting the link and then disconnecting it. That saves airtime
+on a shared channel, and other stations no longer hear the BBS send
+the partner a disconnect in the middle of someone else's mail run. The
+BBS log records <code>Link request from &lt;call&gt; on Port &lt;n&gt; refused with DM</code>
+and the reason, up to 10 seconds later. Partners that connect through
+the node (for example <code>C RDGBBS</code>) and ordinary users still get the
+link first, and are refused at the BBS as before, so users are told
+why.</p>
 <p>Put <code>INTERLOCK</code> lines first, or straight after <code>MSGTYPES</code>. When the
 node replies to a command by echoing it (for example
 <code>READNG:GB7RDG} FRACK was 70 now 21</code>), the next script line is sent

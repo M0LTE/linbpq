@@ -2006,6 +2006,14 @@ listed here.</p>
 <td>Not yet</td>
 <td>Incoming <code>INTERLOCK</code>, <code>INTERLOCK GROUP &lt;n&gt;</code>, <code>MaxSessionTime</code> / <code>SessionLockout</code>, session-length logging. See <a href="../../subsystems/bbs-forwarding/">Inter-BBS forwarding</a>. Tests: <code>tests/integration/test_bbs_session_limits.py</code>.</td>
 </tr>
+<tr>
+<td>Partner link requests refused with DM when the interlock or a lockout would refuse them</td>
+<td>Feature</td>
+<td><em>this PR</em></td>
+<td><code>BBSSessionControl.c</code> (<code>RefuseBBSLinkRequest</code>, <code>LogLinkRefusals</code>), hooks in <code>L2SABM</code> in <code>L2Code.c</code> and <code>BBSSlowTimer</code> in <code>BBSUtilities.c</code></td>
+<td>Not yet</td>
+<td>Builds on #76. Runs with the node semaphore held, so it reads stream ports directly rather than through <code>GetConnectionInfo</code>, and queues its log lines. Tests: <code>tests/integration/test_bbs_link_refusal.py</code>.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="taken-by-john">Taken by John<a class="headerlink" href="#taken-by-john" title="Permanent link">&para;</a></h2>
