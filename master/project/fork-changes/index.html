@@ -1999,20 +1999,12 @@ listed here.</p>
 </thead>
 <tbody>
 <tr>
-<td>BBS session time limits and channel interlock for partner forwarding (<a href="https://github.com/M0LTE/linbpq/pull/76">#76</a>)</td>
+<td>BBS session time limits and channel interlock for partner forwarding (<a href="https://github.com/M0LTE/linbpq/pull/76">#76</a>, <a href="https://github.com/M0LTE/linbpq/pull/80">#80</a>)</td>
 <td>Feature</td>
-<td><code>d212958</code>, <code>29b8b4c</code> (moved into its own file)</td>
-<td><code>BBSSessionControl.c</code>, hooks in <code>BBSUtilities.c</code>, web config in <code>BBSHTMLConfig.c</code> and <code>templatedefs.c</code></td>
+<td><code>f2bb0c8</code></td>
+<td><code>BBSSessionControl.c</code>, hooks in <code>BBSUtilities.c</code> and <code>L2SABM</code> in <code>L2Code.c</code>, web config in <code>BBSHTMLConfig.c</code> and <code>templatedefs.c</code></td>
 <td>Not yet</td>
-<td>Incoming <code>INTERLOCK</code>, <code>INTERLOCK GROUP &lt;n&gt;</code>, <code>MaxSessionTime</code> / <code>SessionLockout</code>, session-length logging. See <a href="../../subsystems/bbs-forwarding/">Inter-BBS forwarding</a>. Tests: <code>tests/integration/test_bbs_session_limits.py</code>.</td>
-</tr>
-<tr>
-<td>Partner link requests refused with DM when the interlock or a lockout would refuse them</td>
-<td>Feature</td>
-<td><em>this PR</em></td>
-<td><code>BBSSessionControl.c</code> (<code>RefuseBBSLinkRequest</code>, <code>LogLinkRefusals</code>), hooks in <code>L2SABM</code> in <code>L2Code.c</code> and <code>BBSSlowTimer</code> in <code>BBSUtilities.c</code></td>
-<td>Not yet</td>
-<td>Builds on #76. Runs with the node semaphore held, so it reads stream ports directly rather than through <code>GetConnectionInfo</code>, and queues its log lines. Tests: <code>tests/integration/test_bbs_link_refusal.py</code>.</td>
+<td>Incoming <code>INTERLOCK</code>, <code>INTERLOCK GROUP &lt;n&gt;</code>, <code>MaxSessionTime</code> / <code>SessionLockout</code>, session-length logging, and partner link requests the BBS would refuse answered with DM. See <a href="../../subsystems/bbs-forwarding/">Inter-BBS forwarding</a>. Tests: <code>tests/integration/test_bbs_session_limits.py</code>, <code>tests/integration/test_bbs_link_refusal.py</code>.</td>
 </tr>
 </tbody>
 </table>
