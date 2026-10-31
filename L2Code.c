@@ -3897,6 +3897,29 @@ VOID L2TIMEOUT(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT)
 
 VOID SDFRMR(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT)
 {
+#ifdef FRMRHACK
+
+	// FORK FIX: remove when upstream LinBPQ includes this (packet-net/dapps#425)
+	// An invalid N(R) left the link in FRMR state sending nothing (SENDFRMR
+	// below) and ignoring every frame until it retried out and disconnected.
+	// Reset the link instead, as we already do on receiving FRMR (SDUFRM):
+	// AX.25 2.3 draft 4.3.3.9, 6.5 and figure C4.7 (N(r) Error Recovery).
+
+	if (LINK->SDREJF & SDNRER)
+	{
+		Debugprintf("L2 invalid N(R) - resetting link");
+
+		RESET2(LINK);
+
+		LINK->L2STATE = 2;				// INITIALISING
+		LINK->L2ACKREQ = 0;				// DONT SEND ANYTHING ELSE
+		LINK->L2RETRIES = 0;			// ALLOW FULL RETRY COUNT FOR SABM
+
+		L2SENDCOMMAND(LINK, SABM | PFBIT);
+		return;
+	}
+#endif
+
 	PORT->L2FRMRTX++;
 
 	LINK->L2STATE = 3;				// ENTER FRMR STATE

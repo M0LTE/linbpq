@@ -39,7 +39,6 @@ def test_repeated_i_frames_are_discarded(tmp_path: Path):
     _run("dup", tmp_path)
 
 
-@pytest.mark.xfail(strict=True, reason=_XFAIL)
 def test_invalid_nr_resets_the_link(tmp_path: Path):
     _run("badnr", tmp_path)
 
