@@ -390,7 +390,34 @@ def scenario_counter(link, r):
     r.fail("no answer to the poll")
 
 
-SCENARIOS = {"dup": scenario_dup, "badnr": scenario_badnr, "counter": scenario_counter}
+def scenario_srejloop(link, r):
+    """Regression guard for the counter move (not an upstream fault): a 2.2
+    peer that answers every poll, the resent I(P) included, with SREJ F for
+    the same frame must still be disconnected after N2 rounds, not held forever."""
+    _connect(link, r, xid=True)
+    link.send(I(0, 0, b"VERSION\r"))
+    first = link.wait_for(lambda f: f.is_i, 10)
+    if first is None:
+        raise RuntimeError("LinBPQ sent no I frame")
+    r.log("--- every poll, I(P) resends included, answered SREJ F for the same frame."
+          " Expected: DISC (\"Too many repeats of same I frame\")")
+    end = time.monotonic() + 60
+    while time.monotonic() < end:
+        f = link.wait_for(lambda f: True, 1)
+        if f is None:
+            continue
+        if f.kind == DISC and not f.is_s and not f.is_i:
+            link.send(U(UA, cmd=False))
+            return
+        if f.cmd and f.pf and (f.is_s or f.is_i):
+            link.send(S(SREJ, first.ns, cmd=False, pf=True), "asks for the same frame again")
+    r.fail("no DISC within 60 s: a peer stuck on one SREJ holds the link forever")
+
+
+SCENARIOS = {"dup": scenario_dup, "badnr": scenario_badnr, "counter": scenario_counter,
+             "srejloop": scenario_srejloop}
+# The three upstream faults; srejloop runs only by name or from pytest.
+DEFAULT = ["dup", "badnr", "counter"]
 
 
 def run_scenario(name, linbpq, work_dir=None):
@@ -426,7 +453,7 @@ def main(argv):
     if len(argv) < 2:
         print(__doc__)
         return 2
-    names = argv[2:] or list(SCENARIOS)
+    names = argv[2:] or DEFAULT
     results = []
     for n in names:
         r = run_scenario(n, argv[1])

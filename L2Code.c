@@ -2349,6 +2349,20 @@ VOID SFRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, UCHAR CTL, UCHA
 					Debugprintf ("SREJ for our NS");
 					goto treatasRR;
 				}
+
+				// FORK FIX: remove when upstream LinBPQ includes this (packet-net/dapps#425)
+				// SREJ(F) answers our poll too, so count it towards "Too many repeats
+				// of same I frame" as ACKMSG used to. A peer that keeps asking for a
+				// frame it never gets must not hold the link forever.
+
+				if (LINK->IFrameRetryCounter++ > LINK->LINKPORT->PORTN2)
+				{
+					Debugprintf("Too many repeats of same I frame - closing connection");
+					LINK->L2TIMER = 1;		// USE TIMER TO SEND DISC
+					LINK->L2STATE = 4;		// DISCONNECTING
+					return;
+				}
+
 				LINK->L2FLAGS &= ~POLLSENT;			// CLEAR I(P) or RR(P) SET
 				
 				Msg = LINK->FRAMES[NS];	// is frame available?

@@ -40,3 +40,7 @@ def test_invalid_nr_resets_the_link(tmp_path: Path):
 
 def test_frames_without_new_ack_keep_the_link(tmp_path: Path):
     _run("counter", tmp_path)
+
+
+def test_peer_stuck_on_one_srej_is_disconnected(tmp_path: Path):
+    _run("srejloop", tmp_path)
