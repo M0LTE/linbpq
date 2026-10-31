@@ -20,9 +20,13 @@ listed here.
 | Change | Kind | Commits | Code | Offered to John | Notes |
 |---|---|---|---|---|---|
 | BBS session time limits and channel interlock for partner forwarding ([#76][pr76], [#80][pr80]) | Feature | `f2bb0c8` | `BBSSessionControl.c`, hooks in `BBSUtilities.c` and `L2SABM` in `L2Code.c`, web config in `BBSHTMLConfig.c` and `templatedefs.c` | Not yet | Incoming `INTERLOCK`, `INTERLOCK GROUP <n>`, `MaxSessionTime` / `SessionLockout`, session-length logging, and partner link requests the BBS would refuse answered with DM. See [Inter-BBS forwarding](../subsystems/bbs-forwarding.md). Tests: `tests/integration/test_bbs_session_limits.py`, `tests/integration/test_bbs_link_refusal.py`. |
+| L2: discard repeated I frames outside the receive window ([#81][pr81], packet-net/dapps#425) | Fix | one, in [#81][pr81] | `SDIFRM` in `L2Code.c` | Not yet | Repeats were saved as future frames: SREJ for a frame never sent, then stale data delivered as new on 2.2 links. Test: `tests/integration/test_l2_sequence_errors.py` (`dup`). |
+| L2: reset the link on an invalid N(R) ([#81][pr81]) | Fix | one, in [#81][pr81] | `SDFRMR` in `L2Code.c` | Not yet | FRMRHACK left the link silent until it retried out. Test: same file (`badnr`). |
+| L2: count only poll answers towards "Too many repeats of same I frame" ([#81][pr81]) | Fix | one, in [#81][pr81] | `SFRAME` and `ACKMSG` in `L2Code.c` | Not yet | A burst of frames with no new ack disconnected a healthy link. Test: same file (`counter`). |
 
 [pr76]: https://github.com/M0LTE/linbpq/pull/76
 [pr80]: https://github.com/M0LTE/linbpq/pull/80
+[pr81]: https://github.com/M0LTE/linbpq/pull/81
 
 ## Taken by John
 
