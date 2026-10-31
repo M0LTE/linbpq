@@ -35,7 +35,6 @@ def _run(name: str, tmp_path: Path) -> None:
     assert r.ok, "\n" + r.report()
 
 
-@pytest.mark.xfail(strict=True, reason=_XFAIL)
 def test_repeated_i_frames_are_discarded(tmp_path: Path):
     _run("dup", tmp_path)
 

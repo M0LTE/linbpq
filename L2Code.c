@@ -2626,6 +2626,27 @@ CheckNSLoop:
 			goto CheckNSLoop;		// See if OK or we have another saved frame
 		}
 	
+		// FORK FIX: remove when upstream LinBPQ includes this (packet-net/dapps#425)
+		// An N(S) outside the receive window is a repeat of a frame we already
+		// have (a retransmission that crossed our ack), not a missing frame.
+		// Discard it, raise no REJ or SREJ, answer only a poll (AX.25 2.3 draft
+		// 4.4.2, 6.4.4.1, 6.4.4.2). Saving it sent SREJ for a frame not yet sent
+		// and later delivered it as new data. The window is k = 4, the mod 8
+		// default (4.3.3.7) and the most at which a repeat can be told from a
+		// new frame; a peer sending more at once just has the rest resent.
+
+		if (((NS - LINK->LINKNR) & 7) >= 4)
+		{
+			if (CTL & PFBIT)
+			{
+				LINK->L2ACKREQ = 0;
+				SEND_RR_RESP(LINK, PFBIT);
+				LINK->LAST_F_TIME = REALTIMETICKS;
+			}
+			ReleaseBuffer(Buffer);
+			return;
+		}
+
 		//	BAD FRAME, SEND REJ (AFTER RESPTIME - OR WE MAY SEND LOTS!)
 
 		//	ALSO SAVE THE FRAME - NEXT TIME WE MAY GET A DIFFERENT SUBSET
