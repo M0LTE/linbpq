@@ -2509,6 +2509,20 @@ treatasRR:
 //	if ((CTL & 0xf) == REJ || LINK->L2RETRIES)
 	if ((LINK->L2FLAGS & POLLSENT))
 	{
+		// FORK FIX: remove when upstream LinBPQ includes this (packet-net/dapps#425)
+		// Need to kill link if we are getting repeated RR(F) after timeout
+		// (Indicating other station is seeing our RR(P) but not the resent I frame).
+		// Count only these answers (ACKMSG resets the count when anything is
+		// acked); AX.25 2.3 draft 6.4.6, 6.4.11: frames with no new ack are normal.
+
+		if (LINK->LINKWS != LINK->LINKNS && LINK->IFrameRetryCounter++ > LINK->LINKPORT->PORTN2)
+		{
+			Debugprintf("Too many repeats of same I frame - closing connection");
+			LINK->L2TIMER = 1;		// USE TIMER TO SEND DISC
+			LINK->L2STATE = 4;		// DISCONNECTING
+			return;
+		}
+
 		RESETNS(LINK, (CTL >> 5) & 7);	// RESET N(S) AND COUNT RETRIED FRAMES
 
 		LINK->L2RETRIES = 0;
@@ -3736,16 +3750,11 @@ VOID ACKMSG(struct _LINKTABLE * LINK)
 	{
 		//	NOT ALL I-FRAMES HAVE BEEN ACK'ED - RESTART TIMER
 
-		//	Need to kill link if we are getting repeated RR(F) after timeout 
-		//	(Indicating other station is seeing our RR(P) but not the resent I frame)
-
-		if (LINK->IFrameRetryCounter++ > LINK->LINKPORT->PORTN2)
-		{
-			Debugprintf("Too many repeats of same I frame - closing connection");
-			LINK->L2TIMER = 1;		// USE TIMER TO SEND DISC
-			LINK->L2STATE = 4;		// DISCONNECTING
-			return;
-		}
+		// FORK FIX: remove when upstream LinBPQ includes this (packet-net/dapps#425)
+		// The "Too many repeats of same I frame" check moved to SFRAME, where
+		// it counts only answers to our polls. Here it counted every frame
+		// received and every RR sent, so one burst of frames carrying no new
+		// ack disconnected a healthy link.
 
 
 		LINK->L2TIMER = LINK->L2TIME;
