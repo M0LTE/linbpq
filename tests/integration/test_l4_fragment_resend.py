@@ -15,21 +15,16 @@ them again from its hold queue:
 The same file runs outside pytest against any LinBPQ build:
 ``python3 tests/integration/helpers/l4_repro.py ./linbpq``.
 
-A test marked strict xfail asserts the correct behaviour and fails on
-a build without the fix; once the fix lands the mark comes off.
+Each test asserts the correct behaviour, so it fails on a build
+without the fork fix in SENDL4MESSAGE (L4Code.c, marked FORK FIX).
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from helpers import l4_repro
 from helpers.linbpq_instance import LINBPQ_BIN
-
-
-_XFAIL = "packet-net/dapps#425: fault not fixed in this build"
 
 
 def _run(name: str, tmp_path: Path) -> None:
@@ -37,11 +32,9 @@ def _run(name: str, tmp_path: Path) -> None:
     assert r.ok, "\n" + r.report()
 
 
-@pytest.mark.xfail(strict=True, reason=_XFAIL)
 def test_timer_resend_is_the_frame_sent(tmp_path: Path):
     _run("timer", tmp_path)
 
 
-@pytest.mark.xfail(strict=True, reason=_XFAIL)
 def test_nak_resend_is_the_frame_sent(tmp_path: Path):
     _run("nak", tmp_path)
