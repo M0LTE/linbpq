@@ -444,12 +444,13 @@ VOID SENDL4MESSAGE(TRANSPORTENTRY * L4, struct DATAMESSAGE * Msg)
 	}
 
 	memcpy(Copy, L3MSG, L3MSG->LENGTH);
-	
-	// If we have fragmented, we should adjust length, or retry will send too much
-	//	(bug in .asm code)
 
-	if (FRAGFLAG)
-		Copy->LENGTH = MaxL4Len;
+	// FORK FIX: remove when upstream LinBPQ includes this (packet-net/dapps#425)
+	// The copy is resent as it is (L4TIMEOUT, NAK in ACKFRAMES), so it must be
+	// the frame just sent. Its LENGTH is L3MSG's, already capped at one
+	// fragment plus the 20 byte L3/L4 header. Setting it to MaxL4Len here when
+	// fragmenting left out that header, so every resent full fragment lost
+	// its last 20 data bytes.
 
 	C_Q_ADD(&L4->L4HOLD_Q, Copy);
 
