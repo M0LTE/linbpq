@@ -2030,6 +2030,14 @@ listed here.</p>
 <td>Not yet</td>
 <td>A burst of frames with no new ack disconnected a healthy link. Test: same file (<code>counter</code>).</td>
 </tr>
+<tr>
+<td>L4: resend NET/ROM fragments whole, not 20 bytes short (<a href="https://github.com/M0LTE/linbpq/pull/84">#84</a>, packet-net/dapps#425)</td>
+<td>Fix</td>
+<td>one, in <a href="https://github.com/M0LTE/linbpq/pull/84">#84</a></td>
+<td><code>SENDL4MESSAGE</code> in <code>L4Code.c</code></td>
+<td>Not yet</td>
+<td>A resent full fragment of a message over 236 bytes lost its last 20 bytes, on both the timer and the NAK resend. Test: <code>tests/integration/test_l4_fragment_resend.py</code>.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="taken-by-john">Taken by John<a class="headerlink" href="#taken-by-john" title="Permanent link">&para;</a></h2>
