@@ -23,10 +23,12 @@ listed here.
 | L2: discard repeated I frames outside the receive window ([#81][pr81], packet-net/dapps#425) | Fix | one, in [#81][pr81] | `SDIFRM` in `L2Code.c` | Not yet | Repeats were saved as future frames: SREJ for a frame never sent, then stale data delivered as new on 2.2 links. Test: `tests/integration/test_l2_sequence_errors.py` (`dup`). |
 | L2: reset the link on an invalid N(R) ([#81][pr81]) | Fix | one, in [#81][pr81] | `SDFRMR` in `L2Code.c` | Not yet | FRMRHACK left the link silent until it retried out. Test: same file (`badnr`). |
 | L2: count only poll answers towards "Too many repeats of same I frame" ([#81][pr81]) | Fix | one, in [#81][pr81] | `SFRAME` and `ACKMSG` in `L2Code.c` | Not yet | A burst of frames with no new ack disconnected a healthy link. Test: same file (`counter`). |
+| L4: resend NET/ROM fragments whole, not 20 bytes short ([#84][pr84], packet-net/dapps#425) | Fix | one, in [#84][pr84] | `SENDL4MESSAGE` in `L4Code.c` | Not yet | A resent full fragment of a message over 236 bytes lost its last 20 bytes, on both the timer and the NAK resend. Test: `tests/integration/test_l4_fragment_resend.py`. |
 
 [pr76]: https://github.com/M0LTE/linbpq/pull/76
 [pr80]: https://github.com/M0LTE/linbpq/pull/80
 [pr81]: https://github.com/M0LTE/linbpq/pull/81
+[pr84]: https://github.com/M0LTE/linbpq/pull/84
 
 ## Taken by John
 
