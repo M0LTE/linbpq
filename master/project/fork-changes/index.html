@@ -2038,6 +2038,14 @@ listed here.</p>
 <td>Not yet</td>
 <td>A resent full fragment of a message over 236 bytes lost its last 20 bytes, on both the timer and the NAK resend. Test: <code>tests/integration/test_l4_fragment_resend.py</code>.</td>
 </tr>
+<tr>
+<td>BBS: don't read a stream's data before its connect is processed (<a href="https://github.com/M0LTE/linbpq/issues/86">#86</a>, <a href="https://github.com/M0LTE/linbpq/pull/87">#87</a>)</td>
+<td>Fix</td>
+<td>one, in <a href="https://github.com/M0LTE/linbpq/pull/87">#87</a></td>
+<td><code>BBSStreamGuard.c</code>, hook at the top of <code>DoReceivedData</code> in <code>BBSUtilities.c</code></td>
+<td>Not yet</td>
+<td><code>PollStreams</code> reads data before connects, so a line arriving with the connect (an auto-start USER line and a fast client) reached <code>ProcessLine</code> with no user: SIGSEGV, whole node down. Test: <code>tests/integration/test_bbs_data_before_connect.py</code>.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="taken-by-john">Taken by John<a class="headerlink" href="#taken-by-john" title="Permanent link">&para;</a></h2>
