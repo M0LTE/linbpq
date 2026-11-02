@@ -24,11 +24,14 @@ listed here.
 | L2: reset the link on an invalid N(R) ([#81][pr81]) | Fix | one, in [#81][pr81] | `SDFRMR` in `L2Code.c` | Not yet | FRMRHACK left the link silent until it retried out. Test: same file (`badnr`). |
 | L2: count only poll answers towards "Too many repeats of same I frame" ([#81][pr81]) | Fix | one, in [#81][pr81] | `SFRAME` and `ACKMSG` in `L2Code.c` | Not yet | A burst of frames with no new ack disconnected a healthy link. Test: same file (`counter`). |
 | L4: resend NET/ROM fragments whole, not 20 bytes short ([#84][pr84], packet-net/dapps#425) | Fix | one, in [#84][pr84] | `SENDL4MESSAGE` in `L4Code.c` | Not yet | A resent full fragment of a message over 236 bytes lost its last 20 bytes, on both the timer and the NAK resend. Test: `tests/integration/test_l4_fragment_resend.py`. |
+| BBS: don't read a stream's data before its connect is processed ([#86][i86], [#87][pr87]) | Fix | one, in [#87][pr87] | `BBSStreamGuard.c`, hook at the top of `DoReceivedData` in `BBSUtilities.c` | Not yet | `PollStreams` reads data before connects, so a line arriving with the connect (an auto-start USER line and a fast client) reached `ProcessLine` with no user: SIGSEGV, whole node down. Test: `tests/integration/test_bbs_data_before_connect.py`. |
 
 [pr76]: https://github.com/M0LTE/linbpq/pull/76
 [pr80]: https://github.com/M0LTE/linbpq/pull/80
 [pr81]: https://github.com/M0LTE/linbpq/pull/81
 [pr84]: https://github.com/M0LTE/linbpq/pull/84
+[i86]: https://github.com/M0LTE/linbpq/issues/86
+[pr87]: https://github.com/M0LTE/linbpq/pull/87
 
 ## Taken by John
 
