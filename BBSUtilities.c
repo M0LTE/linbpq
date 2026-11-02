@@ -11249,6 +11249,9 @@ int DoReceivedData(int Stream)
 
 		if (Stream == conn->BPQStream)
 		{
+			if (!BBSStreamReadyForData(conn))		// BBSStreamGuard.c
+				return 0;
+
 			conn->SIDResponseTimer = 0;		// Got a message, so cancel timeout.
 			do
 			{ 

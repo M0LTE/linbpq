@@ -1316,6 +1316,10 @@ void LogLinkRefusals();
 void CheckMaxSessionTime(CIRCUIT * conn);
 void LogSessionLength(CIRCUIT * conn);
 
+// BBSStreamGuard.c
+
+BOOL BBSStreamReadyForData(CIRCUIT * conn);
+
 VOID SortBBSChain();
 VOID ExpandAndSendMessage(CIRCUIT * conn, char * Msg, int LOG);
 int ImportMessages(CIRCUIT * conn, char * FN, BOOL Nopopup);

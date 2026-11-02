@@ -215,6 +215,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\BPQSource\BBSStreamGuard.c"
+				>
+			</File>
+			<File
 				RelativePath="..\BPQSource\BBSUtilities.c"
 				>
 				<FileConfiguration
