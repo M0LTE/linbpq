@@ -35,6 +35,24 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 extern struct SEM ConSemaphore;
 
+#ifndef LINBPQ
+__declspec(dllimport) BPQVECSTRUC ** BPQHOSTVECPTR;
+#endif
+
+static BOOL DisconnectRequested(int Stream)
+{
+	BPQVECSTRUC * SESS;
+
+#ifdef LINBPQ
+	SESS = &BPQHOSTVECTOR[Stream - 1];
+#else
+	SESS = (BPQVECSTRUC *)BPQHOSTVECPTR;
+	SESS += (Stream - 1);
+#endif
+
+	return (SESS->HOSTFLAGS & 0x40) != 0;		// 'DISC REQ' set by Disconnect()
+}
+
 BOOL BBSStreamReadyForData(CIRCUIT * conn)
 {
 	// TRUE if DoReceivedData can go on and read this stream's data
@@ -62,7 +80,11 @@ BOOL BBSStreamReadyForData(CIRCUIT * conn)
 
 		FreeSemaphore(&ConSemaphore);
 
-		if (conn->Active && conn->UserPointer)
+		// Connected() refuses a caller (Excluded, OnlyKnown, interlock) by
+		// asking for a disconnect, which leaves the session in place until
+		// the node acts on it. Don't run the caller's line in the meantime
+
+		if (conn->Active && conn->UserPointer && !DisconnectRequested(conn->BPQStream))
 			return TRUE;
 	}
 
